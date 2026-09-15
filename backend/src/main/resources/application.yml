@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: finpro-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/finpro}
+    username: ${SPRING_DATASOURCE_USERNAME:finpro}
+    password: ${SPRING_DATASOURCE_PASSWORD:finpro}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+finpro:
+  jwt:
+    secret: ${JWT_SECRET:change-me-to-a-long-random-secret}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
