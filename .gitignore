@@ -1,0 +1,21 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Backend (Maven/Java) - also see backend/.gitignore
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend (Node) - also see frontend/.gitignore
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
