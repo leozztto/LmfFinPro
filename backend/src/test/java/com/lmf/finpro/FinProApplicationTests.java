@@ -2,14 +2,21 @@ package com.lmf.finpro;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
+@Testcontainers
 class FinProApplicationTests {
+
+    @Container
+    @ServiceConnection
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Test
     void contextLoads() {
-        // Sobe o contexto do Spring como smoke test inicial.
-        // Testes de integração com Testcontainers virão em classes específicas.
+        // Sobe o contexto do Spring contra um Postgres descartável via Testcontainers.
     }
 }
