@@ -80,7 +80,11 @@ export function RegisterPage() {
       documentNumber: values.documentNumber,
       phone: values.phone || undefined,
       taxRegime: values.taxRegime,
-      address: { ...values.address, complement: values.address.complement || undefined },
+      address: {
+        ...values.address,
+        zipCode: onlyDigits(values.address.zipCode),
+        complement: values.address.complement || undefined,
+      },
     })
     navigate('/')
   }
