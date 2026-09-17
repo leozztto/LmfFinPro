@@ -18,6 +18,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -65,8 +67,13 @@ public class TransferApplicationService {
     }
 
     public List<TransferResult> list(Long currentUserId) {
-        return transferRepositoryPort.findAllByUserId(currentUserId).stream()
-            .map(this::toResult)
+        List<Transfer> transfers = transferRepositoryPort.findAllByUserId(currentUserId);
+        List<Long> transferIds = transfers.stream().map(Transfer::id).toList();
+        Map<Long, List<Transaction>> legsByTransferId = transactionRepositoryPort.findAllByTransferIds(transferIds).stream()
+            .collect(Collectors.groupingBy(Transaction::transferId));
+
+        return transfers.stream()
+            .map(transfer -> toResult(transfer, legsByTransferId.getOrDefault(transfer.id(), List.of())))
             .toList();
     }
 
@@ -77,8 +84,7 @@ public class TransferApplicationService {
         transferRepositoryPort.deleteById(transfer.id());
     }
 
-    private TransferResult toResult(Transfer transfer) {
-        List<Transaction> legs = transactionRepositoryPort.findAllByTransferId(transfer.id());
+    private TransferResult toResult(Transfer transfer, List<Transaction> legs) {
         Long fromTransactionId = legs.stream()
             .filter(t -> t.accountId().equals(transfer.fromAccountId()) && t.type() == CategoryType.EXPENSE)
             .map(Transaction::id)
@@ -99,17 +105,15 @@ public class TransferApplicationService {
             .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
-    /** Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta (não há saldo persistido no projeto). */
+    /**
+     * Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta (não há saldo
+     * persistido no projeto). Soma feita no banco (SUM agregado) em vez de carregar todas as
+     * transações da conta para somar em memória — evita trafegar o histórico inteiro só para
+     * validar uma transferência.
+     */
     private BigDecimal calculateBalance(Account account) {
-        List<Transaction> transactions = transactionRepositoryPort.findAllByAccountIds(List.of(account.id()));
-        BigDecimal income = transactions.stream()
-            .filter(t -> t.type() == CategoryType.INCOME)
-            .map(Transaction::amount)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal expense = transactions.stream()
-            .filter(t -> t.type() == CategoryType.EXPENSE)
-            .map(Transaction::amount)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal income = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.INCOME);
+        BigDecimal expense = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.EXPENSE);
         return account.initialBalance().add(income).subtract(expense);
     }
 }
