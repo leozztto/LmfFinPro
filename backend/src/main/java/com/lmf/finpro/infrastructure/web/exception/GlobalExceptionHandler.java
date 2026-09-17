@@ -1,5 +1,7 @@
 package com.lmf.finpro.infrastructure.web.exception;
 
+import com.lmf.finpro.domain.exception.CepNotFoundException;
+import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
@@ -37,6 +39,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(CepNotFoundException.class)
+    public ResponseEntity<ApiError> handleCepNotFound(CepNotFoundException ex, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(CepServiceUnavailableException.class)
+    public ResponseEntity<ApiError> handleCepServiceUnavailable(CepServiceUnavailableException ex, HttpServletRequest request) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
