@@ -9,12 +9,12 @@ export function AccountList() {
   const deleteAccount = useDeleteAccount()
 
   if (isLoading) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Carregando contas...</p>
+    return <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando contas...</p>
   }
 
   if (!accounts?.length) {
     return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
         Nenhuma conta cadastrada ainda. Adicione a primeira acima.
       </p>
     )
@@ -25,9 +25,9 @@ export function AccountList() {
       {accounts.map((account) => (
         <Card key={account.id} className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-medium text-slate-900 dark:text-slate-50">{account.name}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{ACCOUNT_TYPE_LABELS[account.type]}</p>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">{account.name}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
               Saldo inicial: {formatCurrency(account.initialBalance)}
             </p>
           </div>

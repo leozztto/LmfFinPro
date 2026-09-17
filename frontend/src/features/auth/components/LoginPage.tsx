@@ -6,6 +6,7 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useLogin } from '../hooks/useLogin'
 import { loginSchema, type LoginFormValues } from '../schemas'
 import { Footer } from '@/shared/layout/Footer'
+import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -14,7 +15,11 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) })
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  })
 
   async function onSubmit(values: LoginFormValues) {
     await login.mutateAsync(values)
@@ -22,11 +27,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-900">
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-900">
+      <div className="flex justify-end px-4 pt-4">
+        <ThemeToggle />
+      </div>
       <div className="flex flex-1 items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Entrar no FinPro</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Entrar no FinPro</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Controle financeiro para freelancers e autônomos.
           </p>
 
@@ -47,7 +55,7 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
             Ainda não tem conta?{' '}
             <Link to="/registro" className="font-medium text-primary-600 hover:underline">
               Cadastre-se
