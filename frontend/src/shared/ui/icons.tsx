@@ -145,6 +145,24 @@ export function SwapIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function TransferIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <path d="M3 8h14M17 8l-3-3M17 8l-3 3" />
+      <path d="M21 16H7M7 16l3-3M7 16l3 3" />
+    </svg>
+  )
+}
+
 export function LinkedInIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" {...props}>

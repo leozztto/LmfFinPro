@@ -5,7 +5,10 @@ import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
+import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.exception.SameAccountTransferException;
+import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +52,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CepServiceUnavailableException.class)
     public ResponseEntity<ApiError> handleCepServiceUnavailable(CepServiceUnavailableException ex, HttpServletRequest request) {
         return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(SameAccountTransferException.class)
+    public ResponseEntity<ApiError> handleSameAccountTransfer(SameAccountTransferException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<ApiError> handleInsufficientBalance(InsufficientBalanceException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(TransactionLinkedToTransferException.class)
+    public ResponseEntity<ApiError> handleTransactionLinkedToTransfer(TransactionLinkedToTransferException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

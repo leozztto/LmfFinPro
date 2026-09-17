@@ -31,36 +31,51 @@ export function TransactionList() {
 
   return (
     <div className="space-y-3">
-      {sorted.map((transaction) => (
-        <Card key={transaction.id} className="flex items-center justify-between gap-3">
-          <div>
-            <p className="font-medium text-zinc-900 dark:text-zinc-50">{transaction.description}</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {formatDateOnlyBr(transaction.transactionDate)} ·{' '}
-              {accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
-              {transaction.categoryId ? ` · ${categoryNameById.get(transaction.categoryId) ?? ''}` : ''}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={
-                transaction.type === 'INCOME'
-                  ? 'font-semibold text-green-600 dark:text-green-500'
-                  : 'font-semibold text-red-600'
-              }
-            >
-              {transaction.type === 'INCOME' ? '+' : '-'} {formatCurrency(transaction.amount)}
-            </span>
-            <Button
-              variant="secondary"
-              onClick={() => deleteTransaction.mutate(transaction.id)}
-              disabled={deleteTransaction.isPending}
-            >
-              Remover
-            </Button>
-          </div>
-        </Card>
-      ))}
+      {sorted.map((transaction) => {
+        const isTransfer = transaction.transferId != null
+        return (
+          <Card key={transaction.id} className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-zinc-900 dark:text-zinc-50">{transaction.description}</p>
+                {isTransfer && (
+                  <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-zinc-700 dark:text-zinc-200">
+                    Transferência
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {formatDateOnlyBr(transaction.transactionDate)} ·{' '}
+                {accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
+                {transaction.categoryId ? ` · ${categoryNameById.get(transaction.categoryId) ?? ''}` : ''}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={
+                  transaction.type === 'INCOME'
+                    ? 'font-semibold text-green-600 dark:text-green-500'
+                    : 'font-semibold text-red-600'
+                }
+              >
+                {transaction.type === 'INCOME' ? '+' : '-'} {formatCurrency(transaction.amount)}
+              </span>
+              <Button
+                variant="secondary"
+                onClick={() => deleteTransaction.mutate(transaction.id)}
+                disabled={deleteTransaction.isPending || isTransfer}
+                title={
+                  isTransfer
+                    ? 'Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.'
+                    : undefined
+                }
+              >
+                Remover
+              </Button>
+            </div>
+          </Card>
+        )
+      })}
     </div>
   )
 }

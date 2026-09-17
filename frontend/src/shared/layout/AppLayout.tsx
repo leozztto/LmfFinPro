@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { Button } from '@/shared/ui'
-import { HomeIcon, SwapIcon, TagIcon, WalletIcon } from '@/shared/ui/icons'
+import { HomeIcon, SwapIcon, TagIcon, TransferIcon, WalletIcon } from '@/shared/ui/icons'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import { Footer } from './Footer'
 
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/contas', label: 'Contas', icon: WalletIcon },
   { to: '/categorias', label: 'Categorias', icon: TagIcon },
   { to: '/transacoes', label: 'Transações', icon: SwapIcon },
+  { to: '/transferencias', label: 'Transferências', icon: TransferIcon },
 ]
 
 export function AppLayout() {

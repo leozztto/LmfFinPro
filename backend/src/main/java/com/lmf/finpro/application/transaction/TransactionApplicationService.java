@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.transaction;
 
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
@@ -56,7 +57,12 @@ public class TransactionApplicationService {
     }
 
     public void delete(Long currentUserId, Long transactionId) {
-        findOwnedOrThrow(currentUserId, transactionId);
+        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
+        if (existing.transferId() != null) {
+            throw new TransactionLinkedToTransferException(
+                "Esta transação faz parte de uma transferência. Exclua a transferência inteira na tela de Transferências."
+            );
+        }
         transactionRepositoryPort.deleteById(transactionId);
     }
 

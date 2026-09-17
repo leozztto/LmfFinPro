@@ -12,15 +12,19 @@ export function DashboardPage() {
 
   const initialBalanceTotal = accounts?.reduce((sum, account) => sum + account.initialBalance, 0) ?? 0
 
+  // Transferências entre contas do próprio usuário não são receita nem despesa "real" —
+  // excluídas de todos os somatórios para não inflar artificialmente o dashboard.
+  const nonTransferTransactions = (transactions ?? []).filter((transaction) => transaction.transferId == null)
+
   const currentYearMonth = getCurrentYearMonth()
-  const monthTransactions = (transactions ?? []).filter((transaction) =>
+  const monthTransactions = nonTransferTransactions.filter((transaction) =>
     transaction.transactionDate.startsWith(currentYearMonth),
   )
 
   const incomeThisMonth = sumByType(monthTransactions, 'INCOME')
   const expenseThisMonth = sumByType(monthTransactions, 'EXPENSE')
-  const totalIncome = sumByType(transactions ?? [], 'INCOME')
-  const totalExpense = sumByType(transactions ?? [], 'EXPENSE')
+  const totalIncome = sumByType(nonTransferTransactions, 'INCOME')
+  const totalExpense = sumByType(nonTransferTransactions, 'EXPENSE')
   const currentBalance = initialBalanceTotal + totalIncome - totalExpense
 
   return (

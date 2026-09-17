@@ -12,6 +12,7 @@ export interface Transaction {
   type: TransactionType
   origin: TransactionOrigin
   createdAt: string
+  transferId: number | null
 }
 
 export interface TransactionInput {

@@ -36,6 +36,13 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
+    public List<Transaction> findAllByTransferId(Long transferId) {
+        return transactionJpaRepository.findByTransferId(transferId).stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+
+    @Override
     public void deleteById(Long id) {
         transactionJpaRepository.deleteById(id);
     }
