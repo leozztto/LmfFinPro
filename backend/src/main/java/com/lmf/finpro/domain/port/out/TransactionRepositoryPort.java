@@ -9,5 +9,6 @@ public interface TransactionRepositoryPort {
     Transaction save(Transaction transaction);
     Optional<Transaction> findById(Long id);
     List<Transaction> findAllByAccountIds(List<Long> accountIds);
+    List<Transaction> findAllByTransferId(Long transferId);
     void deleteById(Long id);
 }

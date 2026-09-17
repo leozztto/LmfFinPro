@@ -18,7 +18,8 @@ public class TransactionWebMapper {
             transaction.transactionDate(),
             transaction.type(),
             transaction.origin(),
-            transaction.createdAt()
+            transaction.createdAt(),
+            transaction.transferId()
         );
     }
 }

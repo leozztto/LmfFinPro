@@ -10,4 +10,5 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
     List<TransactionJpaEntity> findByAccountIdAndTransactionDateBetween(Long accountId, LocalDate start, LocalDate end);
     List<TransactionJpaEntity> findByClientId(Long clientId);
     List<TransactionJpaEntity> findByAccountIdIn(List<Long> accountIds);
+    List<TransactionJpaEntity> findByTransferId(Long transferId);
 }
