@@ -1,9 +1,11 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
+import com.lmf.finpro.application.auth.AddressCommand;
 import com.lmf.finpro.application.auth.AuthApplicationService;
 import com.lmf.finpro.application.auth.AuthResult;
 import com.lmf.finpro.application.auth.LoginCommand;
 import com.lmf.finpro.application.auth.RegisterCommand;
+import com.lmf.finpro.infrastructure.web.dto.auth.AddressRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.AuthResponse;
 import com.lmf.finpro.infrastructure.web.dto.auth.LoginRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.RegisterRequest;
@@ -26,7 +28,16 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResult result = authApplicationService.register(
-            new RegisterCommand(request.name(), request.email(), request.password(), request.taxRegime())
+            new RegisterCommand(
+                request.name(),
+                request.email(),
+                request.password(),
+                request.documentType(),
+                request.documentNumber(),
+                request.phone(),
+                request.taxRegime(),
+                toAddressCommand(request.address())
+            )
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(result));
     }
@@ -39,5 +50,12 @@ public class AuthController {
 
     private AuthResponse toResponse(AuthResult result) {
         return new AuthResponse(result.token(), result.userId(), result.name(), result.email());
+    }
+
+    private AddressCommand toAddressCommand(AddressRequest address) {
+        return new AddressCommand(
+            address.zipCode(), address.street(), address.number(), address.complement(),
+            address.neighborhood(), address.city(), address.state()
+        );
     }
 }
