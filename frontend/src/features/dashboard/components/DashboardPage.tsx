@@ -26,12 +26,12 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Visão geral</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Saldo consolidado e movimento do mês.</p>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Visão geral</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Saldo consolidado e movimento do mês.</p>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Carregando...</p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando...</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard label="Saldo atual" value={formatCurrency(currentBalance)} />

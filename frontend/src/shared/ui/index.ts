@@ -1,6 +1,8 @@
 export { Button } from './Button'
 export { Input } from './Input'
 export { Select } from './Select'
+export { Checkbox } from './Checkbox'
+export { ColorInput } from './ColorInput'
 export { Label } from './Label'
 export { ErrorText } from './ErrorText'
 export { Card, StatCard } from './Card'

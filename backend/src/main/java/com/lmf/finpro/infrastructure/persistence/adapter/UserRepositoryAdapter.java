@@ -35,4 +35,9 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     public boolean existsByEmail(String email) {
         return userJpaRepository.existsByEmail(email);
     }
+
+    @Override
+    public boolean existsByDocumentNumber(String documentNumber) {
+        return userJpaRepository.existsByDocumentNumber(documentNumber);
+    }
 }

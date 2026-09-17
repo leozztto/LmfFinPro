@@ -1,10 +1,14 @@
 package com.lmf.finpro.integration.auth;
 
+import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.infrastructure.web.dto.auth.AuthResponse;
 import com.lmf.finpro.infrastructure.web.dto.auth.LoginRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.RegisterRequest;
 import com.lmf.finpro.infrastructure.web.exception.ApiError;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
+import com.lmf.finpro.integration.support.CnpjTestFactory;
+import com.lmf.finpro.integration.support.CpfTestFactory;
+import com.lmf.finpro.integration.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,7 +25,9 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     @Test
     void registerCreatesUserAndReturnsToken() {
         RegisterRequest request = new RegisterRequest(
-            "Ana Freelancer", "ana-" + UUID.randomUUID() + "@finpro.test", "senha12345", "SIMPLES_NACIONAL"
+            "Ana Freelancer", "ana-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+            DocumentType.CPF, CpfTestFactory.randomValidCpf(), "11987654321", "SIMPLES_NACIONAL",
+            TestDataFactory.sampleAddress()
         );
 
         ResponseEntity<AuthResponse> response = restTemplate.postForEntity("/api/auth/register", request, AuthResponse.class);
@@ -33,9 +39,25 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void registerWithCnpjCreatesUserAndReturnsToken() {
+        RegisterRequest request = new RegisterRequest(
+            "Ana Consultoria", "cnpj-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+            DocumentType.CNPJ, CnpjTestFactory.randomValidCnpj(), null, "MEI",
+            TestDataFactory.sampleAddress()
+        );
+
+        ResponseEntity<AuthResponse> response = restTemplate.postForEntity("/api/auth/register", request, AuthResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    @Test
     void registerWithDuplicateEmailReturnsConflict() {
         String email = "dup-" + UUID.randomUUID() + "@finpro.test";
-        RegisterRequest request = new RegisterRequest("Ana", email, "senha12345", null);
+        RegisterRequest request = new RegisterRequest(
+            "Ana Freelancer", email, "senha12345", DocumentType.CPF, CpfTestFactory.randomValidCpf(),
+            null, null, TestDataFactory.sampleAddress()
+        );
         restTemplate.postForEntity("/api/auth/register", request, AuthResponse.class);
 
         ResponseEntity<ApiError> response = restTemplate.postForEntity("/api/auth/register", request, ApiError.class);
@@ -44,9 +66,64 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void registerWithInvalidCpfReturnsBadRequest() {
+        RegisterRequest request = new RegisterRequest(
+            "Ana Freelancer", "invalidcpf-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+            DocumentType.CPF, "12345678900", null, null, TestDataFactory.sampleAddress()
+        );
+
+        ResponseEntity<ApiError> response = restTemplate.postForEntity("/api/auth/register", request, ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registerWithCpfNumberButCnpjTypeReturnsBadRequest() {
+        RegisterRequest request = new RegisterRequest(
+            "Ana Freelancer", "mismatched-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+            DocumentType.CNPJ, CpfTestFactory.randomValidCpf(), null, null, TestDataFactory.sampleAddress()
+        );
+
+        ResponseEntity<ApiError> response = restTemplate.postForEntity("/api/auth/register", request, ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registerWithDuplicateDocumentReturnsConflict() {
+        String cpf = CpfTestFactory.randomValidCpf();
+        restTemplate.postForEntity(
+            "/api/auth/register",
+            new RegisterRequest(
+                "Ana Freelancer", "doc1-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+                DocumentType.CPF, cpf, null, null, TestDataFactory.sampleAddress()
+            ),
+            AuthResponse.class
+        );
+
+        ResponseEntity<ApiError> response = restTemplate.postForEntity(
+            "/api/auth/register",
+            new RegisterRequest(
+                "Ana Freelancer", "doc2-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+                DocumentType.CPF, cpf, null, null, TestDataFactory.sampleAddress()
+            ),
+            ApiError.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
     void loginWithValidCredentialsReturnsToken() {
         String email = "login-" + UUID.randomUUID() + "@finpro.test";
-        restTemplate.postForEntity("/api/auth/register", new RegisterRequest("Ana", email, "senha12345", null), AuthResponse.class);
+        restTemplate.postForEntity(
+            "/api/auth/register",
+            new RegisterRequest(
+                "Ana Freelancer", email, "senha12345", DocumentType.CPF, CpfTestFactory.randomValidCpf(),
+                null, null, TestDataFactory.sampleAddress()
+            ),
+            AuthResponse.class
+        );
 
         ResponseEntity<AuthResponse> response = restTemplate.postForEntity(
             "/api/auth/login", new LoginRequest(email, "senha12345"), AuthResponse.class
@@ -60,7 +137,14 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     @Test
     void loginWithWrongPasswordReturnsUnauthorized() {
         String email = "wrongpass-" + UUID.randomUUID() + "@finpro.test";
-        restTemplate.postForEntity("/api/auth/register", new RegisterRequest("Ana", email, "senha12345", null), AuthResponse.class);
+        restTemplate.postForEntity(
+            "/api/auth/register",
+            new RegisterRequest(
+                "Ana Freelancer", email, "senha12345", DocumentType.CPF, CpfTestFactory.randomValidCpf(),
+                null, null, TestDataFactory.sampleAddress()
+            ),
+            AuthResponse.class
+        );
 
         ResponseEntity<ApiError> response = restTemplate.postForEntity(
             "/api/auth/login", new LoginRequest(email, "senha-errada"), ApiError.class

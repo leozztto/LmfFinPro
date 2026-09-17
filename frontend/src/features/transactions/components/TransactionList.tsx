@@ -13,12 +13,12 @@ export function TransactionList() {
   const deleteTransaction = useDeleteTransaction()
 
   if (isLoading) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Carregando transações...</p>
+    return <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando transações...</p>
   }
 
   if (!transactions?.length) {
     return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
         Nenhuma transação lançada ainda. Lance a primeira acima.
       </p>
     )
@@ -34,8 +34,8 @@ export function TransactionList() {
       {sorted.map((transaction) => (
         <Card key={transaction.id} className="flex items-center justify-between gap-3">
           <div>
-            <p className="font-medium text-slate-900 dark:text-slate-50">{transaction.description}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">{transaction.description}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {formatDateOnlyBr(transaction.transactionDate)} ·{' '}
               {accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
               {transaction.categoryId ? ` · ${categoryNameById.get(transaction.categoryId) ?? ''}` : ''}
@@ -45,7 +45,7 @@ export function TransactionList() {
             <span
               className={
                 transaction.type === 'INCOME'
-                  ? 'font-semibold text-primary-600'
+                  ? 'font-semibold text-green-600 dark:text-green-500'
                   : 'font-semibold text-red-600'
               }
             >

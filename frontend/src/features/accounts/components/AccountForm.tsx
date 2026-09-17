@@ -14,6 +14,8 @@ export function AccountForm() {
     formState: { errors },
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: { type: 'CHECKING', initialBalance: 0 },
   })
 
