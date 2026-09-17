@@ -22,7 +22,25 @@ export function RegisterPage() {
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
-    defaultValues: { taxRegime: '', acceptedTerms: false },
+    defaultValues: {
+      name: '',
+      email: '',
+      taxRegime: '',
+      documentNumber: '',
+      phone: '',
+      address: {
+        zipCode: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+      },
+      password: '',
+      confirmPassword: '',
+      acceptedTerms: false,
+    },
   })
 
   const taxRegime = useWatch({ control, name: 'taxRegime' })
@@ -37,9 +55,9 @@ export function RegisterPage() {
       password: values.password,
       documentType: documentTypeForTaxRegime(values.taxRegime),
       documentNumber: values.documentNumber,
-      phone: values.phone,
+      phone: values.phone || undefined,
       taxRegime: values.taxRegime,
-      address: values.address,
+      address: { ...values.address, complement: values.address.complement || undefined },
     })
     navigate('/')
   }
