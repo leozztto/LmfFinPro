@@ -11,11 +11,24 @@ public record User(
     String name,
     String email,
     String passwordHash,
+    DocumentType documentType,
+    String documentNumber,
+    String phone,
     String taxRegime,
+    Address address,
     LocalDateTime createdAt
 ) {
 
-    public static User register(String name, String email, String passwordHash, String taxRegime) {
-        return new User(null, name, email, passwordHash, taxRegime, LocalDateTime.now());
+    public static User register(
+        String name,
+        String email,
+        String passwordHash,
+        DocumentType documentType,
+        String documentNumber,
+        String phone,
+        String taxRegime,
+        Address address
+    ) {
+        return new User(null, name, email, passwordHash, documentType, documentNumber, phone, taxRegime, address, LocalDateTime.now());
     }
 }

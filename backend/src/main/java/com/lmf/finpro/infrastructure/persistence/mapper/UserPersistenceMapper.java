@@ -1,6 +1,8 @@
 package com.lmf.finpro.infrastructure.persistence.mapper;
 
+import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.User;
+import com.lmf.finpro.infrastructure.persistence.entity.AddressEmbeddable;
 import com.lmf.finpro.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +15,11 @@ public class UserPersistenceMapper {
             .name(user.name())
             .email(user.email())
             .passwordHash(user.passwordHash())
+            .documentType(user.documentType())
+            .documentNumber(user.documentNumber())
+            .phone(user.phone())
             .taxRegime(user.taxRegime())
+            .address(toEmbeddable(user.address()))
             .createdAt(user.createdAt())
             .build();
     }
@@ -24,8 +30,42 @@ public class UserPersistenceMapper {
             entity.getName(),
             entity.getEmail(),
             entity.getPasswordHash(),
+            entity.getDocumentType(),
+            entity.getDocumentNumber(),
+            entity.getPhone(),
             entity.getTaxRegime(),
+            toDomain(entity.getAddress()),
             entity.getCreatedAt()
+        );
+    }
+
+    private AddressEmbeddable toEmbeddable(Address address) {
+        if (address == null) {
+            return null;
+        }
+        return AddressEmbeddable.builder()
+            .zipCode(address.zipCode())
+            .street(address.street())
+            .number(address.number())
+            .complement(address.complement())
+            .neighborhood(address.neighborhood())
+            .city(address.city())
+            .state(address.state())
+            .build();
+    }
+
+    private Address toDomain(AddressEmbeddable embeddable) {
+        if (embeddable == null) {
+            return null;
+        }
+        return new Address(
+            embeddable.getZipCode(),
+            embeddable.getStreet(),
+            embeddable.getNumber(),
+            embeddable.getComplement(),
+            embeddable.getNeighborhood(),
+            embeddable.getCity(),
+            embeddable.getState()
         );
     }
 }
