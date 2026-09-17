@@ -1,0 +1,18 @@
+import { MoonIcon, SunIcon } from '@/shared/ui/icons'
+import { useTheme } from './ThemeContext'
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+      title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-300 bg-zinc-50 text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+    >
+      {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+    </button>
+  )
+}

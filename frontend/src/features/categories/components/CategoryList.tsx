@@ -8,12 +8,12 @@ export function CategoryList() {
   const deleteCategory = useDeleteCategory()
 
   if (isLoading) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Carregando categorias...</p>
+    return <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando categorias...</p>
   }
 
   if (!categories?.length) {
     return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
         Nenhuma categoria cadastrada ainda. Adicione a primeira acima.
       </p>
     )
@@ -30,8 +30,8 @@ export function CategoryList() {
               aria-hidden
             />
             <div>
-              <p className="font-medium text-slate-900 dark:text-slate-50">{category.name}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="font-medium text-zinc-900 dark:text-zinc-50">{category.name}</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 {CATEGORY_TYPE_LABELS[category.type]}
                 {category.global ? ' · padrão do sistema' : ''}
               </p>

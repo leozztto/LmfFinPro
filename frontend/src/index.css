@@ -1,20 +1,18 @@
 @import "tailwindcss";
 
-/* Tokens do sistema de design do FinPro — paleta verde/terracota, coerente com o
-   plano de escopo do produto (docs/plano.md). Usados como bg-primary-600, text-accent-600 etc. */
-@theme {
-  --color-primary-50: #eaf3ee;
-  --color-primary-100: #cfe6d9;
-  --color-primary-200: #a3d0b8;
-  --color-primary-500: #3d8a64;
-  --color-primary-600: #2e6e4e;
-  --color-primary-700: #1f5138;
+/* Faz o `dark:` do Tailwind responder ao atributo data-theme (setado pelo ThemeProvider),
+   em vez de só seguir prefers-color-scheme — permite alternância manual persistente. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-  --color-accent-50: #fbf1e6;
-  --color-accent-100: #f6e2ce;
-  --color-accent-500: #c1823f;
-  --color-accent-600: #b8722e;
-  --color-accent-700: #8c551f;
+/* Tokens do sistema de design do FinPro — paleta grafite/cinza-azulado, com cara de
+   banco/fintech corporativa. Usados como bg-primary-600, text-primary-600 etc. */
+@theme {
+  --color-primary-50: #eef1f4;
+  --color-primary-100: #dbe2e9;
+  --color-primary-200: #b3bfc9;
+  --color-primary-500: #5c6b78;
+  --color-primary-600: #46545f;
+  --color-primary-700: #333e47;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }

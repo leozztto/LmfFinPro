@@ -20,6 +20,8 @@ export function TransactionForm() {
     formState: { errors },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       type: 'EXPENSE',
       transactionDate: getCurrentIsoDate(),
@@ -39,7 +41,7 @@ export function TransactionForm() {
 
   if (!accounts?.length) {
     return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
         Cadastre uma conta antes de lançar transações.
       </p>
     )
