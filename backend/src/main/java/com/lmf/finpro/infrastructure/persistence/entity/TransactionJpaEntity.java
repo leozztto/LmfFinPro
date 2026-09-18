@@ -59,6 +59,9 @@ public class TransactionJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "transfer_id")
+    private Long transferId;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

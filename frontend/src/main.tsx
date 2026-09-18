@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/shared/auth/AuthContext'
 import { ThemeProvider } from '@/shared/theme/ThemeContext'
+import { ToastProvider } from '@/shared/toast/ToastContext'
+import { ConfirmProvider } from '@/shared/confirm/ConfirmContext'
 import { AppRouter } from '@/app/router'
 import './index.css'
 
@@ -15,7 +17,11 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
-            <AppRouter />
+            <ToastProvider>
+              <ConfirmProvider>
+                <AppRouter />
+              </ConfirmProvider>
+            </ToastProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

@@ -17,6 +17,7 @@ public record TransactionResponse(
     LocalDate transactionDate,
     CategoryType type,
     TransactionOrigin origin,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    Long transferId
 ) {
 }

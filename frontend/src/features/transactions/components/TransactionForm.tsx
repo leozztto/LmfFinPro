@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useCreateTransaction } from '../hooks/useCreateTransaction'
@@ -8,15 +11,22 @@ import { transactionSchema, type TransactionFormValues } from '../schemas'
 import { TRANSACTION_TYPE_LABELS } from '../types'
 import { getCurrentIsoDate } from '@/shared/format/date'
 
-export function TransactionForm() {
+interface TransactionFormProps {
+  onSuccess?: () => void
+}
+
+export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const createTransaction = useCreateTransaction()
+  const { showToast } = useToast()
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -28,15 +38,31 @@ export function TransactionForm() {
     },
   })
 
+  const selectedCategoryId = watch('categoryId')
+  const selectedCategory = categories?.find((category) => String(category.id) === String(selectedCategoryId))
+
+  // A categoria já define se é receita ou despesa, então o tipo é derivado dela.
+  useEffect(() => {
+    if (selectedCategory) {
+      setValue('type', selectedCategory.type)
+    }
+  }, [selectedCategory, setValue])
+
   async function onSubmit(values: TransactionFormValues) {
-    await createTransaction.mutateAsync(values)
-    reset({
-      accountId: values.accountId,
-      description: '',
-      amount: 0,
-      type: 'EXPENSE',
-      transactionDate: getCurrentIsoDate(),
-    })
+    try {
+      await createTransaction.mutateAsync(values)
+      reset({
+        accountId: values.accountId,
+        description: '',
+        amount: 0,
+        type: 'EXPENSE',
+        transactionDate: getCurrentIsoDate(),
+      })
+      showToast('Transação lançada com sucesso.', 'success')
+      onSuccess?.()
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : 'Não foi possível lançar a transação.')
+    }
   }
 
   if (!accounts?.length) {
@@ -48,7 +74,7 @@ export function TransactionForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-3">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
       <FormField label="Conta" htmlFor="transaction-account" error={errors.accountId?.message}>
         <Select id="transaction-account" {...register('accountId')}>
           {accounts.map((account) => (
@@ -63,13 +89,13 @@ export function TransactionForm() {
           <option value="">Sem categoria</option>
           {categories?.map((category) => (
             <option key={category.id} value={category.id}>
-              {category.name}
+              {category.name} ({TRANSACTION_TYPE_LABELS[category.type]})
             </option>
           ))}
         </Select>
       </FormField>
       <FormField label="Tipo" htmlFor="transaction-type" error={errors.type?.message}>
-        <Select id="transaction-type" {...register('type')}>
+        <Select id="transaction-type" disabled={Boolean(selectedCategory)} {...register('type')}>
           {Object.entries(TRANSACTION_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -77,17 +103,19 @@ export function TransactionForm() {
           ))}
         </Select>
       </FormField>
-      <FormField label="Descrição" htmlFor="transaction-description" error={errors.description?.message}>
-        <Input id="transaction-description" placeholder="Pagamento cliente X" {...register('description')} />
-      </FormField>
-      <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
-        <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
-      </FormField>
       <FormField label="Data" htmlFor="transaction-date" error={errors.transactionDate?.message}>
         <Input id="transaction-date" type="date" {...register('transactionDate')} />
       </FormField>
-      <div className="sm:col-span-3">
-        <Button type="submit" disabled={createTransaction.isPending}>
+      <div className="sm:col-span-2">
+        <FormField label="Descrição" htmlFor="transaction-description" error={errors.description?.message}>
+          <Input id="transaction-description" placeholder="Pagamento cliente X" {...register('description')} />
+        </FormField>
+      </div>
+      <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
+        <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
+      </FormField>
+      <div className="sm:col-span-2">
+        <Button type="submit" disabled={createTransaction.isPending} className="w-full">
           {createTransaction.isPending ? 'Salvando...' : 'Lançar transação'}
         </Button>
       </div>

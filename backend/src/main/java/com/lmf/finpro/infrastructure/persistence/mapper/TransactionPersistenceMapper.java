@@ -22,6 +22,7 @@ public class TransactionPersistenceMapper {
             .type(transaction.type())
             .origin(transaction.origin())
             .createdAt(transaction.createdAt())
+            .transferId(transaction.transferId())
             .build();
     }
 
@@ -36,7 +37,8 @@ public class TransactionPersistenceMapper {
             entity.getTransactionDate(),
             entity.getType(),
             entity.getOrigin(),
-            entity.getCreatedAt()
+            entity.getCreatedAt(),
+            entity.getTransferId()
         );
     }
 }

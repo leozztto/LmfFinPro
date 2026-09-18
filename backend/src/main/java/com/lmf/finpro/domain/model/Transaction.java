@@ -14,7 +14,8 @@ public record Transaction(
     LocalDate transactionDate,
     CategoryType type,
     TransactionOrigin origin,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    Long transferId
 ) {
 
     public static Transaction create(
@@ -28,7 +29,21 @@ public record Transaction(
     ) {
         return new Transaction(
             null, accountId, categoryId, clientId, description, amount,
-            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now()
+            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now(), null
+        );
+    }
+
+    public static Transaction createForTransfer(
+        Long accountId,
+        String description,
+        BigDecimal amount,
+        LocalDate transactionDate,
+        CategoryType type,
+        Long transferId
+    ) {
+        return new Transaction(
+            null, accountId, null, null, description, amount,
+            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now(), transferId
         );
     }
 
@@ -42,7 +57,7 @@ public record Transaction(
     ) {
         return new Transaction(
             id, accountId, newCategoryId, newClientId, newDescription, newAmount,
-            newTransactionDate, newType, origin, createdAt
+            newTransactionDate, newType, origin, createdAt, transferId
         );
     }
 }

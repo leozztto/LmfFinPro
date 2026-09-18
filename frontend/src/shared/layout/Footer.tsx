@@ -10,8 +10,8 @@ const iconLinkClassName =
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-200 bg-zinc-50 px-6 py-6 dark:border-zinc-700 dark:bg-zinc-800">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <footer className="border-t border-zinc-200 px-6 py-6 dark:border-zinc-800">
+      <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
         <p className="text-xs text-zinc-400 dark:text-zinc-500">© 2026 Lezzotto Tech. Todos os direitos reservados.</p>
         <div className="flex items-center gap-4">
           <a href={`mailto:${EMAIL}`} aria-label={`Enviar e-mail para ${EMAIL}`} title={EMAIL} className={iconLinkClassName}>
