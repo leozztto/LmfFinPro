@@ -1,8 +1,11 @@
 package com.lmf.finpro.integration.account;
 
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.exception.ApiError;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
 import com.lmf.finpro.integration.support.TestDataFactory;
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,5 +67,33 @@ class AccountIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void currentBalanceStartsAtInitialBalanceAndFollowsTransactions() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        AccountRequest createRequest = new AccountRequest("Conta corrente", AccountType.CHECKING, BigDecimal.valueOf(1000));
+        ResponseEntity<AccountResponse> createResponse = restTemplate.exchange(
+            "/api/accounts", HttpMethod.POST, new HttpEntity<>(createRequest, user.authHeaders()), AccountResponse.class
+        );
+        Long accountId = createResponse.getBody().id();
+        assertThat(createResponse.getBody().currentBalance()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+        createTransaction(user, accountId, BigDecimal.valueOf(500), CategoryType.INCOME);
+        createTransaction(user, accountId, BigDecimal.valueOf(200), CategoryType.EXPENSE);
+
+        ResponseEntity<AccountResponse> getResponse = restTemplate.exchange(
+            "/api/accounts/" + accountId, HttpMethod.GET, new HttpEntity<>(user.authHeaders()), AccountResponse.class
+        );
+        assertThat(getResponse.getBody().currentBalance()).isEqualByComparingTo(BigDecimal.valueOf(1300));
+    }
+
+    private void createTransaction(TestUser user, Long accountId, BigDecimal amount, CategoryType type) {
+        TransactionRequest request = new TransactionRequest(accountId, null, null, "Movimento", amount, LocalDate.now(), type);
+        ResponseEntity<TransactionResponse> response = restTemplate.exchange(
+            "/api/transactions", HttpMethod.POST, new HttpEntity<>(request, user.authHeaders()), TransactionResponse.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 }

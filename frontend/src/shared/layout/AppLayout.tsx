@@ -19,7 +19,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-900">
       <header className="border-b border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-700 dark:bg-zinc-800">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-y-2">
           <div className="flex items-baseline gap-2">
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">FinPro</h1>
             <span className="hidden text-xs text-zinc-400 dark:text-zinc-500 sm:inline">
@@ -34,7 +34,7 @@ export function AppLayout() {
             </Button>
           </div>
         </div>
-        <nav className="mx-auto mt-4 flex max-w-5xl justify-center gap-2 text-sm">
+        <nav className="mx-auto mt-4 flex max-w-5xl flex-wrap justify-center gap-2 text-sm">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}

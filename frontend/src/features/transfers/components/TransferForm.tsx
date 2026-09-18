@@ -7,7 +7,11 @@ import { useCreateTransfer } from '../hooks/useCreateTransfer'
 import { transferSchema, type TransferFormValues } from '../schemas'
 import { getCurrentIsoDate } from '@/shared/format/date'
 
-export function TransferForm() {
+interface TransferFormProps {
+  onSuccess?: () => void
+}
+
+export function TransferForm({ onSuccess }: TransferFormProps) {
   const { data: accounts } = useAccounts()
   const createTransfer = useCreateTransfer()
 
@@ -38,6 +42,7 @@ export function TransferForm() {
       description: '',
       transferDate: getCurrentIsoDate(),
     })
+    onSuccess?.()
   }
 
   if (!accounts || accounts.length < 2) {
@@ -49,7 +54,7 @@ export function TransferForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-3">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
       <FormField label="Conta de origem" htmlFor="transfer-from-account" error={errors.fromAccountId?.message}>
         <Select id="transfer-from-account" defaultValue="" {...register('fromAccountId')}>
           <option value="" disabled>
@@ -80,16 +85,18 @@ export function TransferForm() {
       <FormField label="Data" htmlFor="transfer-date" error={errors.transferDate?.message}>
         <Input id="transfer-date" type="date" {...register('transferDate')} />
       </FormField>
-      <FormField label="Descrição (opcional)" htmlFor="transfer-description" error={errors.description?.message}>
-        <Input id="transfer-description" placeholder="Ex: reserva de emergência" {...register('description')} />
-      </FormField>
-      <div className="sm:col-span-3 space-y-3">
+      <div className="sm:col-span-2">
+        <FormField label="Descrição (opcional)" htmlFor="transfer-description" error={errors.description?.message}>
+          <Input id="transfer-description" placeholder="Ex: reserva de emergência" {...register('description')} />
+        </FormField>
+      </div>
+      <div className="sm:col-span-2 space-y-3">
         {createTransfer.isError && (
           <p className="text-sm text-red-600">
             {createTransfer.error instanceof ApiError ? createTransfer.error.message : 'Não foi possível transferir.'}
           </p>
         )}
-        <Button type="submit" disabled={createTransfer.isPending}>
+        <Button type="submit" disabled={createTransfer.isPending} className="w-full">
           {createTransfer.isPending ? 'Transferindo...' : 'Transferir'}
         </Button>
       </div>

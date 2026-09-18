@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.transfer;
 
+import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -28,6 +29,7 @@ public class TransferApplicationService {
     private final TransferRepositoryPort transferRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
+    private final AccountApplicationService accountApplicationService;
 
     @Transactional
     public TransferResult create(
@@ -41,7 +43,7 @@ public class TransferApplicationService {
         Account fromAccount = findOwnedOrThrow(currentUserId, fromAccountId);
         Account toAccount = findOwnedOrThrow(currentUserId, toAccountId);
 
-        BigDecimal fromAccountBalance = calculateBalance(fromAccount);
+        BigDecimal fromAccountBalance = accountApplicationService.calculateCurrentBalance(fromAccount);
         if (amount.compareTo(fromAccountBalance) > 0) {
             throw new InsufficientBalanceException(
                 "Saldo insuficiente na conta de origem. Saldo disponível: " + fromAccountBalance.setScale(2, RoundingMode.HALF_UP)
@@ -103,17 +105,5 @@ public class TransferApplicationService {
         return accountRepositoryPort.findById(accountId)
             .filter(account -> account.belongsTo(currentUserId))
             .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
-    }
-
-    /**
-     * Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta (não há saldo
-     * persistido no projeto). Soma feita no banco (SUM agregado) em vez de carregar todas as
-     * transações da conta para somar em memória — evita trafegar o histórico inteiro só para
-     * validar uma transferência.
-     */
-    private BigDecimal calculateBalance(Account account) {
-        BigDecimal income = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.INCOME);
-        BigDecimal expense = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.EXPENSE);
-        return account.initialBalance().add(income).subtract(expense);
     }
 }

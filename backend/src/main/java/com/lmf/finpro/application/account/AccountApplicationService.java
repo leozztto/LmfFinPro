@@ -3,7 +3,9 @@ package com.lmf.finpro.application.account;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,7 @@ import java.util.List;
 public class AccountApplicationService {
 
     private final AccountRepositoryPort accountRepositoryPort;
+    private final TransactionRepositoryPort transactionRepositoryPort;
 
     public Account create(Long currentUserId, String name, AccountType type, BigDecimal initialBalance) {
         return accountRepositoryPort.save(Account.create(currentUserId, name, type, initialBalance));
@@ -36,6 +39,17 @@ public class AccountApplicationService {
     public void delete(Long currentUserId, Long accountId) {
         findOwnedOrThrow(currentUserId, accountId);
         accountRepositoryPort.deleteById(accountId);
+    }
+
+    /**
+     * Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta. Não há saldo
+     * persistido: é recalculado a cada leitura para nunca ficar dessincronizado das transações
+     * (que podem ser editadas ou excluídas depois de lançadas).
+     */
+    public BigDecimal calculateCurrentBalance(Account account) {
+        BigDecimal income = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.INCOME);
+        BigDecimal expense = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.EXPENSE);
+        return account.initialBalance().add(income).subtract(expense);
     }
 
     /** Acesso a conta de outro usuário é tratado como inexistente (404), não como 403. */
