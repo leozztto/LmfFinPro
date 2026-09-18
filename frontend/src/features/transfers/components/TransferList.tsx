@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, CollapsibleFilters, ExpandableText, FormField, Input, Select } from '@/shared/ui'
+import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
-import { formatCurrency } from '@/shared/format/currency'
-import { formatDateOnlyBr } from '@/shared/format/date'
 import { useTransfers } from '../hooks/useTransfers'
 import { useDeleteTransfer } from '../hooks/useDeleteTransfer'
+import { TransferCard } from './TransferCard'
 
 interface Filters {
   accountId: string
@@ -98,33 +97,14 @@ export function TransferList() {
       ) : (
         <div className="space-y-3">
           {sorted.map((transfer) => (
-            <Card key={transfer.id} className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="break-words font-medium text-zinc-900 dark:text-zinc-50">
-                  {accountNameById.get(transfer.fromAccountId) ?? 'conta desconhecida'} →{' '}
-                  {accountNameById.get(transfer.toAccountId) ?? 'conta desconhecida'}
-                </p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatDateOnlyBr(transfer.transferDate)}</p>
-                {transfer.description && (
-                  <ExpandableText
-                    text={transfer.description}
-                    className="text-sm text-zinc-500 dark:text-zinc-400"
-                  />
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="font-semibold text-zinc-900 dark:text-zinc-50">
-                  {formatCurrency(transfer.amount)}
-                </span>
-                <Button
-                  variant="secondary"
-                  onClick={() => deleteTransfer.mutate(transfer.id)}
-                  disabled={deleteTransfer.isPending}
-                >
-                  Remover
-                </Button>
-              </div>
-            </Card>
+            <TransferCard
+              key={transfer.id}
+              transfer={transfer}
+              fromAccountName={accountNameById.get(transfer.fromAccountId) ?? 'conta desconhecida'}
+              toAccountName={accountNameById.get(transfer.toAccountId) ?? 'conta desconhecida'}
+              onDelete={() => deleteTransfer.mutate(transfer.id)}
+              isDeleting={deleteTransfer.isPending}
+            />
           ))}
         </div>
       )}

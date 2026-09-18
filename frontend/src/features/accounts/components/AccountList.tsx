@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '../hooks/useAccounts'
 import { useDeleteAccount } from '../hooks/useDeleteAccount'
 import { ACCOUNT_TYPE_LABELS, type AccountType } from '../types'
@@ -15,7 +17,16 @@ const EMPTY_FILTERS: Filters = { name: '', type: '' }
 export function AccountList() {
   const { data: accounts, isLoading } = useAccounts()
   const deleteAccount = useDeleteAccount()
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+
+  function handleDelete(accountId: number) {
+    deleteAccount.mutate(accountId, {
+      onError: (error) => {
+        showToast(error instanceof ApiError ? error.message : 'Não foi possível remover a conta.')
+      },
+    })
+  }
 
   const filtered = useMemo(() => {
     if (!accounts) return []
@@ -97,7 +108,7 @@ export function AccountList() {
               </div>
               <Button
                 variant="secondary"
-                onClick={() => deleteAccount.mutate(account.id)}
+                onClick={() => handleDelete(account.id)}
                 disabled={deleteAccount.isPending}
               >
                 Remover

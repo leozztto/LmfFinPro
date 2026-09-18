@@ -1,11 +1,13 @@
 package com.lmf.finpro.application.account;
 
+import com.lmf.finpro.domain.exception.AccountHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
+import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ public class AccountApplicationService {
 
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
+    private final TransferRepositoryPort transferRepositoryPort;
 
     public Account create(Long currentUserId, String name, AccountType type, BigDecimal initialBalance) {
         return accountRepositoryPort.save(Account.create(currentUserId, name, type, initialBalance));
@@ -38,6 +41,11 @@ public class AccountApplicationService {
 
     public void delete(Long currentUserId, Long accountId) {
         findOwnedOrThrow(currentUserId, accountId);
+        if (transactionRepositoryPort.existsByAccountId(accountId) || transferRepositoryPort.existsByAccountId(accountId)) {
+            throw new AccountHasLinkedRecordsException(
+                "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de remover a conta."
+            );
+        }
         accountRepositoryPort.deleteById(accountId);
     }
 

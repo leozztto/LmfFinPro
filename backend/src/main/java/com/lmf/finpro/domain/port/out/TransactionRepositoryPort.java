@@ -13,5 +13,6 @@ public interface TransactionRepositoryPort {
     List<Transaction> findAllByAccountIds(List<Long> accountIds);
     List<Transaction> findAllByTransferIds(List<Long> transferIds);
     BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type);
+    boolean existsByAccountId(Long accountId);
     void deleteById(Long id);
 }
