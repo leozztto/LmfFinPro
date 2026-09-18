@@ -8,10 +8,12 @@ const OTHER_COLOR = '#71717a'
 const MAX_BARS = 7
 
 interface CategoryBreakdownChartProps {
+  title: string
+  emptyMessage: string
   data: CategoryBreakdownPoint[]
 }
 
-export function CategoryBreakdownChart({ data }: CategoryBreakdownChartProps) {
+export function CategoryBreakdownChart({ title, emptyMessage, data }: CategoryBreakdownChartProps) {
   const { theme } = useTheme()
   const axisColor = theme === 'dark' ? '#a1a1aa' : '#71717a'
 
@@ -20,11 +22,11 @@ export function CategoryBreakdownChart({ data }: CategoryBreakdownChartProps) {
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Despesas por categoria</h3>
+      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{title}</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Mês atual.</p>
 
       {bars.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">Nenhuma despesa registrada neste mês ainda.</p>
+        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{emptyMessage}</p>
       ) : (
         <div className="mt-4" style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">

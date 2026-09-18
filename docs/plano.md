@@ -24,10 +24,9 @@
 - ✅ Setup Vite + React 19 + TypeScript + Tailwind CSS 4
 - ✅ Autenticação ponta a ponta: login/registro com validação (React Hook Form + Zod), autocomplete de CEP, validação de CPF/CNPJ, `AuthContext` + `ProtectedRoute` + armazenamento de JWT
 - ✅ CRUD funcional consumindo a API real para **Contas**, **Categorias**, **Transações** e **Transferências** (cada módulo com client de API, hooks React Query, formulários e listas com filtros via `CollapsibleFilters`)
-- ✅ Dashboard com dados reais (saldo consolidado, receita/despesa do mês, excluindo transferências entre contas próprias do cálculo) — ainda sem gráficos
+- ✅ Dashboard com dados reais e gráficos (Recharts): cards com variação % vs. mês anterior, receita x despesa por mês, evolução do saldo consolidado, despesa e receita por categoria, saldo por conta — transferências entre contas próprias excluídas dos cálculos de receita/despesa
 - ✅ Tema claro/escuro (`ThemeContext`/`ThemeToggle`), notificações toast, layout responsivo (`AppLayout`, `Footer`)
 - ✅ Biblioteca de componentes de UI reutilizáveis (Button, Card, Modal, Select, Input, FormField, Checkbox, etc.)
-- ⬜ Gráficos do dashboard (Recharts instalado, ainda não consumido)
 - ⬜ Receita por cliente/projeto — sem tela e sem dado de origem (módulo de Client não existe)
 - ⬜ Importação CSV (upload + preview + revisão de categorização)
 - ⬜ Telas de impostos / fluxo de caixa
@@ -166,10 +165,10 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 ## 12. Roadmap sugerido (atualizado)
 
 1. ~~Semana 1-2: modelagem, setup Spring Boot + Postgres + Flyway, auth JWT, CRUD básico~~ — ✅ **concluído** (auth JWT real, CRUD de Account/Category/Transaction/Transfer com testes de integração)
-2. **Próximo passo A — Dashboard visual**: plugar Recharts (gráfico de receita x despesa por categoria e por mês) na `DashboardPage`, que hoje só mostra os três cards numéricos
-3. **Próximo passo B — Módulo de clientes/projetos**: criar entidade `Client` (domain + port + adapter + controller + DTO), vincular a `Transaction`, e tela de CRUD no frontend seguindo o padrão já usado em Account/Category
-4. **Próximo passo C — Importação CSV + motor de regras**: `ImportBatch` + `CategoryRule` (domain + application + infra), endpoint de upload, tela de preview/revisão de categorização
-5. Semana seguinte: receita por cliente no dashboard (depende do passo B)
+2. ~~Dashboard visual~~ — ✅ **concluído**: Recharts plugado na `DashboardPage` com 5 visões (receita x despesa por mês, evolução do saldo, despesa/receita por categoria, saldo por conta) e variação % vs. mês anterior nos cards
+3. **Próximo passo A — Módulo de clientes/projetos**: criar entidade `Client` (domain + port + adapter + controller + DTO), vincular a `Transaction`, e tela de CRUD no frontend seguindo o padrão já usado em Account/Category
+4. **Próximo passo B — Importação CSV + motor de regras**: `ImportBatch` + `CategoryRule` (domain + application + infra), endpoint de upload, tela de preview/revisão de categorização
+5. Semana seguinte: receita por cliente no dashboard (depende do passo A)
 6. Depois: estimativa de imposto + projeção de fluxo de caixa (Fase 2, depende de dados de receita por cliente/categoria já consolidados)
 7. Antes do deploy: testes unitários (Mockito) nos services de aplicação, lint/formatação, seed de dados de demonstração
 8. Fechamento: deploy (Railway/Render + Vercel), badge de CI, prints e link no README, vídeo curto de demo

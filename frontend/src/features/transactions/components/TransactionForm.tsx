@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
@@ -21,6 +22,8 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -31,6 +34,16 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       transactionDate: getCurrentIsoDate(),
     },
   })
+
+  const selectedCategoryId = watch('categoryId')
+  const selectedCategory = categories?.find((category) => String(category.id) === String(selectedCategoryId))
+
+  // A categoria já define se é receita ou despesa, então o tipo é derivado dela.
+  useEffect(() => {
+    if (selectedCategory) {
+      setValue('type', selectedCategory.type)
+    }
+  }, [selectedCategory, setValue])
 
   async function onSubmit(values: TransactionFormValues) {
     await createTransaction.mutateAsync(values)
@@ -68,13 +81,18 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           <option value="">Sem categoria</option>
           {categories?.map((category) => (
             <option key={category.id} value={category.id}>
-              {category.name}
+              {category.name} ({TRANSACTION_TYPE_LABELS[category.type]})
             </option>
           ))}
         </Select>
       </FormField>
-      <FormField label="Tipo" htmlFor="transaction-type" error={errors.type?.message}>
-        <Select id="transaction-type" {...register('type')}>
+      <FormField
+        label="Tipo"
+        htmlFor="transaction-type"
+        error={errors.type?.message}
+        hint={selectedCategory ? 'Definido pela categoria selecionada' : undefined}
+      >
+        <Select id="transaction-type" disabled={Boolean(selectedCategory)} {...register('type')}>
           {Object.entries(TRANSACTION_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}

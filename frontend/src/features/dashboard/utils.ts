@@ -1,4 +1,4 @@
-import type { Category } from '@/features/categories/types'
+import type { Category, CategoryType } from '@/features/categories/types'
 import type { Transaction } from '@/features/transactions/types'
 
 const MONTH_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -17,6 +17,12 @@ export interface CategoryBreakdownPoint {
   name: string
   color: string
   value: number
+}
+
+export interface BalancePoint {
+  month: string
+  label: string
+  balance: number
 }
 
 export function formatMonthLabel(yearMonth: string): string {
@@ -63,17 +69,39 @@ export function buildMonthlyFlow(transactions: Transaction[], monthsCount = 6): 
   })
 }
 
-/** Despesas do mês informado, somadas por categoria e ordenadas da maior para a menor. */
-export function buildExpenseByCategory(
+/**
+ * Saldo consolidado (todas as contas) ao final de cada um dos últimos `monthsCount` meses —
+ * saldo inicial total mais o acumulado de receita/despesa até aquele mês, inclusive.
+ */
+export function buildBalanceOverTime(
+  transactions: Transaction[],
+  initialBalanceTotal: number,
+  monthsCount = 6,
+): BalancePoint[] {
+  const months = lastYearMonths(monthsCount)
+  const nonTransfer = transactions.filter((transaction) => transaction.transferId == null)
+
+  return months.map((month) => {
+    const balance = nonTransfer.reduce((sum, transaction) => {
+      if (transaction.transactionDate.slice(0, 7) > month) return sum
+      return sum + (transaction.type === 'INCOME' ? transaction.amount : -transaction.amount)
+    }, initialBalanceTotal)
+    return { month, label: formatMonthLabel(month), balance }
+  })
+}
+
+/** Transações do tipo/mês informados, somadas por categoria e ordenadas da maior para a menor. */
+export function buildCategoryBreakdown(
   transactions: Transaction[],
   categories: Category[],
   yearMonth: string,
+  type: CategoryType,
 ): CategoryBreakdownPoint[] {
   const totalsByCategory = new Map<number | null, number>()
 
   for (const transaction of transactions) {
     if (transaction.transferId != null) continue
-    if (transaction.type !== 'EXPENSE') continue
+    if (transaction.type !== type) continue
     if (!transaction.transactionDate.startsWith(yearMonth)) continue
 
     const key = transaction.categoryId
@@ -93,4 +121,14 @@ export function buildExpenseByCategory(
       }
     })
     .sort((a, b) => b.value - a.value)
+}
+
+/**
+ * Variação percentual entre dois períodos, para o indicador "vs mês anterior" dos cards.
+ * Retorna `null` quando o período anterior é zero — a variação percentual não tem
+ * leitura útil nesse caso (evita mostrar "+∞%" ou um número artificial).
+ */
+export function computeDeltaPercent(current: number, previous: number): number | null {
+  if (previous === 0) return null
+  return ((current - previous) / Math.abs(previous)) * 100
 }
