@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface TransferJpaRepository extends JpaRepository<TransferJpaEntity, Long> {
     List<TransferJpaEntity> findByUserId(Long userId);
+    boolean existsByFromAccountIdOrToAccountId(Long fromAccountId, Long toAccountId);
 }

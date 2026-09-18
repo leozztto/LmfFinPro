@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCreateTransfer } from '../hooks/useCreateTransfer'
 import { transferSchema, type TransferFormValues } from '../schemas'
@@ -14,6 +15,7 @@ interface TransferFormProps {
 export function TransferForm({ onSuccess }: TransferFormProps) {
   const { data: accounts } = useAccounts()
   const createTransfer = useCreateTransfer()
+  const { showToast } = useToast()
 
   const {
     register,
@@ -30,19 +32,23 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
   })
 
   async function onSubmit(values: TransferFormValues) {
-    await createTransfer.mutateAsync({
-      fromAccountId: values.fromAccountId,
-      toAccountId: values.toAccountId,
-      amount: values.amount,
-      transferDate: values.transferDate,
-      description: values.description || undefined,
-    })
-    reset({
-      amount: 0,
-      description: '',
-      transferDate: getCurrentIsoDate(),
-    })
-    onSuccess?.()
+    try {
+      await createTransfer.mutateAsync({
+        fromAccountId: values.fromAccountId,
+        toAccountId: values.toAccountId,
+        amount: values.amount,
+        transferDate: values.transferDate,
+        description: values.description || undefined,
+      })
+      reset({
+        amount: 0,
+        description: '',
+        transferDate: getCurrentIsoDate(),
+      })
+      onSuccess?.()
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : 'Não foi possível transferir.')
+    }
   }
 
   if (!accounts || accounts.length < 2) {
@@ -91,11 +97,6 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
         </FormField>
       </div>
       <div className="sm:col-span-2 space-y-3">
-        {createTransfer.isError && (
-          <p className="text-sm text-red-600">
-            {createTransfer.error instanceof ApiError ? createTransfer.error.message : 'Não foi possível transferir.'}
-          </p>
-        )}
         <Button type="submit" disabled={createTransfer.isPending} className="w-full">
           {createTransfer.isPending ? 'Transferindo...' : 'Transferir'}
         </Button>

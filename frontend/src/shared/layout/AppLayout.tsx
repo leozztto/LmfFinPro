@@ -40,16 +40,17 @@ export function AppLayout() {
               key={item.to}
               to={item.to}
               end={item.to === '/'}
+              title={item.label}
               className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+                `flex items-center gap-0 rounded-lg px-3 py-2 font-medium transition-colors sm:gap-2 sm:px-4 ${
                   isActive
                     ? 'bg-primary-600 text-white'
                     : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-50'
                 }`
               }
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <item.icon className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">{item.label}</span>
             </NavLink>
           ))}
         </nav>

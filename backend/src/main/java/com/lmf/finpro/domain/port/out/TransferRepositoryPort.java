@@ -9,5 +9,6 @@ public interface TransferRepositoryPort {
     Transfer save(Transfer transfer);
     Optional<Transfer> findById(Long id);
     List<Transfer> findAllByUserId(Long userId);
+    boolean existsByAccountId(Long accountId);
     void deleteById(Long id);
 }

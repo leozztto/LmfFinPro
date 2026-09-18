@@ -33,6 +33,11 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
     }
 
     @Override
+    public boolean existsByAccountId(Long accountId) {
+        return transferJpaRepository.existsByFromAccountIdOrToAccountId(accountId, accountId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         transferJpaRepository.deleteById(id);
     }
