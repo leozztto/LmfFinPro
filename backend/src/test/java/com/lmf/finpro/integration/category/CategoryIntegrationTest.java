@@ -1,8 +1,13 @@
 package com.lmf.finpro.integration.category;
 
+import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
+import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryResponse;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.exception.ApiError;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
 import com.lmf.finpro.integration.support.TestDataFactory;
@@ -10,6 +15,8 @@ import com.lmf.finpro.integration.support.TestUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,5 +65,35 @@ class CategoryIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void userCannotDeleteCategoryWithLinkedTransaction() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        CategoryRequest categoryRequest = new CategoryRequest("Moradia", CategoryType.EXPENSE, null, null);
+        ResponseEntity<CategoryResponse> categoryResponse = restTemplate.exchange(
+            "/api/categories", HttpMethod.POST, new HttpEntity<>(categoryRequest, user.authHeaders()), CategoryResponse.class
+        );
+        Long categoryId = categoryResponse.getBody().id();
+
+        AccountRequest accountRequest = new AccountRequest("Conta", AccountType.CHECKING, BigDecimal.ZERO);
+        ResponseEntity<AccountResponse> accountResponse = restTemplate.exchange(
+            "/api/accounts", HttpMethod.POST, new HttpEntity<>(accountRequest, user.authHeaders()), AccountResponse.class
+        );
+        Long accountId = accountResponse.getBody().id();
+
+        TransactionRequest transactionRequest = new TransactionRequest(
+            accountId, categoryId, null, "Aluguel", BigDecimal.valueOf(1500), LocalDate.now(), CategoryType.EXPENSE
+        );
+        restTemplate.exchange(
+            "/api/transactions", HttpMethod.POST, new HttpEntity<>(transactionRequest, user.authHeaders()), TransactionResponse.class
+        );
+
+        ResponseEntity<ApiError> deleteResponse = restTemplate.exchange(
+            "/api/categories/" + categoryId, HttpMethod.DELETE, new HttpEntity<>(user.authHeaders()), ApiError.class
+        );
+
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 }

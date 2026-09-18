@@ -51,8 +51,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               toast.leaving ? 'animate-toast-out' : 'animate-toast-in'
             } ${
               toast.variant === 'error'
-                ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
-                : 'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-600 dark:bg-zinc-800 dark:text-primary-200'
+                ? 'border-red-700 bg-red-900 text-red-100'
+                : 'border-green-300 bg-green-100 text-green-800'
             }`}
           >
             {toast.message}

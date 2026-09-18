@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
+import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useTransactions } from '../hooks/useTransactions'
@@ -25,9 +26,15 @@ export function TransactionList() {
   const { data: categories } = useCategories()
   const deleteTransaction = useDeleteTransaction()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
 
-  function handleDelete(transactionId: number) {
+  async function handleDelete(transactionId: number, description: string) {
+    const confirmed = await confirm({
+      message: `Tem certeza que deseja remover a transação "${description}"? Essa ação não pode ser desfeita.`,
+    })
+    if (!confirmed) return
+
     deleteTransaction.mutate(transactionId, {
       onSuccess: () => {
         showToast('Transação removida com sucesso.', 'success')
@@ -146,14 +153,14 @@ export function TransactionList() {
           Nenhuma transação encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sorted.map((transaction) => (
             <TransactionCard
               key={transaction.id}
               transaction={transaction}
               accountName={accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
               categoryName={transaction.categoryId ? categoryNameById.get(transaction.categoryId) : undefined}
-              onDelete={() => handleDelete(transaction.id)}
+              onDelete={() => handleDelete(transaction.id, transaction.description)}
               isDeleting={deleteTransaction.isPending}
             />
           ))}

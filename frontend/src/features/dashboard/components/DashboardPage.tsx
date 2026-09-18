@@ -45,7 +45,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Visão geral</h2>
+        <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Visão geral</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">Saldo consolidado e movimento do mês.</p>
       </div>
 
@@ -53,7 +53,7 @@ export function DashboardPage() {
         <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando...</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <StatCard
               label="Saldo atual"
               value={formatCurrency(currentBalance)}
@@ -71,12 +71,12 @@ export function DashboardPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <MonthlyFlowChart data={monthlyFlow} />
             <BalanceEvolutionChart data={balanceOverTime} />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <CategoryBreakdownChart
               title="Despesas por categoria"
               emptyMessage="Nenhuma despesa registrada neste mês ainda."

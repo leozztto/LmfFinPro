@@ -1,11 +1,11 @@
 package com.lmf.finpro.infrastructure.web.exception;
 
-import com.lmf.finpro.domain.exception.AccountHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.CepNotFoundException;
 import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
+import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -76,8 +76,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
-    @ExceptionHandler(AccountHasLinkedRecordsException.class)
-    public ResponseEntity<ApiError> handleAccountHasLinkedRecords(AccountHasLinkedRecordsException ex, HttpServletRequest request) {
+    @ExceptionHandler(EntityHasLinkedRecordsException.class)
+    public ResponseEntity<ApiError> handleEntityHasLinkedRecords(EntityHasLinkedRecordsException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 

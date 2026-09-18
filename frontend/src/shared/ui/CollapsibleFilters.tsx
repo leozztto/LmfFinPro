@@ -16,7 +16,7 @@ export function CollapsibleFilters({ activeCount, children }: CollapsibleFilters
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between text-sm font-medium text-zinc-900 dark:text-zinc-50"
+        className="flex w-full items-center justify-between text-sm font-medium text-zinc-800 dark:text-zinc-100"
       >
         <span className="flex items-center gap-2">
           Filtros

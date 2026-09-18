@@ -1,6 +1,6 @@
 package com.lmf.finpro.application.account;
 
-import com.lmf.finpro.domain.exception.AccountHasLinkedRecordsException;
+import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
@@ -42,7 +42,7 @@ public class AccountApplicationService {
     public void delete(Long currentUserId, Long accountId) {
         findOwnedOrThrow(currentUserId, accountId);
         if (transactionRepositoryPort.existsByAccountId(accountId) || transferRepositoryPort.existsByAccountId(accountId)) {
-            throw new AccountHasLinkedRecordsException(
+            throw new EntityHasLinkedRecordsException(
                 "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de remover a conta."
             );
         }

@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/shared/auth/AuthContext'
 import { ThemeProvider } from '@/shared/theme/ThemeContext'
 import { ToastProvider } from '@/shared/toast/ToastContext'
+import { ConfirmProvider } from '@/shared/confirm/ConfirmContext'
 import { AppRouter } from '@/app/router'
 import './index.css'
 
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <AuthProvider>
             <ToastProvider>
-              <AppRouter />
+              <ConfirmProvider>
+                <AppRouter />
+              </ConfirmProvider>
             </ToastProvider>
           </AuthProvider>
         </BrowserRouter>

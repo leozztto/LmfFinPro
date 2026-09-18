@@ -37,12 +37,12 @@ export function TransferCard({ transfer, fromAccountName, toAccountName, onDelet
           >
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
           </button>
-          <p className="min-w-0 flex-1 truncate font-medium text-zinc-900 dark:text-zinc-50">{title}</p>
-          <span className="shrink-0 font-semibold text-zinc-900 dark:text-zinc-50">{amountLabel}</span>
+          <p className="min-w-0 flex-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{title}</p>
+          <span className="shrink-0 font-semibold text-[#5aa0dc]">{amountLabel}</span>
         </div>
         {open && (
-          <div className="mt-3 space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-700">
-            <p className="break-words text-sm text-zinc-900 dark:text-zinc-50">{title}</p>
+          <div className="mt-3 space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+            <p className="break-words text-sm text-zinc-800 dark:text-zinc-100">{title}</p>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatDateOnlyBr(transfer.transferDate)}</p>
             {transfer.description && (
               <p className="break-words text-sm text-zinc-500 dark:text-zinc-400">{transfer.description}</p>
@@ -54,14 +54,14 @@ export function TransferCard({ transfer, fromAccountName, toAccountName, onDelet
 
       <div className="hidden items-center justify-between gap-3 sm:flex">
         <div className="min-w-0 flex-1">
-          <p className="break-words font-medium text-zinc-900 dark:text-zinc-50">{title}</p>
+          <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{title}</p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatDateOnlyBr(transfer.transferDate)}</p>
           {transfer.description && (
             <ExpandableText text={transfer.description} className="text-sm text-zinc-500 dark:text-zinc-400" />
           )}
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className="font-semibold text-zinc-900 dark:text-zinc-50">{amountLabel}</span>
+          <span className="font-semibold text-[#5aa0dc]">{amountLabel}</span>
           {removeButton}
         </div>
       </div>

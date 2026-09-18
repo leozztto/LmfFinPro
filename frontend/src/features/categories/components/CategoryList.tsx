@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, Card, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
+import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useCategories } from '../hooks/useCategories'
 import { useDeleteCategory } from '../hooks/useDeleteCategory'
 import { CATEGORY_TYPE_LABELS, type CategoryType } from '../types'
@@ -18,9 +19,15 @@ export function CategoryList() {
   const { data: categories, isLoading } = useCategories()
   const deleteCategory = useDeleteCategory()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
 
-  function handleDelete(categoryId: number) {
+  async function handleDelete(categoryId: number, categoryName: string) {
+    const confirmed = await confirm({
+      message: `Tem certeza que deseja remover a categoria "${categoryName}"? Essa ação não pode ser desfeita.`,
+    })
+    if (!confirmed) return
+
     deleteCategory.mutate(categoryId, {
       onSuccess: () => {
         showToast('Categoria removida com sucesso.', 'success')
@@ -109,7 +116,7 @@ export function CategoryList() {
           Nenhuma categoria encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((category) => (
             <Card key={category.id} className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
@@ -119,7 +126,7 @@ export function CategoryList() {
                   aria-hidden
                 />
                 <div className="min-w-0">
-                  <p className="break-words font-medium text-zinc-900 dark:text-zinc-50">{category.name}</p>
+                  <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{category.name}</p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
                     {CATEGORY_TYPE_LABELS[category.type]}
                     {category.global ? ' · padrão do sistema' : ''}
@@ -129,7 +136,7 @@ export function CategoryList() {
               {!category.global && (
                 <Button
                   variant="secondary"
-                  onClick={() => handleDelete(category.id)}
+                  onClick={() => handleDelete(category.id, category.name)}
                   disabled={deleteCategory.isPending}
                 >
                   Remover

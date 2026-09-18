@@ -10,7 +10,7 @@ export function TransfersPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Transferências</h2>
+          <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Transferências</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Mova valores entre suas próprias contas.</p>
         </div>
         <Button onClick={() => setIsModalOpen(true)}>Nova transferência</Button>

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
+import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useTransfers } from '../hooks/useTransfers'
 import { useDeleteTransfer } from '../hooks/useDeleteTransfer'
@@ -20,9 +21,15 @@ export function TransferList() {
   const { data: accounts } = useAccounts()
   const deleteTransfer = useDeleteTransfer()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
 
-  function handleDelete(transferId: number) {
+  async function handleDelete(transferId: number) {
+    const confirmed = await confirm({
+      message: 'Tem certeza que deseja remover esta transferência? Essa ação não pode ser desfeita.',
+    })
+    if (!confirmed) return
+
     deleteTransfer.mutate(transferId, {
       onSuccess: () => {
         showToast('Transferência removida com sucesso.', 'success')
@@ -109,7 +116,7 @@ export function TransferList() {
           Nenhuma transferência encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sorted.map((transfer) => (
             <TransferCard
               key={transfer.id}

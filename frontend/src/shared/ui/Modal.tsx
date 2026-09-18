@@ -29,14 +29,14 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       role="presentation"
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+        className="w-full max-w-lg rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{title}</h3>
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">{title}</h3>
           <button
             type="button"
             onClick={onClose}

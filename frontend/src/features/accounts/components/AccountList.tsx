@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, Card, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
+import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useAccounts } from '../hooks/useAccounts'
 import { useDeleteAccount } from '../hooks/useDeleteAccount'
 import { ACCOUNT_TYPE_LABELS, type AccountType } from '../types'
@@ -18,9 +19,15 @@ export function AccountList() {
   const { data: accounts, isLoading } = useAccounts()
   const deleteAccount = useDeleteAccount()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
 
-  function handleDelete(accountId: number) {
+  async function handleDelete(accountId: number, accountName: string) {
+    const confirmed = await confirm({
+      message: `Tem certeza que deseja remover a conta "${accountName}"? Essa ação não pode ser desfeita.`,
+    })
+    if (!confirmed) return
+
     deleteAccount.mutate(accountId, {
       onSuccess: () => {
         showToast('Conta removida com sucesso.', 'success')
@@ -96,22 +103,22 @@ export function AccountList() {
           Nenhuma conta encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           {filtered.map((account) => (
             <Card key={account.id} className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="break-words font-medium text-zinc-900 dark:text-zinc-50">{account.name}</p>
+                <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{account.name}</p>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">{ACCOUNT_TYPE_LABELS[account.type]}</p>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
                   Saldo inicial: {formatCurrency(account.initialBalance)}
                 </p>
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
                   Saldo atual: {formatCurrency(account.currentBalance)}
                 </p>
               </div>
               <Button
                 variant="secondary"
-                onClick={() => handleDelete(account.id)}
+                onClick={() => handleDelete(account.id, account.name)}
                 disabled={deleteAccount.isPending}
               >
                 Remover

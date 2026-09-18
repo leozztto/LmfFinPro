@@ -16,6 +16,7 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
     List<TransactionJpaEntity> findByAccountIdIn(List<Long> accountIds);
     List<TransactionJpaEntity> findByTransferIdIn(List<Long> transferIds);
     boolean existsByAccountId(Long accountId);
+    boolean existsByCategoryId(Long categoryId);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM TransactionJpaEntity t WHERE t.account.id = :accountId AND t.type = :type")
     BigDecimal sumAmountByAccountIdAndType(@Param("accountId") Long accountId, @Param("type") CategoryType type);

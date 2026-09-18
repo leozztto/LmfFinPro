@@ -96,7 +96,7 @@ export function RegisterPage() {
       </div>
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 sm:p-8 lg:max-w-3xl">
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Criar conta no FinPro</h1>
+          <h1 className="text-xl font-semibold text-zinc-800 dark:text-zinc-100">Criar conta no FinPro</h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Leva menos de um minuto — sem cartão, sem enrolação.
           </p>

@@ -42,7 +42,7 @@ export function AccountBalanceChart({ accounts }: AccountBalanceChartProps) {
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Saldo por conta</h3>
+      <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Saldo por conta</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Saldo atual de cada conta cadastrada.</p>
 
       {bars.length === 0 ? (
@@ -107,10 +107,10 @@ function AccountTooltip({ active, payload }: TooltipProps<number, string>) {
   const point = entry.payload as AccountBalancePoint
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <div className="flex items-center gap-2 text-sm">
         <span className="inline-block h-0.5 w-3 rounded-full" style={{ backgroundColor: point.color }} aria-hidden />
-        <span className="font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(Number(entry.value))}</span>
+        <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatCurrency(Number(entry.value))}</span>
         <span className="text-zinc-500 dark:text-zinc-400">
           {point.name} · {ACCOUNT_TYPE_LABELS[point.type]}
         </span>

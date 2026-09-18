@@ -32,6 +32,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         );
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getWriter(), body);
+        // Escreve direto no OutputStream (Jackson usa UTF-8) em vez do Writer, que por padrão
+        // usa ISO-8859-1 e corrompia acentos (ex: "ção" virava caracteres inválidos no front).
+        objectMapper.writeValue(response.getOutputStream(), body);
     }
 }

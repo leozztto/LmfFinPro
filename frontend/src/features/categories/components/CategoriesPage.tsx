@@ -10,7 +10,7 @@ export function CategoriesPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Categorias</h2>
+          <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Categorias</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Categorias padrão do sistema e as suas próprias, usadas para classificar transações.
           </p>

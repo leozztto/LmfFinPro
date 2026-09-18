@@ -35,7 +35,7 @@ export function BalanceEvolutionChart({ data }: BalanceEvolutionChartProps) {
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Evolução do saldo</h3>
+      <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Evolução do saldo</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Saldo consolidado ao fim de cada mês.</p>
       <div className="mt-4 h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -117,11 +117,11 @@ function BalanceTooltip({ active, payload, label }: TooltipProps<number, string>
   const entry = payload[0]
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
       <div className="mt-1 flex items-center gap-2 text-sm">
         <span className="inline-block h-0.5 w-3 rounded-full" style={{ backgroundColor: entry.color }} aria-hidden />
-        <span className="font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(Number(entry.value))}</span>
+        <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatCurrency(Number(entry.value))}</span>
         <span className="text-zinc-500 dark:text-zinc-400">Saldo</span>
       </div>
     </div>
