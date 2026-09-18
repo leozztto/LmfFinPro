@@ -5,6 +5,7 @@ export interface Account {
   name: string
   type: AccountType
   initialBalance: number
+  currentBalance: number
   createdAt: string
 }
 

@@ -25,12 +25,12 @@ public class AccountController {
 
     @GetMapping
     public List<AccountResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return accountApplicationService.list(currentUser.userId()).stream().map(mapper::toResponse).toList();
+        return accountApplicationService.list(currentUser.userId()).stream().map(this::toResponse).toList();
     }
 
     @GetMapping("/{id}")
     public AccountResponse getById(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return mapper.toResponse(accountApplicationService.getById(currentUser.userId(), id));
+        return toResponse(accountApplicationService.getById(currentUser.userId(), id));
     }
 
     @PostMapping
@@ -40,7 +40,7 @@ public class AccountController {
         Account created = accountApplicationService.create(
             currentUser.userId(), request.name(), request.type(), request.initialBalance()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
     @PutMapping("/{id}")
@@ -52,12 +52,16 @@ public class AccountController {
         Account updated = accountApplicationService.update(
             currentUser.userId(), id, request.name(), request.type(), request.initialBalance()
         );
-        return mapper.toResponse(updated);
+        return toResponse(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         accountApplicationService.delete(currentUser.userId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    private AccountResponse toResponse(Account account) {
+        return mapper.toResponse(account, accountApplicationService.calculateCurrentBalance(account));
     }
 }

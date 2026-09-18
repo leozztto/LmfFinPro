@@ -1,13 +1,14 @@
 package com.lmf.finpro.infrastructure.persistence.adapter;
 
+import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import com.lmf.finpro.infrastructure.persistence.entity.TransactionJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.mapper.TransactionPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.TransactionJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,10 +37,18 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
-    public List<Transaction> findAllByTransferId(Long transferId) {
-        return transactionJpaRepository.findByTransferId(transferId).stream()
+    public List<Transaction> findAllByTransferIds(List<Long> transferIds) {
+        if (transferIds.isEmpty()) {
+            return List.of();
+        }
+        return transactionJpaRepository.findByTransferIdIn(transferIds).stream()
             .map(mapper::toDomain)
             .toList();
+    }
+
+    @Override
+    public BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type) {
+        return transactionJpaRepository.sumAmountByAccountIdAndType(accountId, type);
     }
 
     @Override

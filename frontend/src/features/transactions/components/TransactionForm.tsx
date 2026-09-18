@@ -8,7 +8,11 @@ import { transactionSchema, type TransactionFormValues } from '../schemas'
 import { TRANSACTION_TYPE_LABELS } from '../types'
 import { getCurrentIsoDate } from '@/shared/format/date'
 
-export function TransactionForm() {
+interface TransactionFormProps {
+  onSuccess?: () => void
+}
+
+export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const createTransaction = useCreateTransaction()
@@ -37,6 +41,7 @@ export function TransactionForm() {
       type: 'EXPENSE',
       transactionDate: getCurrentIsoDate(),
     })
+    onSuccess?.()
   }
 
   if (!accounts?.length) {
@@ -48,7 +53,7 @@ export function TransactionForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-3">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
       <FormField label="Conta" htmlFor="transaction-account" error={errors.accountId?.message}>
         <Select id="transaction-account" {...register('accountId')}>
           {accounts.map((account) => (
@@ -77,17 +82,19 @@ export function TransactionForm() {
           ))}
         </Select>
       </FormField>
-      <FormField label="Descrição" htmlFor="transaction-description" error={errors.description?.message}>
-        <Input id="transaction-description" placeholder="Pagamento cliente X" {...register('description')} />
-      </FormField>
-      <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
-        <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
-      </FormField>
       <FormField label="Data" htmlFor="transaction-date" error={errors.transactionDate?.message}>
         <Input id="transaction-date" type="date" {...register('transactionDate')} />
       </FormField>
-      <div className="sm:col-span-3">
-        <Button type="submit" disabled={createTransaction.isPending}>
+      <div className="sm:col-span-2">
+        <FormField label="Descrição" htmlFor="transaction-description" error={errors.description?.message}>
+          <Input id="transaction-description" placeholder="Pagamento cliente X" {...register('description')} />
+        </FormField>
+      </div>
+      <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
+        <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
+      </FormField>
+      <div className="sm:col-span-2">
+        <Button type="submit" disabled={createTransaction.isPending} className="w-full">
           {createTransaction.isPending ? 'Salvando...' : 'Lançar transação'}
         </Button>
       </div>

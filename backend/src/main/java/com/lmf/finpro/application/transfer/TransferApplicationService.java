@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.transfer;
 
+import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -18,6 +19,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class TransferApplicationService {
     private final TransferRepositoryPort transferRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
+    private final AccountApplicationService accountApplicationService;
 
     @Transactional
     public TransferResult create(
@@ -39,7 +43,7 @@ public class TransferApplicationService {
         Account fromAccount = findOwnedOrThrow(currentUserId, fromAccountId);
         Account toAccount = findOwnedOrThrow(currentUserId, toAccountId);
 
-        BigDecimal fromAccountBalance = calculateBalance(fromAccount);
+        BigDecimal fromAccountBalance = accountApplicationService.calculateCurrentBalance(fromAccount);
         if (amount.compareTo(fromAccountBalance) > 0) {
             throw new InsufficientBalanceException(
                 "Saldo insuficiente na conta de origem. Saldo disponível: " + fromAccountBalance.setScale(2, RoundingMode.HALF_UP)
@@ -65,8 +69,13 @@ public class TransferApplicationService {
     }
 
     public List<TransferResult> list(Long currentUserId) {
-        return transferRepositoryPort.findAllByUserId(currentUserId).stream()
-            .map(this::toResult)
+        List<Transfer> transfers = transferRepositoryPort.findAllByUserId(currentUserId);
+        List<Long> transferIds = transfers.stream().map(Transfer::id).toList();
+        Map<Long, List<Transaction>> legsByTransferId = transactionRepositoryPort.findAllByTransferIds(transferIds).stream()
+            .collect(Collectors.groupingBy(Transaction::transferId));
+
+        return transfers.stream()
+            .map(transfer -> toResult(transfer, legsByTransferId.getOrDefault(transfer.id(), List.of())))
             .toList();
     }
 
@@ -77,8 +86,7 @@ public class TransferApplicationService {
         transferRepositoryPort.deleteById(transfer.id());
     }
 
-    private TransferResult toResult(Transfer transfer) {
-        List<Transaction> legs = transactionRepositoryPort.findAllByTransferId(transfer.id());
+    private TransferResult toResult(Transfer transfer, List<Transaction> legs) {
         Long fromTransactionId = legs.stream()
             .filter(t -> t.accountId().equals(transfer.fromAccountId()) && t.type() == CategoryType.EXPENSE)
             .map(Transaction::id)
@@ -97,19 +105,5 @@ public class TransferApplicationService {
         return accountRepositoryPort.findById(accountId)
             .filter(account -> account.belongsTo(currentUserId))
             .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
-    }
-
-    /** Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta (não há saldo persistido no projeto). */
-    private BigDecimal calculateBalance(Account account) {
-        List<Transaction> transactions = transactionRepositoryPort.findAllByAccountIds(List.of(account.id()));
-        BigDecimal income = transactions.stream()
-            .filter(t -> t.type() == CategoryType.INCOME)
-            .map(Transaction::amount)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal expense = transactions.stream()
-            .filter(t -> t.type() == CategoryType.EXPENSE)
-            .map(Transaction::amount)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return account.initialBalance().add(income).subtract(expense);
     }
 }
