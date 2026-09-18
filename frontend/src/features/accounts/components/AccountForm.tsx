@@ -1,6 +1,8 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useCreateAccount } from '../hooks/useCreateAccount'
 import { accountSchema, type AccountFormValues } from '../schemas'
 import { ACCOUNT_TYPE_LABELS } from '../types'
@@ -11,6 +13,7 @@ interface AccountFormProps {
 
 export function AccountForm({ onSuccess }: AccountFormProps) {
   const createAccount = useCreateAccount()
+  const { showToast } = useToast()
   const {
     register,
     handleSubmit,
@@ -24,9 +27,14 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
   })
 
   async function onSubmit(values: AccountFormValues) {
-    await createAccount.mutateAsync(values)
-    reset({ name: '', type: 'CHECKING', initialBalance: 0 })
-    onSuccess?.()
+    try {
+      await createAccount.mutateAsync(values)
+      reset({ name: '', type: 'CHECKING', initialBalance: 0 })
+      showToast('Conta criada com sucesso.', 'success')
+      onSuccess?.()
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : 'Não foi possível criar a conta.')
+    }
   }
 
   return (

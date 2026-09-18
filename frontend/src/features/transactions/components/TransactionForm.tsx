@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useCreateTransaction } from '../hooks/useCreateTransaction'
@@ -17,6 +19,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const createTransaction = useCreateTransaction()
+  const { showToast } = useToast()
 
   const {
     register,
@@ -46,15 +49,20 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   }, [selectedCategory, setValue])
 
   async function onSubmit(values: TransactionFormValues) {
-    await createTransaction.mutateAsync(values)
-    reset({
-      accountId: values.accountId,
-      description: '',
-      amount: 0,
-      type: 'EXPENSE',
-      transactionDate: getCurrentIsoDate(),
-    })
-    onSuccess?.()
+    try {
+      await createTransaction.mutateAsync(values)
+      reset({
+        accountId: values.accountId,
+        description: '',
+        amount: 0,
+        type: 'EXPENSE',
+        transactionDate: getCurrentIsoDate(),
+      })
+      showToast('Transação lançada com sucesso.', 'success')
+      onSuccess?.()
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : 'Não foi possível lançar a transação.')
+    }
   }
 
   if (!accounts?.length) {
@@ -86,12 +94,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           ))}
         </Select>
       </FormField>
-      <FormField
-        label="Tipo"
-        htmlFor="transaction-type"
-        error={errors.type?.message}
-        hint={selectedCategory ? 'Definido pela categoria selecionada' : undefined}
-      >
+      <FormField label="Tipo" htmlFor="transaction-type" error={errors.type?.message}>
         <Select id="transaction-type" disabled={Boolean(selectedCategory)} {...register('type')}>
           {Object.entries(TRANSACTION_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>

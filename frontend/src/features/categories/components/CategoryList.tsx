@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useCategories } from '../hooks/useCategories'
 import { useDeleteCategory } from '../hooks/useDeleteCategory'
 import { CATEGORY_TYPE_LABELS, type CategoryType } from '../types'
@@ -15,7 +17,19 @@ const EMPTY_FILTERS: Filters = { name: '', type: '', origin: '' }
 export function CategoryList() {
   const { data: categories, isLoading } = useCategories()
   const deleteCategory = useDeleteCategory()
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+
+  function handleDelete(categoryId: number) {
+    deleteCategory.mutate(categoryId, {
+      onSuccess: () => {
+        showToast('Categoria removida com sucesso.', 'success')
+      },
+      onError: (error) => {
+        showToast(error instanceof ApiError ? error.message : 'Não foi possível remover a categoria.')
+      },
+    })
+  }
 
   const filtered = useMemo(() => {
     if (!categories) return []
@@ -115,7 +129,7 @@ export function CategoryList() {
               {!category.global && (
                 <Button
                   variant="secondary"
-                  onClick={() => deleteCategory.mutate(category.id)}
+                  onClick={() => handleDelete(category.id)}
                   disabled={deleteCategory.isPending}
                 >
                   Remover

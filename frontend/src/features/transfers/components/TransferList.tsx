@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useTransfers } from '../hooks/useTransfers'
 import { useDeleteTransfer } from '../hooks/useDeleteTransfer'
@@ -17,7 +19,19 @@ export function TransferList() {
   const { data: transfers, isLoading } = useTransfers()
   const { data: accounts } = useAccounts()
   const deleteTransfer = useDeleteTransfer()
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+
+  function handleDelete(transferId: number) {
+    deleteTransfer.mutate(transferId, {
+      onSuccess: () => {
+        showToast('Transferência removida com sucesso.', 'success')
+      },
+      onError: (error) => {
+        showToast(error instanceof ApiError ? error.message : 'Não foi possível remover a transferência.')
+      },
+    })
+  }
 
   const accountNameById = new Map(accounts?.map((account) => [account.id, account.name]))
 
@@ -102,7 +116,7 @@ export function TransferList() {
               transfer={transfer}
               fromAccountName={accountNameById.get(transfer.fromAccountId) ?? 'conta desconhecida'}
               toAccountName={accountNameById.get(transfer.toAccountId) ?? 'conta desconhecida'}
-              onDelete={() => deleteTransfer.mutate(transfer.id)}
+              onDelete={() => handleDelete(transfer.id)}
               isDeleting={deleteTransfer.isPending}
             />
           ))}

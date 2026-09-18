@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useTransactions } from '../hooks/useTransactions'
@@ -22,7 +24,19 @@ export function TransactionList() {
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const deleteTransaction = useDeleteTransaction()
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+
+  function handleDelete(transactionId: number) {
+    deleteTransaction.mutate(transactionId, {
+      onSuccess: () => {
+        showToast('Transação removida com sucesso.', 'success')
+      },
+      onError: (error) => {
+        showToast(error instanceof ApiError ? error.message : 'Não foi possível remover a transação.')
+      },
+    })
+  }
 
   const accountNameById = new Map(accounts?.map((account) => [account.id, account.name]))
   const categoryNameById = new Map(categories?.map((category) => [category.id, category.name]))
@@ -139,7 +153,7 @@ export function TransactionList() {
               transaction={transaction}
               accountName={accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
               categoryName={transaction.categoryId ? categoryNameById.get(transaction.categoryId) : undefined}
-              onDelete={() => deleteTransaction.mutate(transaction.id)}
+              onDelete={() => handleDelete(transaction.id)}
               isDeleting={deleteTransaction.isPending}
             />
           ))}

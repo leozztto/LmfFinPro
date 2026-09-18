@@ -45,6 +45,7 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
         description: '',
         transferDate: getCurrentIsoDate(),
       })
+      showToast('Transferência realizada com sucesso.', 'success')
       onSuccess?.()
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível transferir.')
