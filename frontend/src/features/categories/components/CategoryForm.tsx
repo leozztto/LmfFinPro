@@ -1,6 +1,8 @@
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, ColorInput, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useCreateCategory } from '../hooks/useCreateCategory'
 import { categorySchema, type CategoryFormValues } from '../schemas'
 import { CATEGORY_TYPE_LABELS } from '../types'
@@ -11,6 +13,7 @@ interface CategoryFormProps {
 
 export function CategoryForm({ onSuccess }: CategoryFormProps) {
   const createCategory = useCreateCategory()
+  const { showToast } = useToast()
   const {
     register,
     control,
@@ -25,9 +28,14 @@ export function CategoryForm({ onSuccess }: CategoryFormProps) {
   })
 
   async function onSubmit(values: CategoryFormValues) {
-    await createCategory.mutateAsync(values)
-    reset({ name: '', type: 'EXPENSE', color: '', icon: '' })
-    onSuccess?.()
+    try {
+      await createCategory.mutateAsync(values)
+      reset({ name: '', type: 'EXPENSE', color: '', icon: '' })
+      showToast('Categoria criada com sucesso.', 'success')
+      onSuccess?.()
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : 'Não foi possível criar a categoria.')
+    }
   }
 
   return (

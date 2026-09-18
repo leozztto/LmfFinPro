@@ -22,6 +22,9 @@ export function AccountList() {
 
   function handleDelete(accountId: number) {
     deleteAccount.mutate(accountId, {
+      onSuccess: () => {
+        showToast('Conta removida com sucesso.', 'success')
+      },
       onError: (error) => {
         showToast(error instanceof ApiError ? error.message : 'Não foi possível remover a conta.')
       },

@@ -41,15 +41,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex flex-col items-center gap-2 px-4">
         {toasts.map((toast) => (
           <button
             key={toast.id}
             type="button"
             onClick={() => dismiss(toast.id)}
-            className={`pointer-events-auto w-full max-w-sm rounded-lg px-4 py-3 text-left text-sm font-medium shadow-lg ${
+            className={`pointer-events-auto w-full max-w-sm rounded-lg border px-4 py-3 text-left text-sm font-medium shadow-lg ${
               toast.leaving ? 'animate-toast-out' : 'animate-toast-in'
-            } ${toast.variant === 'error' ? 'bg-red-600 text-white' : 'bg-primary-600 text-white'}`}
+            } ${
+              toast.variant === 'error'
+                ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
+                : 'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-600 dark:bg-zinc-800 dark:text-primary-200'
+            }`}
           >
             {toast.message}
           </button>

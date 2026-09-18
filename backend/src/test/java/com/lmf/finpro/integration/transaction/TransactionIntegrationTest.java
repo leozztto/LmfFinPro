@@ -4,6 +4,8 @@ import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
+import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
+import com.lmf.finpro.infrastructure.web.dto.category.CategoryResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.exception.ApiError;
@@ -71,6 +73,31 @@ class TransactionIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void userCannotCreateExpenseTransactionWithIncomeCategory() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long incomeCategoryId = createCategory(user, CategoryType.INCOME);
+
+        TransactionRequest createRequest = new TransactionRequest(
+            accountId, incomeCategoryId, null, "Despesa com categoria errada", BigDecimal.TEN, LocalDate.now(), CategoryType.EXPENSE
+        );
+
+        ResponseEntity<ApiError> response = restTemplate.exchange(
+            "/api/transactions", HttpMethod.POST, new HttpEntity<>(createRequest, user.authHeaders()), ApiError.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    private Long createCategory(TestUser user, CategoryType type) {
+        CategoryRequest categoryRequest = new CategoryRequest("Categoria " + type, type, null, null);
+        ResponseEntity<CategoryResponse> response = restTemplate.exchange(
+            "/api/categories", HttpMethod.POST, new HttpEntity<>(categoryRequest, user.authHeaders()), CategoryResponse.class
+        );
+        return response.getBody().id();
     }
 
     private Long createAccount(TestUser user) {

@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
+import { ApiError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useCreateTransaction } from '../hooks/useCreateTransaction'
@@ -16,11 +19,14 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const createTransaction = useCreateTransaction()
+  const { showToast } = useToast()
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -32,16 +38,31 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     },
   })
 
+  const selectedCategoryId = watch('categoryId')
+  const selectedCategory = categories?.find((category) => String(category.id) === String(selectedCategoryId))
+
+  // A categoria já define se é receita ou despesa, então o tipo é derivado dela.
+  useEffect(() => {
+    if (selectedCategory) {
+      setValue('type', selectedCategory.type)
+    }
+  }, [selectedCategory, setValue])
+
   async function onSubmit(values: TransactionFormValues) {
-    await createTransaction.mutateAsync(values)
-    reset({
-      accountId: values.accountId,
-      description: '',
-      amount: 0,
-      type: 'EXPENSE',
-      transactionDate: getCurrentIsoDate(),
-    })
-    onSuccess?.()
+    try {
+      await createTransaction.mutateAsync(values)
+      reset({
+        accountId: values.accountId,
+        description: '',
+        amount: 0,
+        type: 'EXPENSE',
+        transactionDate: getCurrentIsoDate(),
+      })
+      showToast('Transação lançada com sucesso.', 'success')
+      onSuccess?.()
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : 'Não foi possível lançar a transação.')
+    }
   }
 
   if (!accounts?.length) {
@@ -68,13 +89,13 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           <option value="">Sem categoria</option>
           {categories?.map((category) => (
             <option key={category.id} value={category.id}>
-              {category.name}
+              {category.name} ({TRANSACTION_TYPE_LABELS[category.type]})
             </option>
           ))}
         </Select>
       </FormField>
       <FormField label="Tipo" htmlFor="transaction-type" error={errors.type?.message}>
-        <Select id="transaction-type" {...register('type')}>
+        <Select id="transaction-type" disabled={Boolean(selectedCategory)} {...register('type')}>
           {Object.entries(TRANSACTION_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}

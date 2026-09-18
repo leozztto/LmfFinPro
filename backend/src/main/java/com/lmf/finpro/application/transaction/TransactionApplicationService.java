@@ -1,8 +1,10 @@
 package com.lmf.finpro.application.transaction;
 
+import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -28,7 +30,7 @@ public class TransactionApplicationService {
         String description, BigDecimal amount, LocalDate transactionDate, CategoryType type
     ) {
         requireOwnedAccount(currentUserId, accountId);
-        requireVisibleCategoryIfPresent(currentUserId, categoryId);
+        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         return transactionRepositoryPort.save(
             Transaction.create(accountId, categoryId, clientId, description, amount, transactionDate, type)
         );
@@ -50,7 +52,7 @@ public class TransactionApplicationService {
         String description, BigDecimal amount, LocalDate transactionDate, CategoryType type
     ) {
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
-        requireVisibleCategoryIfPresent(currentUserId, categoryId);
+        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         return transactionRepositoryPort.save(
             existing.withDetails(categoryId, clientId, description, amount, transactionDate, type)
         );
@@ -79,12 +81,18 @@ public class TransactionApplicationService {
             .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
-    private void requireVisibleCategoryIfPresent(Long currentUserId, Long categoryId) {
+    private void requireMatchingCategoryTypeIfPresent(Long currentUserId, Long categoryId, CategoryType type) {
         if (categoryId == null) {
             return;
         }
-        categoryRepositoryPort.findById(categoryId)
-            .filter(category -> category.isVisibleTo(currentUserId))
+        Category category = categoryRepositoryPort.findById(categoryId)
+            .filter(candidate -> candidate.isVisibleTo(currentUserId))
             .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada: " + categoryId));
+        if (category.type() != type) {
+            throw new CategoryTypeMismatchException(
+                "A categoria \"" + category.name() + "\" é do tipo " + category.type()
+                    + " e não pode ser usada em uma transação do tipo " + type + "."
+            );
+        }
     }
 }
