@@ -8,6 +8,7 @@ const optionalId = z.preprocess(
 export const transactionSchema = z.object({
   accountId: z.coerce.number({ invalid_type_error: 'selecione uma conta' }).positive('selecione uma conta'),
   categoryId: optionalId,
+  clientId: optionalId,
   description: z.string().min(1, 'descrição é obrigatória'),
   amount: z.coerce
     .number({ invalid_type_error: 'informe um valor' })

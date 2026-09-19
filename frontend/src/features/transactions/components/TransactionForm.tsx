@@ -6,6 +6,7 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
+import { useClients } from '@/features/clients/hooks/useClients'
 import { useCreateTransaction } from '../hooks/useCreateTransaction'
 import { transactionSchema, type TransactionFormValues } from '../schemas'
 import { TRANSACTION_TYPE_LABELS } from '../types'
@@ -18,6 +19,7 @@ interface TransactionFormProps {
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
+  const { data: clients } = useClients()
   const createTransaction = useCreateTransaction()
   const { showToast } = useToast()
 
@@ -90,6 +92,16 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           {categories?.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name} ({TRANSACTION_TYPE_LABELS[category.type]})
+            </option>
+          ))}
+        </Select>
+      </FormField>
+      <FormField label="Cliente (opcional)" htmlFor="transaction-client" error={errors.clientId?.message}>
+        <Select id="transaction-client" {...register('clientId')}>
+          <option value="">Sem cliente</option>
+          {clients?.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
             </option>
           ))}
         </Select>

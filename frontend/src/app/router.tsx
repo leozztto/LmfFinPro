@@ -4,6 +4,7 @@ import { RegisterPage } from '@/features/auth/components/RegisterPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { AccountsPage } from '@/features/accounts/components/AccountsPage'
 import { CategoriesPage } from '@/features/categories/components/CategoriesPage'
+import { ClientsPage } from '@/features/clients/components/ClientsPage'
 import { TransactionsPage } from '@/features/transactions/components/TransactionsPage'
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
@@ -20,6 +21,7 @@ export function AppRouter() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/contas" element={<AccountsPage />} />
           <Route path="/categorias" element={<CategoriesPage />} />
+          <Route path="/clientes" element={<ClientsPage />} />
           <Route path="/transacoes" element={<TransactionsPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
         </Route>

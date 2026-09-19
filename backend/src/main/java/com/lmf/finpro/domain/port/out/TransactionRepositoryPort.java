@@ -15,5 +15,6 @@ public interface TransactionRepositoryPort {
     BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type);
     boolean existsByAccountId(Long accountId);
     boolean existsByCategoryId(Long categoryId);
+    boolean existsByClientId(Long clientId);
     void deleteById(Long id);
 }

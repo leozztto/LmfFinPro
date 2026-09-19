@@ -4,15 +4,20 @@ import { Button, ColorInput, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useCreateCategory } from '../hooks/useCreateCategory'
+import { useUpdateCategory } from '../hooks/useUpdateCategory'
 import { categorySchema, type CategoryFormValues } from '../schemas'
-import { CATEGORY_TYPE_LABELS } from '../types'
+import { CATEGORY_TYPE_LABELS, type Category } from '../types'
 
 interface CategoryFormProps {
+  category?: Category
   onSuccess?: () => void
 }
 
-export function CategoryForm({ onSuccess }: CategoryFormProps) {
+export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
+  const isEditing = category != null
   const createCategory = useCreateCategory()
+  const updateCategory = useUpdateCategory()
+  const isPending = isEditing ? updateCategory.isPending : createCategory.isPending
   const { showToast } = useToast()
   const {
     register,
@@ -24,17 +29,31 @@ export function CategoryForm({ onSuccess }: CategoryFormProps) {
     resolver: zodResolver(categorySchema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
-    defaultValues: { type: 'EXPENSE', color: '' },
+    defaultValues: isEditing
+      ? { name: category.name, type: category.type, color: category.color ?? '' }
+      : { type: 'EXPENSE', color: '' },
   })
 
   async function onSubmit(values: CategoryFormValues) {
     try {
-      await createCategory.mutateAsync(values)
-      reset({ name: '', type: 'EXPENSE', color: '', icon: '' })
-      showToast('Categoria criada com sucesso.', 'success')
+      if (isEditing) {
+        await updateCategory.mutateAsync({
+          id: category.id,
+          input: { name: values.name, type: values.type, color: values.color, icon: category.icon ?? undefined },
+        })
+        showToast('Categoria atualizada com sucesso.', 'success')
+      } else {
+        await createCategory.mutateAsync(values)
+        reset({ name: '', type: 'EXPENSE', color: '', icon: '' })
+        showToast('Categoria criada com sucesso.', 'success')
+      }
       onSuccess?.()
     } catch (error) {
-      showToast(error instanceof ApiError ? error.message : 'Não foi possível criar a categoria.')
+      showToast(
+        error instanceof ApiError
+          ? error.message
+          : `Não foi possível ${isEditing ? 'atualizar' : 'criar'} a categoria.`,
+      )
     }
   }
 
@@ -44,7 +63,7 @@ export function CategoryForm({ onSuccess }: CategoryFormProps) {
         <Input id="category-name" placeholder="Consultoria" {...register('name')} />
       </FormField>
       <FormField label="Tipo" htmlFor="category-type" error={errors.type?.message}>
-        <Select id="category-type" {...register('type')}>
+        <Select id="category-type" disabled={isEditing} {...register('type')}>
           {Object.entries(CATEGORY_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -68,8 +87,8 @@ export function CategoryForm({ onSuccess }: CategoryFormProps) {
         />
       </FormField>
       <div className="sm:col-span-2">
-        <Button type="submit" disabled={createCategory.isPending} className="w-full">
-          {createCategory.isPending ? 'Salvando...' : 'Adicionar categoria'}
+        <Button type="submit" disabled={isPending} className="w-full">
+          {isPending ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Adicionar categoria'}
         </Button>
       </div>
     </form>
