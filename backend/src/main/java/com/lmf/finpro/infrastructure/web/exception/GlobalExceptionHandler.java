@@ -6,6 +6,7 @@ import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
+import com.lmf.finpro.domain.exception.ImportFileInvalidException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -79,6 +80,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityHasLinkedRecordsException.class)
     public ResponseEntity<ApiError> handleEntityHasLinkedRecords(EntityHasLinkedRecordsException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ImportFileInvalidException.class)
+    public ResponseEntity<ApiError> handleImportFileInvalid(ImportFileInvalidException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

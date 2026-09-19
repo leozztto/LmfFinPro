@@ -15,6 +15,7 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
     List<TransactionJpaEntity> findByClientId(Long clientId);
     List<TransactionJpaEntity> findByAccountIdIn(List<Long> accountIds);
     List<TransactionJpaEntity> findByTransferIdIn(List<Long> transferIds);
+    List<TransactionJpaEntity> findByImportBatchId(Long importBatchId);
     boolean existsByAccountId(Long accountId);
     boolean existsByCategoryId(Long categoryId);
     boolean existsByClientId(Long clientId);

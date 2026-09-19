@@ -78,7 +78,7 @@ export function RegisterPage() {
       password: values.password,
       documentType: documentTypeForTaxRegime(values.taxRegime),
       documentNumber: values.documentNumber,
-      phone: values.phone || undefined,
+      phone: values.phone ? onlyDigits(values.phone) : undefined,
       taxRegime: values.taxRegime,
       address: {
         ...values.address,

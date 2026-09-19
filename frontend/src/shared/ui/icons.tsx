@@ -183,6 +183,24 @@ export function UsersIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function UploadIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <path d="M12 15.5V4M12 4 8 8M12 4l4 4" />
+      <path d="M4 15.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2.5" />
+    </svg>
+  )
+}
+
 export function PlusIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

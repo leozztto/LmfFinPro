@@ -47,6 +47,13 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
+    public List<Transaction> findAllByImportBatchId(Long importBatchId) {
+        return transactionJpaRepository.findByImportBatchId(importBatchId).stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+
+    @Override
     public BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type) {
         return transactionJpaRepository.sumAmountByAccountIdAndType(accountId, type);
     }

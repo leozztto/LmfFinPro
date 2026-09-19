@@ -19,7 +19,8 @@ public class TransactionWebMapper {
             transaction.type(),
             transaction.origin(),
             transaction.createdAt(),
-            transaction.transferId()
+            transaction.transferId(),
+            transaction.importBatchId()
         );
     }
 }
