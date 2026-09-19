@@ -11,7 +11,7 @@ export function AccountsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Contas</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
             Contas bancárias e carteiras usadas para registrar suas transações.
           </p>
         </div>

@@ -46,7 +46,7 @@ export function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Visão geral</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Saldo consolidado e movimento do mês.</p>
+        <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">Saldo consolidado e movimento do mês.</p>
       </div>
 
       {isLoading ? (
