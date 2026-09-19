@@ -18,6 +18,7 @@ public record TransactionResponse(
     CategoryType type,
     TransactionOrigin origin,
     LocalDateTime createdAt,
-    Long transferId
+    Long transferId,
+    Long importBatchId
 ) {
 }

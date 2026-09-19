@@ -4,18 +4,20 @@ import { getCurrentYearMonth } from '@/shared/format/date'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useTransactions } from '@/features/transactions/hooks/useTransactions'
 import { useCategories } from '@/features/categories/hooks/useCategories'
+import { useClients } from '@/features/clients/hooks/useClients'
 import { MonthlyFlowChart } from './MonthlyFlowChart'
 import { BalanceEvolutionChart } from './BalanceEvolutionChart'
-import { CategoryBreakdownChart } from './CategoryBreakdownChart'
+import { BreakdownChart } from './BreakdownChart'
 import { AccountBalanceChart } from './AccountBalanceChart'
-import { buildBalanceOverTime, buildCategoryBreakdown, buildMonthlyFlow, computeDeltaPercent } from '../utils'
+import { buildBalanceOverTime, buildCategoryBreakdown, buildClientBreakdown, buildMonthlyFlow, computeDeltaPercent } from '../utils'
 
 export function DashboardPage() {
   const { data: accounts, isLoading: loadingAccounts } = useAccounts()
   const { data: transactions, isLoading: loadingTransactions } = useTransactions()
   const { data: categories, isLoading: loadingCategories } = useCategories()
+  const { data: clients, isLoading: loadingClients } = useClients()
 
-  const isLoading = loadingAccounts || loadingTransactions || loadingCategories
+  const isLoading = loadingAccounts || loadingTransactions || loadingCategories || loadingClients
 
   const initialBalanceTotal = accounts?.reduce((sum, account) => sum + account.initialBalance, 0) ?? 0
 
@@ -37,6 +39,7 @@ export function DashboardPage() {
 
   const expenseByCategory = buildCategoryBreakdown(nonTransferTransactions, categories ?? [], currentYearMonth, 'EXPENSE')
   const incomeByCategory = buildCategoryBreakdown(nonTransferTransactions, categories ?? [], currentYearMonth, 'INCOME')
+  const incomeByClient = buildClientBreakdown(nonTransferTransactions, clients ?? [], currentYearMonth)
 
   const balanceDeltaPercent = computeDeltaPercent(currentBalance, previousBalance)
   const incomeDeltaPercent = computeDeltaPercent(currentMonth.income, previousMonth.income)
@@ -77,19 +80,26 @@ export function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <CategoryBreakdownChart
+            <BreakdownChart
               title="Despesas por categoria"
               emptyMessage="Nenhuma despesa registrada neste mês ainda."
               data={expenseByCategory}
             />
-            <CategoryBreakdownChart
+            <BreakdownChart
               title="Receita por categoria"
               emptyMessage="Nenhuma receita registrada neste mês ainda."
               data={incomeByCategory}
             />
           </div>
 
-          <AccountBalanceChart accounts={accounts ?? []} />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <BreakdownChart
+              title="Receita por cliente"
+              emptyMessage="Nenhuma receita associada a um cliente neste mês ainda."
+              data={incomeByClient}
+            />
+            <AccountBalanceChart accounts={accounts ?? []} />
+          </div>
         </>
       )}
     </div>

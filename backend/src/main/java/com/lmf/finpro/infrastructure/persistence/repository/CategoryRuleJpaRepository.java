@@ -4,7 +4,9 @@ import com.lmf.finpro.infrastructure.persistence.entity.CategoryRuleJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CategoryRuleJpaRepository extends JpaRepository<CategoryRuleJpaEntity, Long> {
     List<CategoryRuleJpaEntity> findByUserIdOrderByWeightDesc(Long userId);
+    Optional<CategoryRuleJpaEntity> findByUserIdAndPatternIgnoreCase(Long userId, String pattern);
 }

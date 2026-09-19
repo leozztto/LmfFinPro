@@ -4,31 +4,30 @@
 
 ## 1. Status atual da implementação
 
-*Leitura feita direto no código do repositório em 18/09/2026. Desde a última revisão (16/09), o backend ganhou arquitetura hexagonal completa com autenticação JWT real e quatro módulos de CRUD, e o frontend passou de uma tela mockada para um app funcional de ponta a ponta (login, contas, categorias, transações, transferências e dashboard com dados reais).*
+*Leitura feita direto no código do repositório em 19/09/2026. Desde a última revisão, o backend ganhou os módulos de Cliente/Projeto e de Importação de CSV + motor de categorização automática, e o frontend ganhou o dashboard de receita por cliente e a tela de importação/revisão.*
 
-**Backend (~65%)**
+**Backend (~80%)**
 
 - ✅ Arquitetura em camadas hexagonal: `domain` (modelo + ports de saída) → `application` (services) → `infrastructure` (controllers, DTOs, adapters de persistência/segurança/cliente externo)
 - ✅ Autenticação completa e real: registro/login com JWT (`JwtService`, `JwtAuthenticationFilter`), Spring Security stateless — **não é mais `permitAll()` geral**; só `/api/auth/**`, `/api/cep/**`, Swagger e `/actuator/health` são públicos, todo o resto exige token
-- ✅ CRUD completo (Controller → Service → DTO) para **Account**, **Category**, **Transaction** e **Transfer**, com regras de negócio de domínio (ex.: saldo insuficiente em transferência, bloqueio de exclusão de conta/categoria com registros vinculados via `AccountHasLinkedRecordsException`)
+- ✅ CRUD completo (Controller → Service → DTO) para **Account**, **Category**, **Transaction**, **Transfer** e **Client**, com regras de negócio de domínio (ex.: saldo insuficiente em transferência, bloqueio de exclusão de conta/categoria/cliente com registros vinculados via `EntityHasLinkedRecordsException`)
+- ✅ Importação de extrato CSV (`ImportBatchController`, upload multipart) com motor de categorização automática por `CategoryRule` (match por palavra-chave no descritivo, peso reforçado a cada correção manual do usuário)
 - ✅ Integração com ViaCEP para autocompletar endereço no cadastro de usuário
 - ✅ Validação de CPF/CNPJ (`CpfValidator`, `CnpjValidator`) e modelagem de endereço (`Address`, `BrazilianState`)
-- ✅ Migrations Flyway V1 a V6 (schema inicial, CPF/telefone, troca para "documento" genérico, endereço, tabela de transferências, índices)
-- ✅ Testes de integração com Testcontainers cobrindo account, auth, category, transaction e transfer
+- ✅ Migrations Flyway V1 a V9 (schema inicial, CPF/telefone, troca para "documento" genérico, endereço, tabela de transferências, índices, detalhes/tipo de trabalho do cliente, índices de importação/regras)
+- ✅ Testes de integração com Testcontainers cobrindo account, auth, category, client, importbatch, transaction e transfer
 - ⬜ Testes unitários (Mockito) — hoje só existem testes de integração
-- ⬜ Importação de CSV e motor de categorização automática
-- ⬜ **Client/projeto, `CategoryRule`, `ImportBatch`, `TaxEstimate`, `Budget`** — as tabelas existem no schema desde o V1, mas não têm entidade de domínio, repository nem endpoint ainda (funcionalidades de Fase 2/3 do módulo freelancer)
+- ⬜ **`TaxEstimate`, `Budget`** — as tabelas existem no schema desde o V1, mas não têm entidade de domínio, repository nem endpoint ainda (Fase 2 do módulo freelancer)
 
-**Frontend (~60%)**
+**Frontend (~75%)**
 
 - ✅ Setup Vite + React 19 + TypeScript + Tailwind CSS 4
 - ✅ Autenticação ponta a ponta: login/registro com validação (React Hook Form + Zod), autocomplete de CEP, validação de CPF/CNPJ, `AuthContext` + `ProtectedRoute` + armazenamento de JWT
-- ✅ CRUD funcional consumindo a API real para **Contas**, **Categorias**, **Transações** e **Transferências** (cada módulo com client de API, hooks React Query, formulários e listas com filtros via `CollapsibleFilters`)
-- ✅ Dashboard com dados reais e gráficos (Recharts): cards com variação % vs. mês anterior, receita x despesa por mês, evolução do saldo consolidado, despesa e receita por categoria, saldo por conta — transferências entre contas próprias excluídas dos cálculos de receita/despesa
+- ✅ CRUD funcional consumindo a API real para **Contas**, **Categorias**, **Clientes**, **Transações** e **Transferências** (cada módulo com client de API, hooks React Query, formulários e listas com filtros via `CollapsibleFilters`)
+- ✅ Dashboard com dados reais e gráficos (Recharts): cards com variação % vs. mês anterior, receita x despesa por mês, evolução do saldo consolidado, despesa e receita por categoria, **receita por cliente**, saldo por conta — transferências entre contas próprias excluídas dos cálculos de receita/despesa
+- ✅ Importação de extrato: upload de CSV, lista de importações com status/contagem de "sem categoria", tela de revisão inline (categoria/cliente por transação) e CRUD de regras de categorização (`ImportsPage`, `CategoryRulesPanel`)
 - ✅ Tema claro/escuro (`ThemeContext`/`ThemeToggle`), notificações toast, layout responsivo (`AppLayout`, `Footer`)
-- ✅ Biblioteca de componentes de UI reutilizáveis (Button, Card, Modal, Select, Input, FormField, Checkbox, etc.)
-- ⬜ Receita por cliente/projeto — sem tela e sem dado de origem (módulo de Client não existe)
-- ⬜ Importação CSV (upload + preview + revisão de categorização)
+- ✅ Biblioteca de componentes de UI reutilizáveis (Button, Card, Modal, Select, Input, FormField, Checkbox, FileInput, etc.)
 - ⬜ Telas de impostos / fluxo de caixa
 
 **Infra & docs (~85%)**
@@ -39,7 +38,7 @@
 - ⬜ Deploy real (Railway/Render + Vercel)
 - ⬜ Seed de dados de demonstração e badge de CI no README
 
-Em resumo: autenticação, contas, categorias, transações e transferências já funcionam de ponta a ponta (backend com regras de negócio e testes de integração, frontend consumindo a API real). O que falta para fechar o MVP é: gráficos no dashboard, o módulo de clientes/projetos e a importação com categorização automática — ver seções 5 e 12.
+Em resumo: autenticação, contas, categorias, clientes, transações, transferências e importação de extrato com categorização automática já funcionam de ponta a ponta (backend com regras de negócio e testes de integração, frontend consumindo a API real). O que falta para fechar o MVP é a estimativa de imposto/fluxo de caixa (Fase 2) e o deploy — ver seções 5 e 12.
 
 ## 2. Pitch (resumo de 30 segundos)
 
@@ -64,16 +63,16 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 - CRUD de transações (receita/despesa) — ✅ **feito**
 - Cadastro de categorias (padrão do sistema + customizadas) — ✅ **feito**
 - Transferência entre contas próprias — ✅ **feito** (não estava no plano original; adicionado com validação de saldo)
-- Importação de extrato via CSV — ⬜ *pendente*
-- Categorização automática por regras (palavra-chave no descritivo → categoria) — ⬜ *pendente*
-- Cadastro de clientes/projetos e vínculo de receitas a eles — ⬜ *pendente (tabela `clients` existe no schema, sem entidade/endpoint)*
-- Dashboard: saldo atual, receita x despesa no mês — ✅ **feito**; gráfico por categoria e receita por cliente — ⬜ *pendente*
+- Importação de extrato via CSV — ✅ **feito** (upload multipart, formato `date,description,amount`)
+- Categorização automática por regras (palavra-chave no descritivo → categoria) — ✅ **feito** (`CategoryRule`, maior peso vence)
+- Cadastro de clientes/projetos e vínculo de receitas a eles — ✅ **feito**
+- Dashboard: saldo atual, receita x despesa no mês — ✅ **feito**; gráfico por categoria e receita por cliente — ✅ **feito**
 - Deploy funcional com dados de exemplo — ⬜ *pendente*
 
 ### Fase 2
 
 - Importação de OFX
-- Aprendizado de categorização a partir das correções do usuário
+- Aprendizado de categorização a partir das correções do usuário — ✅ **feito** (correção manual reforça/cria `CategoryRule`, ver seção 8)
 - Estimativa de imposto simplificada (educacional, não é orientação fiscal)
 - Projeção de fluxo de caixa (média móvel + recebíveis futuros)
 - Metas/orçamento por categoria
@@ -87,16 +86,16 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ## 6. Modelo de dados (entidades principais)
 
-*O schema completo abaixo foi aplicado via Flyway desde o `V1__init_schema.sql`, mas hoje só **User, Account, Category, Transaction** têm entidade de domínio (`domain/model`), repository (`domain/port/out` + adapter) e endpoints REST. **Transfer** foi adicionado depois (V5) com o mesmo tratamento completo. `CategoryRule`, `Client`, `ImportBatch`, `TaxEstimate` e `Budget` existem só como tabela — sem código de aplicação ainda.*
+*O schema completo abaixo foi aplicado via Flyway desde o `V1__init_schema.sql`. Hoje só `TaxEstimate` e `Budget` existem apenas como tabela, sem entidade de domínio (`domain/model`), repository (`domain/port/out` + adapter) nem endpoint — todo o resto já tem o tratamento completo.*
 
 - **User** ✅: id, nome, email, senha (hash), documento (CPF/CNPJ), telefone, endereço, regime_tributario
 - **Account** ✅: id, user_id, nome, tipo, saldo_inicial
 - **Category** ✅: id, user_id (null = padrão do sistema), nome, tipo, cor, ícone
-- **Transaction** ✅: id, account_id, category_id, client_id, transfer_id, descrição, valor, data, tipo, origem
+- **Client** ✅: id, user_id, nome, email, telefone, documento, tipo de trabalho (PJ/autônomo), observações, cor, ativo
+- **Transaction** ✅: id, account_id, category_id, client_id, transfer_id, import_batch_id, descrição, valor, data, tipo, origem (manual/importada)
 - **Transfer** ✅: id, conta origem, conta destino, valor, data — gera duas `Transaction` vinculadas (débito/crédito) excluídas dos somatórios de receita/despesa do dashboard
-- **CategoryRule** ⬜: id, user_id, padrão_texto, category_id, peso/confiança — *só schema*
-- **Client** ⬜: id, user_id, nome, ativo — *só schema*
-- **ImportBatch** ⬜: id, user_id, account_id, arquivo_original, formato, data_importação, status — *só schema*
+- **ImportBatch** ✅: id, user_id, account_id, arquivo_original, formato (CSV/OFX), data_importação, status (processando/concluída/falhou)
+- **CategoryRule** ✅: id, user_id, padrão_texto, category_id, peso — motor de categorização automática, ver seção 8
 - **TaxEstimate** ⬜: id, user_id, mês/ano, receita_bruta, alíquota_aplicada, valor_estimado — *só schema*
 - **Budget** ⬜: id, user_id, category_id, mês/ano, valor_limite — *só schema*
 
@@ -104,18 +103,18 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 **Backend — Java 21 + Spring Boot 3 + Maven + PostgreSQL**
 
-- Camadas: Controller → Service → Repository, com ports/adapters (hexagonal) e DTOs separados de entidades — ✅ *implementado para Account, Category, Transaction, Transfer, Auth e Cep*
+- Camadas: Controller → Service → Repository, com ports/adapters (hexagonal) e DTOs separados de entidades — ✅ *implementado para Account, Category, Client, Transaction, Transfer, ImportBatch/CategoryRule, Auth e Cep*
 - Autenticação: Spring Security + JWT — ✅ *feito e plugado (filtro real, sem `permitAll()` fora de auth/cep/swagger/health)*
-- Migrations: Flyway — ✅ *feito (V1 a V6)*
+- Migrations: Flyway — ✅ *feito (V1 a V9)*
 - Documentação da API: springdoc-openapi (Swagger UI) — *dependência configurada*
-- Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *integração cobrindo os 5 módulos principais*; ⬜ *nenhum teste unitário com Mockito ainda*
+- Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *integração cobrindo os 7 módulos principais*; ⬜ *nenhum teste unitário com Mockito ainda*
 
 **Frontend — React + Tailwind CSS + Vite**
 
 - React Query para estado de chamadas à API — ✅ *em uso em todos os módulos*
 - React Router — ✅ *em uso (rotas públicas de login/registro + rotas protegidas com layout)*
-- Recharts para os gráficos do dashboard — *instalado, ainda não consumido*
-- React Hook Form + Zod para formulários — ✅ *em uso em auth, contas, categorias, transações e transferências*
+- Recharts para os gráficos do dashboard — ✅ *em uso (receita x despesa por mês, evolução do saldo, despesa/receita por categoria, receita por cliente, saldo por conta)*
+- React Hook Form + Zod para formulários — ✅ *em uso em auth, contas, categorias, clientes, transações, transferências e regras de categorização*
 
 **Infraestrutura**
 
@@ -125,37 +124,37 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ## 8. Motor de categorização automática
 
-*Pendente — só a modelagem (`ImportBatch`, `CategoryRule`) existe no schema; a lógica abaixo ainda não foi implementada.*
+*✅ Implementado (`ImportApplicationService`, `CategoryRuleApplicationService`).*
 
-1. Importação cria um `ImportBatch` e lê cada linha como transação
-2. Busca `CategoryRule` do usuário com match no descritivo
-3. Se não encontrar, tenta regras padrão do sistema (ex: "UBER" → Transporte)
-4. Se nada bater, marca como "Sem categoria" para revisão manual
-5. Correção manual do usuário reforça/cria uma regra para descritivos parecidos
+1. Upload do CSV cria um `ImportBatch` (status `PROCESSING` → `COMPLETED`) e cada linha vira uma `Transaction` com `origin = IMPORTED`
+2. Para cada transação, busca as `CategoryRule` do usuário ordenadas por peso decrescente e aplica a primeira cujo padrão está contido no descritivo (case-insensitive) e cujo tipo (receita/despesa) bate com o da transação
+3. Se nada bater, a transação fica com `categoryId = null` ("Sem categoria") para revisão manual na tela de importação
+4. Correção manual do usuário (`PUT /api/import-batches/{id}/transactions/{id}`) reforça o peso da regra existente para aquele descritivo, ou cria uma nova regra — assim, uma próxima importação com o mesmo descritivo já chega categorizada
+5. Regras também podem ser cadastradas manualmente, sem depender de uma importação (`CategoryRulesPanel`)
+
+*Não implementado ainda: regras padrão globais do sistema (ex.: um conjunto pré-cadastrado tipo "UBER" → Transporte disponível para todo usuário) — hoje toda regra é criada pelo próprio usuário, seja manualmente ou por correção.*
 
 ## 9. Módulo freelancer
 
-*Pendente por completo — depende da entidade `Client`, que ainda não existe além do schema.*
-
-- Receita vinculada a `Client`
-- Dashboard de receita por cliente no período
-- Estimativa de imposto configurável por regime (aviso: estimativa educacional, não substitui contador)
-- Projeção de fluxo de caixa por média móvel
+- Receita vinculada a `Client` — ✅ **feito** (`clientId` em `Transaction`, `ClientsPage` com CRUD completo)
+- Dashboard de receita por cliente no período — ✅ **feito** (gráfico "Receita por cliente" no dashboard, mês atual)
+- Estimativa de imposto configurável por regime (aviso: estimativa educacional, não substitui contador) — ⬜ *pendente*
+- Projeção de fluxo de caixa por média móvel — ⬜ *pendente*
 
 ## 10. Telas principais
 
-- Visão geral (saldo, receita/despesa) — ✅ *feito*; variação/gráficos — ⬜ *pendente*
-- Extrato (filtros por conta/categoria/período) — ✅ *feito* (`TransactionsPage` com `CollapsibleFilters`); filtro por cliente — ⬜ *pendente (sem módulo Client)*
+- Visão geral (saldo, receita/despesa, variação % e gráficos) — ✅ *feito*
+- Extrato (filtros por conta/categoria/período) — ✅ *feito* (`TransactionsPage` com `CollapsibleFilters`); filtro por cliente — ⬜ *pendente*
 - Contas — ✅ *feito*
 - Categorias — ✅ *feito*
 - Transferências entre contas — ✅ *feito* (não previsto no plano original)
-- Importação (upload + preview + revisão de categorização) — ⬜ *pendente*
-- Clientes (receita acumulada e ao longo do tempo) — ⬜ *pendente*
+- Importação (upload + preview + revisão de categorização) — ✅ *feito* (`ImportsPage`, `ImportBatchList`, `ImportBatchReviewTable`, `CategoryRulesPanel`)
+- Clientes (CRUD + receita por cliente no dashboard) — ✅ *feito*; histórico de receita ao longo do tempo por cliente — ⬜ *pendente*
 - Impostos/Fluxo de caixa — ⬜ *pendente*
 
 ## 11. Checklist de qualidade técnica
 
-- Testes automatizados nos fluxos críticos (auth, contas, categorias, transações, transferências) — ✅ *feito via Testcontainers*; testes unitários (Mockito) — ⬜ *pendente*
+- Testes automatizados nos fluxos críticos (auth, contas, categorias, clientes, transações, transferências, importação/categorização) — ✅ *feito via Testcontainers*; testes unitários (Mockito) — ⬜ *pendente*
 - Lint/formatação consistente — *pendente de verificação formal*
 - CI verde (badge no README) — *CI ok, sem badge*
 - Dados seed realistas (script com usuário demo + ~6 meses de transações) — *pendente*
@@ -166,10 +165,10 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 1. ~~Semana 1-2: modelagem, setup Spring Boot + Postgres + Flyway, auth JWT, CRUD básico~~ — ✅ **concluído** (auth JWT real, CRUD de Account/Category/Transaction/Transfer com testes de integração)
 2. ~~Dashboard visual~~ — ✅ **concluído**: Recharts plugado na `DashboardPage` com 5 visões (receita x despesa por mês, evolução do saldo, despesa/receita por categoria, saldo por conta) e variação % vs. mês anterior nos cards
-3. **Próximo passo A — Módulo de clientes/projetos**: criar entidade `Client` (domain + port + adapter + controller + DTO), vincular a `Transaction`, e tela de CRUD no frontend seguindo o padrão já usado em Account/Category
-4. **Próximo passo B — Importação CSV + motor de regras**: `ImportBatch` + `CategoryRule` (domain + application + infra), endpoint de upload, tela de preview/revisão de categorização
-5. Semana seguinte: receita por cliente no dashboard (depende do passo A)
-6. Depois: estimativa de imposto + projeção de fluxo de caixa (Fase 2, depende de dados de receita por cliente/categoria já consolidados)
+3. ~~Módulo de clientes/projetos~~ — ✅ **concluído**: entidade `Client` completa (domain + port + adapter + controller + DTO), vinculada a `Transaction`, CRUD no frontend
+4. ~~Importação CSV + motor de regras~~ — ✅ **concluído**: `ImportBatch` + `CategoryRule` (domain + application + infra), upload multipart, tela de preview/revisão com aprendizado automático de regra a partir da correção do usuário
+5. ~~Receita por cliente no dashboard~~ — ✅ **concluído**: gráfico "Receita por cliente" (mês atual) ao lado do saldo por conta
+6. **Próximo passo**: estimativa de imposto + projeção de fluxo de caixa (Fase 2, já tem dados de receita por cliente/categoria consolidados para se apoiar)
 7. Antes do deploy: testes unitários (Mockito) nos services de aplicação, lint/formatação, seed de dados de demonstração
 8. Fechamento: deploy (Railway/Render + Vercel), badge de CI, prints e link no README, vídeo curto de demo
 

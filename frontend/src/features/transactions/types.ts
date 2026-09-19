@@ -13,6 +13,7 @@ export interface Transaction {
   origin: TransactionOrigin
   createdAt: string
   transferId: number | null
+  importBatchId: number | null
 }
 
 export interface TransactionInput {

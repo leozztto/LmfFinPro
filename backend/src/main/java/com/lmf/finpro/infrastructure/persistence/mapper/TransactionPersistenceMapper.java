@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.persistence.entity.AccountJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.CategoryJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.ClientJpaEntity;
+import com.lmf.finpro.infrastructure.persistence.entity.ImportBatchJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransactionJpaEntity;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ public class TransactionPersistenceMapper {
             .account(AccountJpaEntity.builder().id(transaction.accountId()).build())
             .category(transaction.categoryId() == null ? null : CategoryJpaEntity.builder().id(transaction.categoryId()).build())
             .client(transaction.clientId() == null ? null : ClientJpaEntity.builder().id(transaction.clientId()).build())
+            .importBatch(transaction.importBatchId() == null ? null : ImportBatchJpaEntity.builder().id(transaction.importBatchId()).build())
             .description(transaction.description())
             .amount(transaction.amount())
             .transactionDate(transaction.transactionDate())
@@ -38,7 +40,8 @@ public class TransactionPersistenceMapper {
             entity.getType(),
             entity.getOrigin(),
             entity.getCreatedAt(),
-            entity.getTransferId()
+            entity.getTransferId(),
+            entity.getImportBatch() == null ? null : entity.getImportBatch().getId()
         );
     }
 }

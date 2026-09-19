@@ -1,4 +1,4 @@
-package com.lmf.finpro.infrastructure.persistence.entity;
+package com.lmf.finpro.domain.model;
 
 public enum ImportStatus {
     PENDING,
