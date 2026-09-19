@@ -153,7 +153,7 @@ export function TransactionList() {
           Nenhuma transação encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {sorted.map((transaction) => (
             <TransactionCard
               key={transaction.id}

@@ -1,5 +1,4 @@
 import { type ReactNode, useState } from 'react'
-import { Card } from './Card'
 import { ChevronDownIcon } from './icons'
 
 interface CollapsibleFiltersProps {
@@ -11,7 +10,7 @@ export function CollapsibleFilters({ activeCount, children }: CollapsibleFilters
   const [open, setOpen] = useState(false)
 
   return (
-    <Card>
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -28,7 +27,7 @@ export function CollapsibleFilters({ activeCount, children }: CollapsibleFilters
         </span>
         <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && <div className="mt-4">{children}</div>}
-    </Card>
+      {open && <div className="mt-3">{children}</div>}
+    </div>
   )
 }

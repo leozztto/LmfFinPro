@@ -9,6 +9,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class TransactionApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
+    private final ClientRepositoryPort clientRepositoryPort;
 
     public Transaction create(
         Long currentUserId, Long accountId, Long categoryId, Long clientId,
@@ -31,6 +33,7 @@ public class TransactionApplicationService {
     ) {
         requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
+        requireOwnedClientIfPresent(currentUserId, clientId);
         return transactionRepositoryPort.save(
             Transaction.create(accountId, categoryId, clientId, description, amount, transactionDate, type)
         );
@@ -53,6 +56,7 @@ public class TransactionApplicationService {
     ) {
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
+        requireOwnedClientIfPresent(currentUserId, clientId);
         return transactionRepositoryPort.save(
             existing.withDetails(categoryId, clientId, description, amount, transactionDate, type)
         );
@@ -94,5 +98,14 @@ public class TransactionApplicationService {
                     + " e não pode ser usada em uma transação do tipo " + type + "."
             );
         }
+    }
+
+    private void requireOwnedClientIfPresent(Long currentUserId, Long clientId) {
+        if (clientId == null) {
+            return;
+        }
+        clientRepositoryPort.findById(clientId)
+            .filter(client -> client.belongsTo(currentUserId))
+            .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }
 }

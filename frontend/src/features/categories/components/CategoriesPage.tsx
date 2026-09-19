@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button, Modal } from '@/shared/ui'
+import { PlusIcon } from '@/shared/ui/icons'
 import { CategoryForm } from './CategoryForm'
 import { CategoryList } from './CategoryList'
 
@@ -15,7 +16,9 @@ export function CategoriesPage() {
             Categorias padrão do sistema e as suas próprias, usadas para classificar transações.
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>Nova categoria</Button>
+        <Button onClick={() => setIsModalOpen(true)} aria-label="Nova categoria" title="Nova categoria" className="px-3">
+          <PlusIcon />
+        </Button>
       </div>
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nova categoria">

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { Button, Card, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
+import { PencilIcon, TrashIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useAccounts } from '../hooks/useAccounts'
 import { useDeleteAccount } from '../hooks/useDeleteAccount'
-import { ACCOUNT_TYPE_LABELS, type AccountType } from '../types'
+import { ACCOUNT_TYPE_LABELS, type Account, type AccountType } from '../types'
 import { formatCurrency } from '@/shared/format/currency'
+import { AccountForm } from './AccountForm'
 
 interface Filters {
   name: string
@@ -21,6 +23,7 @@ export function AccountList() {
   const { showToast } = useToast()
   const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
 
   async function handleDelete(accountId: number, accountName: string) {
     const confirmed = await confirm({
@@ -105,7 +108,7 @@ export function AccountList() {
       ) : (
         <div className="grid gap-5 sm:grid-cols-2">
           {filtered.map((account) => (
-            <Card key={account.id} className="flex flex-wrap items-start justify-between gap-3">
+            <Card key={account.id} className="flex items-end justify-between gap-3">
               <div className="min-w-0">
                 <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{account.name}</p>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">{ACCOUNT_TYPE_LABELS[account.type]}</p>
@@ -116,17 +119,37 @@ export function AccountList() {
                   Saldo atual: {formatCurrency(account.currentBalance)}
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                onClick={() => handleDelete(account.id, account.name)}
-                disabled={deleteAccount.isPending}
-              >
-                Remover
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setEditingAccount(account)}
+                  aria-label="Editar"
+                  title="Editar"
+                  className="px-3"
+                >
+                  <PencilIcon />
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => handleDelete(account.id, account.name)}
+                  disabled={deleteAccount.isPending}
+                  aria-label="Remover"
+                  title="Remover"
+                  className="px-3"
+                >
+                  <TrashIcon />
+                </Button>
+              </div>
             </Card>
           ))}
         </div>
       )}
+
+      <Modal open={editingAccount != null} onClose={() => setEditingAccount(null)} title="Editar conta">
+        {editingAccount && (
+          <AccountForm key={editingAccount.id} account={editingAccount} onSuccess={() => setEditingAccount(null)} />
+        )}
+      </Modal>
     </div>
   )
 }

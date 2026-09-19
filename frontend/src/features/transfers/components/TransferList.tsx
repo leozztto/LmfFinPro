@@ -116,7 +116,7 @@ export function TransferList() {
           Nenhuma transferência encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {sorted.map((transfer) => (
             <TransferCard
               key={transfer.id}

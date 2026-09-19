@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Button, Card, ExpandableText } from '@/shared/ui'
-import { ChevronDownIcon } from '@/shared/ui/icons'
+import { Button, ExpandableText } from '@/shared/ui'
+import { ChevronDownIcon, TrashIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import type { Transaction } from '../types'
@@ -27,16 +27,20 @@ export function TransactionCard({ transaction, accountName, categoryName, onDele
       variant="secondary"
       onClick={onDelete}
       disabled={isDeleting || isTransfer}
+      aria-label="Remover"
       title={
-        isTransfer ? 'Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.' : undefined
+        isTransfer
+          ? 'Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.'
+          : 'Remover'
       }
+      className="px-3"
     >
-      Remover
+      <TrashIcon />
     </Button>
   )
 
   return (
-    <Card>
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <div className="sm:hidden">
         <div className="flex items-center gap-2">
           <button
@@ -61,13 +65,15 @@ export function TransactionCard({ transaction, accountName, categoryName, onDele
               </span>
             )}
             <p className="break-words text-sm text-zinc-800 dark:text-zinc-100">{transaction.description}</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">{metaLine}</p>
-            {removeButton}
+            <div className="flex items-end justify-between gap-2">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{metaLine}</p>
+              {removeButton}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="hidden items-center justify-between gap-3 sm:flex">
+      <div className="hidden items-end justify-between gap-3 sm:flex">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <ExpandableText text={transaction.description} className="font-medium text-zinc-800 dark:text-zinc-100" />
@@ -84,6 +90,6 @@ export function TransactionCard({ transaction, accountName, categoryName, onDele
           {removeButton}
         </div>
       </div>
-    </Card>
+    </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button, Modal } from '@/shared/ui'
+import { PlusIcon } from '@/shared/ui/icons'
 import { AccountForm } from './AccountForm'
 import { AccountList } from './AccountList'
 
@@ -15,7 +16,9 @@ export function AccountsPage() {
             Contas bancárias e carteiras usadas para registrar suas transações.
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>Nova conta</Button>
+        <Button onClick={() => setIsModalOpen(true)} aria-label="Nova conta" title="Nova conta" className="px-3">
+          <PlusIcon />
+        </Button>
       </div>
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nova conta">
