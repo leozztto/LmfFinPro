@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Button, Card, ExpandableText } from '@/shared/ui'
-import { ChevronDownIcon } from '@/shared/ui/icons'
+import { Button, ExpandableText } from '@/shared/ui'
+import { ChevronDownIcon, TrashIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import type { Transfer } from '../types'
@@ -19,13 +19,13 @@ export function TransferCard({ transfer, fromAccountName, toAccountName, onDelet
   const amountLabel = formatCurrency(transfer.amount)
 
   const removeButton = (
-    <Button variant="secondary" onClick={onDelete} disabled={isDeleting}>
-      Remover
+    <Button variant="secondary" onClick={onDelete} disabled={isDeleting} aria-label="Remover" title="Remover" className="px-3">
+      <TrashIcon />
     </Button>
   )
 
   return (
-    <Card>
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <div className="sm:hidden">
         <div className="flex items-center gap-2">
           <button
@@ -43,16 +43,20 @@ export function TransferCard({ transfer, fromAccountName, toAccountName, onDelet
         {open && (
           <div className="mt-3 space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
             <p className="break-words text-sm text-zinc-800 dark:text-zinc-100">{title}</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatDateOnlyBr(transfer.transferDate)}</p>
             {transfer.description && (
-              <p className="break-words text-sm text-zinc-500 dark:text-zinc-400">{transfer.description}</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatDateOnlyBr(transfer.transferDate)}</p>
             )}
-            {removeButton}
+            <div className="flex items-end justify-between gap-2">
+              <p className="break-words text-sm text-zinc-500 dark:text-zinc-400">
+                {transfer.description || formatDateOnlyBr(transfer.transferDate)}
+              </p>
+              {removeButton}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="hidden items-center justify-between gap-3 sm:flex">
+      <div className="hidden items-end justify-between gap-3 sm:flex">
         <div className="min-w-0 flex-1">
           <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{title}</p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatDateOnlyBr(transfer.transferDate)}</p>
@@ -65,6 +69,6 @@ export function TransferCard({ transfer, fromAccountName, toAccountName, onDelet
           {removeButton}
         </div>
       </div>
-    </Card>
+    </div>
   )
 }

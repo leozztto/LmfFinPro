@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { Button, Card, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
+import { PencilIcon, TrashIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useCategories } from '../hooks/useCategories'
 import { useDeleteCategory } from '../hooks/useDeleteCategory'
-import { CATEGORY_TYPE_LABELS, type CategoryType } from '../types'
+import { CATEGORY_TYPE_LABELS, type Category, type CategoryType } from '../types'
+import { CategoryForm } from './CategoryForm'
 
 interface Filters {
   name: string
@@ -21,6 +23,7 @@ export function CategoryList() {
   const { showToast } = useToast()
   const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
 
   async function handleDelete(categoryId: number, categoryName: string) {
     const confirmed = await confirm({
@@ -118,7 +121,7 @@ export function CategoryList() {
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((category) => (
-            <Card key={category.id} className="flex flex-wrap items-center justify-between gap-3">
+            <Card key={category.id} className="flex items-end justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <span
                   className="h-3 w-3 shrink-0 rounded-full"
@@ -134,18 +137,42 @@ export function CategoryList() {
                 </div>
               </div>
               {!category.global && (
-                <Button
-                  variant="secondary"
-                  onClick={() => handleDelete(category.id, category.name)}
-                  disabled={deleteCategory.isPending}
-                >
-                  Remover
-                </Button>
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setEditingCategory(category)}
+                    aria-label="Editar"
+                    title="Editar"
+                    className="px-3"
+                  >
+                    <PencilIcon />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleDelete(category.id, category.name)}
+                    disabled={deleteCategory.isPending}
+                    aria-label="Remover"
+                    title="Remover"
+                    className="px-3"
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
               )}
             </Card>
           ))}
         </div>
       )}
+
+      <Modal open={editingCategory != null} onClose={() => setEditingCategory(null)} title="Editar categoria">
+        {editingCategory && (
+          <CategoryForm
+            key={editingCategory.id}
+            category={editingCategory}
+            onSuccess={() => setEditingCategory(null)}
+          />
+        )}
+      </Modal>
     </div>
   )
 }

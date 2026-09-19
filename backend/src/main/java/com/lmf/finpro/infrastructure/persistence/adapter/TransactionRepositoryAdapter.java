@@ -62,6 +62,11 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
+    public boolean existsByClientId(Long clientId) {
+        return transactionJpaRepository.existsByClientId(clientId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         transactionJpaRepository.deleteById(id);
     }
