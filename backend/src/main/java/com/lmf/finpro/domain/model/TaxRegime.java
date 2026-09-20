@@ -6,5 +6,13 @@ public enum TaxRegime {
     MEI,
     SIMPLES_NACIONAL,
     LUCRO_PRESUMIDO,
-    OUTRO
+    OUTRO;
+
+    /** MEI, Simples Nacional e Lucro Presumido são regimes de pessoa jurídica — exigem CNPJ; os demais, CPF. */
+    public DocumentType expectedDocumentType() {
+        return switch (this) {
+            case MEI, SIMPLES_NACIONAL, LUCRO_PRESUMIDO -> DocumentType.CNPJ;
+            case AUTONOMO, OUTRO -> DocumentType.CPF;
+        };
+    }
 }

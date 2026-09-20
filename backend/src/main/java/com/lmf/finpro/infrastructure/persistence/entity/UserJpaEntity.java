@@ -1,6 +1,7 @@
 package com.lmf.finpro.infrastructure.persistence.entity;
 
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.TaxRegime;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,8 +39,9 @@ public class UserJpaEntity {
     @Column(length = 11)
     private String phone;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "tax_regime", length = 50)
-    private String taxRegime;
+    private TaxRegime taxRegime;
 
     @Embedded
     private AddressEmbeddable address;

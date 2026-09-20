@@ -34,9 +34,10 @@ public class AccountApplicationService {
         return findOwnedOrThrow(currentUserId, accountId);
     }
 
-    public Account update(Long currentUserId, Long accountId, String name, AccountType type, BigDecimal initialBalance) {
+    /** Saldo inicial só é definido na criação da conta: a edição não pode alterá-lo, para não distorcer o histórico de saldo. */
+    public Account update(Long currentUserId, Long accountId, String name, AccountType type) {
         Account existing = findOwnedOrThrow(currentUserId, accountId);
-        return accountRepositoryPort.save(existing.withDetails(name, type, initialBalance));
+        return accountRepositoryPort.save(existing.withDetails(name, type, existing.initialBalance()));
     }
 
     public void delete(Long currentUserId, Long accountId) {

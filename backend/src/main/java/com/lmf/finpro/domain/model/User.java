@@ -14,7 +14,7 @@ public record User(
     DocumentType documentType,
     String documentNumber,
     String phone,
-    String taxRegime,
+    TaxRegime taxRegime,
     Address address,
     LocalDateTime createdAt
 ) {
@@ -26,7 +26,7 @@ public record User(
         DocumentType documentType,
         String documentNumber,
         String phone,
-        String taxRegime,
+        TaxRegime taxRegime,
         Address address
     ) {
         return new User(null, name, email, passwordHash, documentType, documentNumber, phone, taxRegime, address, LocalDateTime.now());

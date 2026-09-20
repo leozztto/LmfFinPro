@@ -49,6 +49,26 @@ class CategoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void categoryTypeCannotBeChangedOnUpdate() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        CategoryRequest createRequest = new CategoryRequest("Freelas", CategoryType.EXPENSE, null, null);
+        ResponseEntity<CategoryResponse> createResponse = restTemplate.exchange(
+            "/api/categories", HttpMethod.POST, new HttpEntity<>(createRequest, user.authHeaders()), CategoryResponse.class
+        );
+        Long categoryId = createResponse.getBody().id();
+
+        // Tenta trocar o tipo na edição: deve ser ignorado — transações já lançadas dependem do tipo original.
+        CategoryRequest updateRequest = new CategoryRequest("Freelas", CategoryType.INCOME, null, null);
+        ResponseEntity<CategoryResponse> updateResponse = restTemplate.exchange(
+            "/api/categories/" + categoryId, HttpMethod.PUT, new HttpEntity<>(updateRequest, user.authHeaders()), CategoryResponse.class
+        );
+
+        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(updateResponse.getBody().type()).isEqualTo(CategoryType.EXPENSE);
+    }
+
+    @Test
     void userCannotEditAnotherUsersCategory() {
         TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
         TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);

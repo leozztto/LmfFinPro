@@ -49,9 +49,7 @@ public class AccountController {
         @PathVariable Long id,
         @Valid @RequestBody AccountRequest request
     ) {
-        Account updated = accountApplicationService.update(
-            currentUser.userId(), id, request.name(), request.type(), request.initialBalance()
-        );
+        Account updated = accountApplicationService.update(currentUser.userId(), id, request.name(), request.type());
         return toResponse(updated);
     }
 

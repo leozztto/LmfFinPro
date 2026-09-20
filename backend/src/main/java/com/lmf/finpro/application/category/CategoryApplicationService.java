@@ -31,10 +31,14 @@ public class CategoryApplicationService {
         return findVisibleOrThrow(currentUserId, categoryId);
     }
 
-    /** Categorias globais são somente leitura via API neste MVP — só as próprias podem ser alteradas. */
-    public Category update(Long currentUserId, Long categoryId, String name, CategoryType type, String color, String icon) {
+    /**
+     * Categorias globais são somente leitura via API neste MVP — só as próprias podem ser alteradas.
+     * O tipo (receita/despesa) não pode ser alterado na edição: transações já lançadas nessa
+     * categoria foram validadas contra o tipo original, e trocá-lo depois as deixaria inconsistentes.
+     */
+    public Category update(Long currentUserId, Long categoryId, String name, String color, String icon) {
         Category existing = findOwnedOrThrow(currentUserId, categoryId);
-        return categoryRepositoryPort.save(existing.withDetails(name, type, color, icon));
+        return categoryRepositoryPort.save(existing.withDetails(name, existing.type(), color, icon));
     }
 
     public void delete(Long currentUserId, Long categoryId) {
