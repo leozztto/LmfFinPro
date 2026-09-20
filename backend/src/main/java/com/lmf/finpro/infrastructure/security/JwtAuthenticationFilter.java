@@ -7,6 +7,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,13 +16,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.List;
-
 /**
- * Extrai e valida o JWT do header Authorization e popula o SecurityContext.
- * Não usa UserDetailsService: login/registro são casos de uso de aplicação que já
- * conhecem o usuário, então o principal aqui é só o {@link AuthenticatedUser} do token.
+ * Extrai e valida o JWT do header Authorization e popula o SecurityContext. Não usa
+ * UserDetailsService: login/registro são casos de uso de aplicação que já conhecem o usuário, então
+ * o principal aqui é só o {@link AuthenticatedUser} do token.
  */
 @Component
 @RequiredArgsConstructor
@@ -32,18 +31,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        @NonNull HttpServletRequest request,
-        @NonNull HttpServletResponse response,
-        @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
         String header = request.getHeader("Authorization");
 
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             String token = header.substring(BEARER_PREFIX.length());
             try {
                 TokenClaims claims = tokenPort.parse(token);
-                AuthenticatedUser principal = new AuthenticatedUser(claims.userId(), claims.email());
-                var authentication = new UsernamePasswordAuthenticationToken(principal, null, List.of());
+                AuthenticatedUser principal =
+                        new AuthenticatedUser(claims.userId(), claims.email());
+                var authentication =
+                        new UsernamePasswordAuthenticationToken(principal, null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (InvalidTokenException ex) {
                 SecurityContextHolder.clearContext();

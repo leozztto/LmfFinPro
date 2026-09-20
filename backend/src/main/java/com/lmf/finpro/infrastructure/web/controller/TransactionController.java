@@ -7,13 +7,12 @@ import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.mapper.TransactionWebMapper;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -25,40 +24,55 @@ public class TransactionController {
 
     @GetMapping
     public List<TransactionResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return transactionApplicationService.list(currentUser.userId()).stream().map(mapper::toResponse).toList();
+        return transactionApplicationService.list(currentUser.userId()).stream()
+                .map(mapper::toResponse)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public TransactionResponse getById(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
+    public TransactionResponse getById(
+            @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         return mapper.toResponse(transactionApplicationService.getById(currentUser.userId(), id));
     }
 
     @PostMapping
     public ResponseEntity<TransactionResponse> create(
-        @AuthenticationPrincipal AuthenticatedUser currentUser, @Valid @RequestBody TransactionRequest request
-    ) {
-        Transaction created = transactionApplicationService.create(
-            currentUser.userId(), request.accountId(), request.categoryId(), request.clientId(),
-            request.description(), request.amount(), request.transactionDate(), request.type()
-        );
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody TransactionRequest request) {
+        Transaction created =
+                transactionApplicationService.create(
+                        currentUser.userId(),
+                        request.accountId(),
+                        request.categoryId(),
+                        request.clientId(),
+                        request.description(),
+                        request.amount(),
+                        request.transactionDate(),
+                        request.type());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
     }
 
     @PutMapping("/{id}")
     public TransactionResponse update(
-        @AuthenticationPrincipal AuthenticatedUser currentUser,
-        @PathVariable Long id,
-        @Valid @RequestBody TransactionRequest request
-    ) {
-        Transaction updated = transactionApplicationService.update(
-            currentUser.userId(), id, request.categoryId(), request.clientId(),
-            request.description(), request.amount(), request.transactionDate(), request.type()
-        );
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody TransactionRequest request) {
+        Transaction updated =
+                transactionApplicationService.update(
+                        currentUser.userId(),
+                        id,
+                        request.categoryId(),
+                        request.clientId(),
+                        request.description(),
+                        request.amount(),
+                        request.transactionDate(),
+                        request.type());
         return mapper.toResponse(updated);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         transactionApplicationService.delete(currentUser.userId(), id);
         return ResponseEntity.noContent().build();
     }

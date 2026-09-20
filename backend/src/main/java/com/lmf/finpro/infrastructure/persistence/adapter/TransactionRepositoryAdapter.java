@@ -5,13 +5,12 @@ import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.TransactionPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.TransactionJpaRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -33,8 +32,8 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     @Override
     public List<Transaction> findAllByAccountIds(List<Long> accountIds) {
         return transactionJpaRepository.findByAccountIdIn(accountIds).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
@@ -43,15 +42,15 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
             return List.of();
         }
         return transactionJpaRepository.findByTransferIdIn(transferIds).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public List<Transaction> findAllByImportBatchId(Long importBatchId) {
         return transactionJpaRepository.findByImportBatchId(importBatchId).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
@@ -61,9 +60,9 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
 
     @Override
     public BigDecimal sumAmountByUserIdAndCategoryIdAndTypeBetween(
-        Long userId, Long categoryId, CategoryType type, LocalDate start, LocalDate end
-    ) {
-        return transactionJpaRepository.sumAmountByUserIdAndCategoryIdAndTypeBetween(userId, categoryId, type, start, end);
+            Long userId, Long categoryId, CategoryType type, LocalDate start, LocalDate end) {
+        return transactionJpaRepository.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+                userId, categoryId, type, start, end);
     }
 
     @Override

@@ -23,8 +23,11 @@ public class CepController {
 
     private CepResponse toResponse(CepAddress address) {
         return new CepResponse(
-            address.zipCode(), address.street(), address.complement(),
-            address.neighborhood(), address.city(), address.state()
-        );
+                address.zipCode(),
+                address.street(),
+                address.complement(),
+                address.neighborhood(),
+                address.city(),
+                address.state());
     }
 }

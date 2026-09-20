@@ -9,12 +9,11 @@ public class TaxEstimateWebMapper {
 
     public TaxEstimateResponse toResponse(TaxEstimate taxEstimate) {
         return new TaxEstimateResponse(
-            taxEstimate.id(),
-            taxEstimate.referenceMonth(),
-            taxEstimate.regime(),
-            taxEstimate.grossRevenue(),
-            taxEstimate.appliedRate(),
-            taxEstimate.estimatedValue()
-        );
+                taxEstimate.id(),
+                taxEstimate.referenceMonth(),
+                taxEstimate.regime(),
+                taxEstimate.grossRevenue(),
+                taxEstimate.appliedRate(),
+                taxEstimate.estimatedValue());
     }
 }

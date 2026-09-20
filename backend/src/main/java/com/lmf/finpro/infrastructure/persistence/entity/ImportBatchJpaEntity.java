@@ -3,9 +3,8 @@ package com.lmf.finpro.infrastructure.persistence.entity;
 import com.lmf.finpro.domain.model.ImportFormat;
 import com.lmf.finpro.domain.model.ImportStatus;
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "import_batches")

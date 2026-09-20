@@ -1,15 +1,10 @@
 package com.lmf.finpro.domain.model;
 
 public record Category(
-    Long id,
-    Long userId,
-    String name,
-    CategoryType type,
-    String color,
-    String icon
-) {
+        Long id, Long userId, String name, CategoryType type, String color, String icon) {
 
-    public static Category create(Long userId, String name, CategoryType type, String color, String icon) {
+    public static Category create(
+            Long userId, String name, CategoryType type, String color, String icon) {
         return new Category(null, userId, name, type, color, icon);
     }
 
@@ -26,7 +21,8 @@ public record Category(
         return isGlobal() || isOwnedBy(candidateUserId);
     }
 
-    public Category withDetails(String newName, CategoryType newType, String newColor, String newIcon) {
+    public Category withDetails(
+            String newName, CategoryType newType, String newColor, String newIcon) {
         return new Category(id, userId, newName, newType, newColor, newIcon);
     }
 }

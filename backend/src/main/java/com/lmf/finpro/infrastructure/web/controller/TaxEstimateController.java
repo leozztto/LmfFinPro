@@ -9,14 +9,13 @@ import com.lmf.finpro.infrastructure.web.dto.taxestimate.TaxEstimateRequest;
 import com.lmf.finpro.infrastructure.web.dto.taxestimate.TaxEstimateResponse;
 import com.lmf.finpro.infrastructure.web.mapper.TaxEstimateWebMapper;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/tax-estimates")
@@ -28,28 +27,35 @@ public class TaxEstimateController {
 
     @GetMapping
     public List<TaxEstimateResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return taxEstimateApplicationService.list(currentUser.userId()).stream().map(mapper::toResponse).toList();
+        return taxEstimateApplicationService.list(currentUser.userId()).stream()
+                .map(mapper::toResponse)
+                .toList();
     }
 
     @GetMapping("/suggested-rate")
     public SuggestedRateResponse suggestedRate(
-        @RequestParam TaxRegime regime, @RequestParam BigDecimal grossRevenue
-    ) {
-        return new SuggestedRateResponse(taxEstimateApplicationService.suggestRate(regime, grossRevenue));
+            @RequestParam TaxRegime regime, @RequestParam BigDecimal grossRevenue) {
+        return new SuggestedRateResponse(
+                taxEstimateApplicationService.suggestRate(regime, grossRevenue));
     }
 
     @PostMapping
     public ResponseEntity<TaxEstimateResponse> create(
-        @AuthenticationPrincipal AuthenticatedUser currentUser, @Valid @RequestBody TaxEstimateRequest request
-    ) {
-        TaxEstimate created = taxEstimateApplicationService.create(
-            currentUser.userId(), request.referenceMonth(), request.regime(), request.grossRevenue(), request.appliedRate()
-        );
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody TaxEstimateRequest request) {
+        TaxEstimate created =
+                taxEstimateApplicationService.create(
+                        currentUser.userId(),
+                        request.referenceMonth(),
+                        request.regime(),
+                        request.grossRevenue(),
+                        request.appliedRate());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         taxEstimateApplicationService.delete(currentUser.userId(), id);
         return ResponseEntity.noContent().build();
     }

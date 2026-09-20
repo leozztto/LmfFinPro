@@ -11,12 +11,11 @@ import com.lmf.finpro.domain.model.MonthlyFlowPoint;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -38,16 +37,18 @@ public class DashboardApplicationService {
         MonthlyFlowPoint previousMonth = flow.get(0);
         MonthlyFlowPoint currentMonth = flow.get(1);
 
-        BigDecimal previousBalance = DashboardAggregator.balanceOverTime(transactions, initialBalanceTotal, 2).get(0).balance();
+        BigDecimal previousBalance =
+                DashboardAggregator.balanceOverTime(transactions, initialBalanceTotal, 2)
+                        .get(0)
+                        .balance();
 
         return new DashboardOverview(
-            currentBalance,
-            currentMonth.income(),
-            currentMonth.expense(),
-            DashboardAggregator.deltaPercent(currentBalance, previousBalance),
-            DashboardAggregator.deltaPercent(currentMonth.income(), previousMonth.income()),
-            DashboardAggregator.deltaPercent(currentMonth.expense(), previousMonth.expense())
-        );
+                currentBalance,
+                currentMonth.income(),
+                currentMonth.expense(),
+                DashboardAggregator.deltaPercent(currentBalance, previousBalance),
+                DashboardAggregator.deltaPercent(currentMonth.income(), previousMonth.income()),
+                DashboardAggregator.deltaPercent(currentMonth.expense(), previousMonth.expense()));
     }
 
     public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount) {
@@ -55,18 +56,24 @@ public class DashboardApplicationService {
     }
 
     public List<BalancePoint> getBalanceEvolution(Long userId, int monthsCount) {
-        return DashboardAggregator.balanceOverTime(ownedNonTransferTransactions(userId), sumInitialBalance(userId), monthsCount);
+        return DashboardAggregator.balanceOverTime(
+                ownedNonTransferTransactions(userId), sumInitialBalance(userId), monthsCount);
     }
 
     /** Anexa a projeção ao saldo real do fim do mês atual (exclui transações com data futura). */
     public List<CashFlowProjectionPoint> getCashFlowProjection(Long userId, int monthsAhead) {
         List<Transaction> transactions = ownedNonTransferTransactions(userId);
-        BigDecimal anchorBalance = DashboardAggregator.balanceOverTime(transactions, sumInitialBalance(userId), 1).get(0).balance();
+        BigDecimal anchorBalance =
+                DashboardAggregator.balanceOverTime(transactions, sumInitialBalance(userId), 1)
+                        .get(0)
+                        .balance();
         return DashboardAggregator.cashFlowProjection(transactions, anchorBalance, monthsAhead);
     }
 
-    public List<BreakdownPoint> getCategoryBreakdown(Long userId, CategoryType type, YearMonth month) {
-        return DashboardAggregator.categoryBreakdown(ownedNonTransferTransactions(userId), type, month);
+    public List<BreakdownPoint> getCategoryBreakdown(
+            Long userId, CategoryType type, YearMonth month) {
+        return DashboardAggregator.categoryBreakdown(
+                ownedNonTransferTransactions(userId), type, month);
     }
 
     public List<BreakdownPoint> getClientBreakdown(Long userId, YearMonth month) {
@@ -80,8 +87,8 @@ public class DashboardApplicationService {
     private List<Transaction> ownedNonTransferTransactions(List<Account> accounts) {
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
         return transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
-            .filter(transaction -> transaction.transferId() == null)
-            .toList();
+                .filter(transaction -> transaction.transferId() == null)
+                .toList();
     }
 
     private BigDecimal sumInitialBalance(Long userId) {
@@ -89,13 +96,15 @@ public class DashboardApplicationService {
     }
 
     private BigDecimal sumInitialBalance(List<Account> accounts) {
-        return accounts.stream().map(Account::initialBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return accounts.stream()
+                .map(Account::initialBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal sumByType(List<Transaction> transactions, CategoryType type) {
         return transactions.stream()
-            .filter(transaction -> transaction.type() == type)
-            .map(Transaction::amount)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .filter(transaction -> transaction.type() == type)
+                .map(Transaction::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

@@ -3,8 +3,8 @@ package com.lmf.finpro.domain.model;
 import java.math.BigDecimal;
 
 /**
- * Sugere uma alíquota de imposto por regime tributário, para pré-preencher a estimativa.
- * Valores simplificados e educacionais — não substituem orientação contábil.
+ * Sugere uma alíquota de imposto por regime tributário, para pré-preencher a estimativa. Valores
+ * simplificados e educacionais — não substituem orientação contábil.
  */
 public final class TaxRateEstimator {
 
@@ -23,8 +23,7 @@ public final class TaxRateEstimator {
     private static final BigDecimal AUTONOMO_ALIQUOTA_4 = new BigDecimal("0.225");
     private static final BigDecimal AUTONOMO_ALIQUOTA_5 = new BigDecimal("0.275");
 
-    private TaxRateEstimator() {
-    }
+    private TaxRateEstimator() {}
 
     public static BigDecimal suggestRate(TaxRegime regime, BigDecimal grossRevenueMonth) {
         return switch (regime) {

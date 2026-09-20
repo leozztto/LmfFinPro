@@ -8,6 +8,10 @@ import org.springframework.stereotype.Component;
 public class CategoryRuleWebMapper {
 
     public CategoryRuleResponse toResponse(CategoryRule categoryRule) {
-        return new CategoryRuleResponse(categoryRule.id(), categoryRule.pattern(), categoryRule.categoryId(), categoryRule.weight());
+        return new CategoryRuleResponse(
+                categoryRule.id(),
+                categoryRule.pattern(),
+                categoryRule.categoryId(),
+                categoryRule.weight());
     }
 }

@@ -4,11 +4,10 @@ import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.CategoryPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.CategoryJpaRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -29,7 +28,9 @@ public class CategoryRepositoryAdapter implements CategoryRepositoryPort {
 
     @Override
     public List<Category> findAllVisibleToUser(Long userId) {
-        return categoryJpaRepository.findByUserIdOrUserIdIsNull(userId).stream().map(mapper::toDomain).toList();
+        return categoryJpaRepository.findByUserIdOrUserIdIsNull(userId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

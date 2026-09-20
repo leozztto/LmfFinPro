@@ -8,11 +8,10 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +21,10 @@ public class AccountApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final TransferRepositoryPort transferRepositoryPort;
 
-    public Account create(Long currentUserId, String name, AccountType type, BigDecimal initialBalance) {
-        return accountRepositoryPort.save(Account.create(currentUserId, name, type, initialBalance));
+    public Account create(
+            Long currentUserId, String name, AccountType type, BigDecimal initialBalance) {
+        return accountRepositoryPort.save(
+                Account.create(currentUserId, name, type, initialBalance));
     }
 
     public List<Account> list(Long currentUserId) {
@@ -34,37 +35,47 @@ public class AccountApplicationService {
         return findOwnedOrThrow(currentUserId, accountId);
     }
 
-    /** Saldo inicial só é definido na criação da conta: a edição não pode alterá-lo, para não distorcer o histórico de saldo. */
+    /**
+     * Saldo inicial só é definido na criação da conta: a edição não pode alterá-lo, para não
+     * distorcer o histórico de saldo.
+     */
     public Account update(Long currentUserId, Long accountId, String name, AccountType type) {
         Account existing = findOwnedOrThrow(currentUserId, accountId);
-        return accountRepositoryPort.save(existing.withDetails(name, type, existing.initialBalance()));
+        return accountRepositoryPort.save(
+                existing.withDetails(name, type, existing.initialBalance()));
     }
 
     public void delete(Long currentUserId, Long accountId) {
         findOwnedOrThrow(currentUserId, accountId);
-        if (transactionRepositoryPort.existsByAccountId(accountId) || transferRepositoryPort.existsByAccountId(accountId)) {
+        if (transactionRepositoryPort.existsByAccountId(accountId)
+                || transferRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
-                "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de remover a conta."
-            );
+                    "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de remover a conta.");
         }
         accountRepositoryPort.deleteById(accountId);
     }
 
     /**
      * Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta. Não há saldo
-     * persistido: é recalculado a cada leitura para nunca ficar dessincronizado das transações
-     * (que podem ser editadas ou excluídas depois de lançadas).
+     * persistido: é recalculado a cada leitura para nunca ficar dessincronizado das transações (que
+     * podem ser editadas ou excluídas depois de lançadas).
      */
     public BigDecimal calculateCurrentBalance(Account account) {
-        BigDecimal income = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.INCOME);
-        BigDecimal expense = transactionRepositoryPort.sumAmountByAccountIdAndType(account.id(), CategoryType.EXPENSE);
+        BigDecimal income =
+                transactionRepositoryPort.sumAmountByAccountIdAndType(
+                        account.id(), CategoryType.INCOME);
+        BigDecimal expense =
+                transactionRepositoryPort.sumAmountByAccountIdAndType(
+                        account.id(), CategoryType.EXPENSE);
         return account.initialBalance().add(income).subtract(expense);
     }
 
     /** Acesso a conta de outro usuário é tratado como inexistente (404), não como 403. */
     private Account findOwnedOrThrow(Long currentUserId, Long accountId) {
-        return accountRepositoryPort.findById(accountId)
-            .filter(account -> account.belongsTo(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
+        return accountRepositoryPort
+                .findById(accountId)
+                .filter(account -> account.belongsTo(currentUserId))
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 }

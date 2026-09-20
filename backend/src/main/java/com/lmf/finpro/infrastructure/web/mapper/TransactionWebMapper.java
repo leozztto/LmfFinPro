@@ -9,18 +9,17 @@ public class TransactionWebMapper {
 
     public TransactionResponse toResponse(Transaction transaction) {
         return new TransactionResponse(
-            transaction.id(),
-            transaction.accountId(),
-            transaction.categoryId(),
-            transaction.clientId(),
-            transaction.description(),
-            transaction.amount(),
-            transaction.transactionDate(),
-            transaction.type(),
-            transaction.origin(),
-            transaction.createdAt(),
-            transaction.transferId(),
-            transaction.importBatchId()
-        );
+                transaction.id(),
+                transaction.accountId(),
+                transaction.categoryId(),
+                transaction.clientId(),
+                transaction.description(),
+                transaction.amount(),
+                transaction.transactionDate(),
+                transaction.type(),
+                transaction.origin(),
+                transaction.createdAt(),
+                transaction.transferId(),
+                transaction.importBatchId());
     }
 }

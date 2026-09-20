@@ -4,11 +4,10 @@ import com.lmf.finpro.domain.model.CategoryRule;
 import com.lmf.finpro.domain.port.out.CategoryRuleRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.CategoryRulePersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.CategoryRuleJpaRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -30,13 +29,15 @@ public class CategoryRuleRepositoryAdapter implements CategoryRuleRepositoryPort
     @Override
     public List<CategoryRule> findAllByUserIdOrderByWeightDesc(Long userId) {
         return categoryRuleJpaRepository.findByUserIdOrderByWeightDesc(userId).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public Optional<CategoryRule> findByUserIdAndPattern(Long userId, String pattern) {
-        return categoryRuleJpaRepository.findByUserIdAndPatternIgnoreCase(userId, pattern).map(mapper::toDomain);
+        return categoryRuleJpaRepository
+                .findByUserIdAndPatternIgnoreCase(userId, pattern)
+                .map(mapper::toDomain);
     }
 
     @Override

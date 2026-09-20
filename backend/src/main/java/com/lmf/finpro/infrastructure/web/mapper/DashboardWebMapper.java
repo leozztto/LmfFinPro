@@ -17,9 +17,12 @@ public class DashboardWebMapper {
 
     public DashboardOverviewResponse toResponse(DashboardOverview overview) {
         return new DashboardOverviewResponse(
-            overview.currentBalance(), overview.currentMonthIncome(), overview.currentMonthExpense(),
-            overview.balanceDeltaPercent(), overview.incomeDeltaPercent(), overview.expenseDeltaPercent()
-        );
+                overview.currentBalance(),
+                overview.currentMonthIncome(),
+                overview.currentMonthExpense(),
+                overview.balanceDeltaPercent(),
+                overview.incomeDeltaPercent(),
+                overview.expenseDeltaPercent());
     }
 
     public MonthlyFlowPointResponse toResponse(MonthlyFlowPoint point) {
@@ -31,7 +34,8 @@ public class DashboardWebMapper {
     }
 
     public CashFlowProjectionPointResponse toResponse(CashFlowProjectionPoint point) {
-        return new CashFlowProjectionPointResponse(point.month(), point.balance(), point.projected());
+        return new CashFlowProjectionPointResponse(
+                point.month(), point.balance(), point.projected());
     }
 
     public BreakdownPointResponse toResponse(BreakdownPoint point) {

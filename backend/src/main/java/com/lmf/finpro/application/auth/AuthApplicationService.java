@@ -26,29 +26,32 @@ public class AuthApplicationService {
 
         String documentNumber = onlyDigits(command.documentNumber());
         if (userRepositoryPort.existsByDocumentNumber(documentNumber)) {
-            throw new DocumentAlreadyInUseException("Já existe uma conta cadastrada com este " + command.documentType());
+            throw new DocumentAlreadyInUseException(
+                    "Já existe uma conta cadastrada com este " + command.documentType());
         }
 
         String passwordHash = passwordHasherPort.hash(command.rawPassword());
-        User saved = userRepositoryPort.save(
-            User.register(
-                command.name(),
-                command.email(),
-                passwordHash,
-                command.documentType(),
-                documentNumber,
-                onlyDigits(command.phone()),
-                command.taxRegime(),
-                toAddress(command.address())
-            )
-        );
+        User saved =
+                userRepositoryPort.save(
+                        User.register(
+                                command.name(),
+                                command.email(),
+                                passwordHash,
+                                command.documentType(),
+                                documentNumber,
+                                onlyDigits(command.phone()),
+                                command.taxRegime(),
+                                toAddress(command.address())));
 
         return toAuthResult(saved);
     }
 
     public AuthResult login(LoginCommand command) {
-        User user = userRepositoryPort.findByEmail(command.email())
-            .orElseThrow(() -> new InvalidCredentialsException("E-mail ou senha inválidos"));
+        User user =
+                userRepositoryPort
+                        .findByEmail(command.email())
+                        .orElseThrow(
+                                () -> new InvalidCredentialsException("E-mail ou senha inválidos"));
 
         if (!passwordHasherPort.matches(command.rawPassword(), user.passwordHash())) {
             throw new InvalidCredentialsException("E-mail ou senha inválidos");
@@ -62,14 +65,13 @@ public class AuthApplicationService {
             return null;
         }
         return new Address(
-            onlyDigits(address.zipCode()),
-            address.street(),
-            address.number(),
-            address.complement(),
-            address.neighborhood(),
-            address.city(),
-            address.state()
-        );
+                onlyDigits(address.zipCode()),
+                address.street(),
+                address.number(),
+                address.complement(),
+                address.neighborhood(),
+                address.city(),
+                address.state());
     }
 
     private AuthResult toAuthResult(User user) {
