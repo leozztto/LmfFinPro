@@ -29,13 +29,13 @@ export function DashboardPage() {
   const incomeByClient = useClientBreakdown()
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Visão geral</h2>
         <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">Saldo consolidado e movimento do mês.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="Saldo atual"
           value={overview.data ? formatCurrency(overview.data.currentBalance) : '…'}
@@ -55,7 +55,7 @@ export function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {monthlyFlow.data ? (
           <MonthlyFlowChart data={toMonthlyFlowPoints(monthlyFlow.data)} />
         ) : (
@@ -68,7 +68,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {balanceEvolution.data && cashFlowProjection.data ? (
           <CashFlowProjectionChart
             data={[
@@ -82,7 +82,7 @@ export function DashboardPage() {
         <AccountBalanceChart accounts={accounts ?? []} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {expenseByCategory.data && categories ? (
           <BreakdownChart
             title="Despesas por categoria"
@@ -118,7 +118,7 @@ export function DashboardPage() {
 
 function ChartPlaceholder() {
   return (
-    <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-zinc-200 text-sm text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
+    <div className="flex h-56 items-center justify-center rounded-xl border border-dashed border-zinc-200 text-sm text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
       Carregando...
     </div>
   )

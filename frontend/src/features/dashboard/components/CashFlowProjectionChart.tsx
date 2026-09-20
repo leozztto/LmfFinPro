@@ -39,12 +39,12 @@ export function CashFlowProjectionChart({ data }: CashFlowProjectionChartProps) 
   }, [data])
 
   return (
-    <Card>
+    <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Projeção de fluxo de caixa</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
         Histórico recente e estimativa para os próximos meses (média móvel + lançamentos futuros já cadastrados).
       </p>
-      <div className="mt-4 h-72">
+      <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke={gridColor} />

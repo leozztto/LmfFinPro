@@ -19,17 +19,17 @@ export function BreakdownChart({ title, subtitle = 'Mês atual.', emptyMessage, 
   const axisColor = theme === 'dark' ? '#a1a1aa' : '#71717a'
 
   const bars = foldIntoOther(data)
-  const height = Math.max(bars.length * 40 + 24, 120)
+  const height = Math.max(bars.length * 32 + 16, 96)
 
   return (
-    <Card>
+    <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{title}</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">{subtitle}</p>
 
       {bars.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{emptyMessage}</p>
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{emptyMessage}</p>
       ) : (
-        <div className="mt-4" style={{ height }}>
+        <div className="mt-3" style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={bars} layout="vertical" margin={{ top: 4, right: 72, left: 8, bottom: 4 }}>
               <XAxis type="number" hide domain={[0, (max: number) => max * 1.2]} />

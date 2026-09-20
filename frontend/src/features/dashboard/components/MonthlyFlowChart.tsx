@@ -39,10 +39,10 @@ export function MonthlyFlowChart({ data }: MonthlyFlowChartProps) {
   const axisColor = theme === 'dark' ? '#a1a1aa' : '#71717a'
 
   return (
-    <Card>
+    <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Receita x despesa por mês</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Últimos {data.length} meses, sem transferências.</p>
-      <div className="mt-4 h-72">
+      <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
             <CartesianGrid vertical={false} stroke={gridColor} />
