@@ -8,6 +8,7 @@ import { ClientsPage } from '@/features/clients/components/ClientsPage'
 import { TransactionsPage } from '@/features/transactions/components/TransactionsPage'
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
 import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
+import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimatesPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute'
 
@@ -26,6 +27,7 @@ export function AppRouter() {
           <Route path="/transacoes" element={<TransactionsPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />
+          <Route path="/impostos" element={<TaxEstimatesPage />} />
         </Route>
       </Route>
 

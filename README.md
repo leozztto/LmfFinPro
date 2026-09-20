@@ -8,7 +8,7 @@ Diferente de um "CRUD de receita/despesa" genérico, o FinPro foca em três cois
 - **Foco em freelancer**: receita organizada por cliente/projeto, estimativa de imposto e projeção de fluxo de caixa irregular.
 - **Base técnica sólida**: arquitetura em camadas, testes automatizados, CI e deploy ao vivo.
 
-O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/plano.md`](docs/plano.md).
+O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/plano.md`](docs/plano.md). O fluxo de estimativa de imposto e projeção de fluxo de caixa, com diagramas, está em [`docs/fluxo-imposto-fluxo-caixa.md`](docs/fluxo-imposto-fluxo-caixa.md).
 
 ## Stack
 

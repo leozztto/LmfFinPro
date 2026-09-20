@@ -15,9 +15,10 @@
 - ✅ Integração com ViaCEP para autocompletar endereço no cadastro de usuário
 - ✅ Validação de CPF/CNPJ (`CpfValidator`, `CnpjValidator`) e modelagem de endereço (`Address`, `BrazilianState`)
 - ✅ Migrations Flyway V1 a V9 (schema inicial, CPF/telefone, troca para "documento" genérico, endereço, tabela de transferências, índices, detalhes/tipo de trabalho do cliente, índices de importação/regras)
-- ✅ Testes de integração com Testcontainers cobrindo account, auth, category, client, importbatch, transaction e transfer
+- ✅ Testes de integração com Testcontainers cobrindo account, auth, category, client, importbatch, transaction, transfer e tax estimate
+- ✅ **`TaxEstimate`**: entidade de domínio, repository, service e endpoint completos (`/api/tax-estimates`), com sugestão de alíquota por regime tributário (`TaxRateEstimator`) — migration V10 adicionou a coluna `regime`. Fluxo completo (com diagramas) em [`fluxo-imposto-fluxo-caixa.md`](./fluxo-imposto-fluxo-caixa.md)
 - ⬜ Testes unitários (Mockito) — hoje só existem testes de integração
-- ⬜ **`TaxEstimate`, `Budget`** — as tabelas existem no schema desde o V1, mas não têm entidade de domínio, repository nem endpoint ainda (Fase 2 do módulo freelancer)
+- ⬜ **`Budget`** — a tabela existe no schema desde o V1, mas não tem entidade de domínio, repository nem endpoint ainda
 
 **Frontend (~75%)**
 
@@ -28,7 +29,8 @@
 - ✅ Importação de extrato: upload de CSV, lista de importações com status/contagem de "sem categoria", tela de revisão inline (categoria/cliente por transação) e CRUD de regras de categorização (`ImportsPage`, `CategoryRulesPanel`)
 - ✅ Tema claro/escuro (`ThemeContext`/`ThemeToggle`), notificações toast, layout responsivo (`AppLayout`, `Footer`)
 - ✅ Biblioteca de componentes de UI reutilizáveis (Button, Card, Modal, Select, Input, FormField, Checkbox, FileInput, etc.)
-- ⬜ Telas de impostos / fluxo de caixa
+- ✅ Tela de impostos (`TaxEstimatesPage`): criação de estimativa por mês/regime com receita pré-preenchida a partir das transações e alíquota sugerida, listagem e remoção
+- ✅ Projeção de fluxo de caixa no dashboard (`CashFlowProjectionChart`): média móvel dos últimos 3 meses + lançamentos futuros já cadastrados, calculada no frontend
 
 **Infra & docs (~85%)**
 
@@ -38,7 +40,7 @@
 - ⬜ Deploy real (Railway/Render + Vercel)
 - ⬜ Seed de dados de demonstração e badge de CI no README
 
-Em resumo: autenticação, contas, categorias, clientes, transações, transferências e importação de extrato com categorização automática já funcionam de ponta a ponta (backend com regras de negócio e testes de integração, frontend consumindo a API real). O que falta para fechar o MVP é a estimativa de imposto/fluxo de caixa (Fase 2) e o deploy — ver seções 5 e 12.
+Em resumo: autenticação, contas, categorias, clientes, transações, transferências, importação de extrato com categorização automática, estimativa de imposto e projeção de fluxo de caixa já funcionam de ponta a ponta (backend com regras de negócio e testes de integração, frontend consumindo a API real). O que falta para fechar o MVP é o deploy e os itens finais de Fase 2 (metas/orçamento por categoria) — ver seções 5 e 12.
 
 ## 2. Pitch (resumo de 30 segundos)
 
@@ -73,8 +75,8 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 - Importação de OFX
 - Aprendizado de categorização a partir das correções do usuário — ✅ **feito** (correção manual reforça/cria `CategoryRule`, ver seção 8)
-- Estimativa de imposto simplificada (educacional, não é orientação fiscal)
-- Projeção de fluxo de caixa (média móvel + recebíveis futuros)
+- Estimativa de imposto simplificada (educacional, não é orientação fiscal) — ✅ **feito**
+- Projeção de fluxo de caixa (média móvel + recebíveis futuros) — ✅ **feito**
 - Metas/orçamento por categoria
 
 ### Fase 3
@@ -86,7 +88,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ## 6. Modelo de dados (entidades principais)
 
-*O schema completo abaixo foi aplicado via Flyway desde o `V1__init_schema.sql`. Hoje só `TaxEstimate` e `Budget` existem apenas como tabela, sem entidade de domínio (`domain/model`), repository (`domain/port/out` + adapter) nem endpoint — todo o resto já tem o tratamento completo.*
+*O schema completo abaixo foi aplicado via Flyway desde o `V1__init_schema.sql` (mais a V10, que adicionou a coluna `regime` a `tax_estimates`). Hoje só `Budget` existe apenas como tabela, sem entidade de domínio (`domain/model`), repository (`domain/port/out` + adapter) nem endpoint — todo o resto já tem o tratamento completo.*
 
 - **User** ✅: id, nome, email, senha (hash), documento (CPF/CNPJ), telefone, endereço, regime_tributario
 - **Account** ✅: id, user_id, nome, tipo, saldo_inicial
@@ -96,24 +98,24 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 - **Transfer** ✅: id, conta origem, conta destino, valor, data — gera duas `Transaction` vinculadas (débito/crédito) excluídas dos somatórios de receita/despesa do dashboard
 - **ImportBatch** ✅: id, user_id, account_id, arquivo_original, formato (CSV/OFX), data_importação, status (processando/concluída/falhou)
 - **CategoryRule** ✅: id, user_id, padrão_texto, category_id, peso — motor de categorização automática, ver seção 8
-- **TaxEstimate** ⬜: id, user_id, mês/ano, receita_bruta, alíquota_aplicada, valor_estimado — *só schema*
+- **TaxEstimate** ✅: id, user_id, mês/ano, regime, receita_bruta, alíquota_aplicada, valor_estimado
 - **Budget** ⬜: id, user_id, category_id, mês/ano, valor_limite — *só schema*
 
 ## 7. Arquitetura técnica
 
 **Backend — Java 21 + Spring Boot 3 + Maven + PostgreSQL**
 
-- Camadas: Controller → Service → Repository, com ports/adapters (hexagonal) e DTOs separados de entidades — ✅ *implementado para Account, Category, Client, Transaction, Transfer, ImportBatch/CategoryRule, Auth e Cep*
+- Camadas: Controller → Service → Repository, com ports/adapters (hexagonal) e DTOs separados de entidades — ✅ *implementado para Account, Category, Client, Transaction, Transfer, ImportBatch/CategoryRule, TaxEstimate, Auth e Cep*
 - Autenticação: Spring Security + JWT — ✅ *feito e plugado (filtro real, sem `permitAll()` fora de auth/cep/swagger/health)*
-- Migrations: Flyway — ✅ *feito (V1 a V9)*
+- Migrations: Flyway — ✅ *feito (V1 a V10)*
 - Documentação da API: springdoc-openapi (Swagger UI) — *dependência configurada*
-- Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *integração cobrindo os 7 módulos principais*; ⬜ *nenhum teste unitário com Mockito ainda*
+- Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *integração cobrindo os 8 módulos principais*; ⬜ *nenhum teste unitário com Mockito ainda*
 
 **Frontend — React + Tailwind CSS + Vite**
 
 - React Query para estado de chamadas à API — ✅ *em uso em todos os módulos*
 - React Router — ✅ *em uso (rotas públicas de login/registro + rotas protegidas com layout)*
-- Recharts para os gráficos do dashboard — ✅ *em uso (receita x despesa por mês, evolução do saldo, despesa/receita por categoria, receita por cliente, saldo por conta)*
+- Recharts para os gráficos do dashboard — ✅ *em uso (receita x despesa por mês, evolução do saldo, projeção de fluxo de caixa, despesa/receita por categoria, receita por cliente, saldo por conta)*
 - React Hook Form + Zod para formulários — ✅ *em uso em auth, contas, categorias, clientes, transações, transferências e regras de categorização*
 
 **Infraestrutura**
@@ -138,8 +140,8 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 - Receita vinculada a `Client` — ✅ **feito** (`clientId` em `Transaction`, `ClientsPage` com CRUD completo)
 - Dashboard de receita por cliente no período — ✅ **feito** (gráfico "Receita por cliente" no dashboard, mês atual)
-- Estimativa de imposto configurável por regime (aviso: estimativa educacional, não substitui contador) — ⬜ *pendente*
-- Projeção de fluxo de caixa por média móvel — ⬜ *pendente*
+- Estimativa de imposto configurável por regime (aviso: estimativa educacional, não substitui contador) — ✅ **feito** (`TaxEstimatesPage`, alíquota sugerida por `TaxRateEstimator`)
+- Projeção de fluxo de caixa por média móvel — ✅ **feito** (`CashFlowProjectionChart`, média móvel de 3 meses + lançamentos futuros já cadastrados)
 
 ## 10. Telas principais
 
@@ -150,11 +152,11 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 - Transferências entre contas — ✅ *feito* (não previsto no plano original)
 - Importação (upload + preview + revisão de categorização) — ✅ *feito* (`ImportsPage`, `ImportBatchList`, `ImportBatchReviewTable`, `CategoryRulesPanel`)
 - Clientes (CRUD + receita por cliente no dashboard) — ✅ *feito*; histórico de receita ao longo do tempo por cliente — ⬜ *pendente*
-- Impostos/Fluxo de caixa — ⬜ *pendente*
+- Impostos (`TaxEstimatesPage`) e projeção de fluxo de caixa (no dashboard) — ✅ *feito*
 
 ## 11. Checklist de qualidade técnica
 
-- Testes automatizados nos fluxos críticos (auth, contas, categorias, clientes, transações, transferências, importação/categorização) — ✅ *feito via Testcontainers*; testes unitários (Mockito) — ⬜ *pendente*
+- Testes automatizados nos fluxos críticos (auth, contas, categorias, clientes, transações, transferências, importação/categorização, tax estimate) — ✅ *feito via Testcontainers*; testes unitários (Mockito) — ⬜ *pendente*
 - Lint/formatação consistente — *pendente de verificação formal*
 - CI verde (badge no README) — *CI ok, sem badge*
 - Dados seed realistas (script com usuário demo + ~6 meses de transações) — *pendente*
@@ -168,8 +170,8 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 3. ~~Módulo de clientes/projetos~~ — ✅ **concluído**: entidade `Client` completa (domain + port + adapter + controller + DTO), vinculada a `Transaction`, CRUD no frontend
 4. ~~Importação CSV + motor de regras~~ — ✅ **concluído**: `ImportBatch` + `CategoryRule` (domain + application + infra), upload multipart, tela de preview/revisão com aprendizado automático de regra a partir da correção do usuário
 5. ~~Receita por cliente no dashboard~~ — ✅ **concluído**: gráfico "Receita por cliente" (mês atual) ao lado do saldo por conta
-6. **Próximo passo**: estimativa de imposto + projeção de fluxo de caixa (Fase 2, já tem dados de receita por cliente/categoria consolidados para se apoiar)
-7. Antes do deploy: testes unitários (Mockito) nos services de aplicação, lint/formatação, seed de dados de demonstração
+6. ~~Estimativa de imposto + projeção de fluxo de caixa~~ — ✅ **concluído**: módulo `TaxEstimate` completo no backend (com `TaxRateEstimator` por regime, migration V10) + tela "Impostos" no frontend; projeção de fluxo de caixa (`CashFlowProjectionChart`) calculada no dashboard a partir de média móvel + lançamentos futuros já cadastrados
+7. **Próximo passo**: metas/orçamento por categoria (`Budget`, único módulo ainda só-schema) e, antes do deploy: testes unitários (Mockito) nos services de aplicação, lint/formatação, seed de dados de demonstração
 8. Fechamento: deploy (Railway/Render + Vercel), badge de CI, prints e link no README, vídeo curto de demo
 
 ## 13. Stack resumida
