@@ -34,10 +34,10 @@ export function BalanceEvolutionChart({ data }: BalanceEvolutionChartProps) {
   const seriesColor = isDark ? '#3987e5' : '#2a78d6'
 
   return (
-    <Card>
+    <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Evolução do saldo</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Saldo consolidado ao fim de cada mês.</p>
-      <div className="mt-4 h-72">
+      <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
             <defs>
