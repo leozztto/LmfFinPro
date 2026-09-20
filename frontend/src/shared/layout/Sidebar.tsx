@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { HomeIcon, PercentIcon, SwapIcon, TagIcon, TransferIcon, UploadIcon, UsersIcon, WalletIcon } from '@/shared/ui/icons'
+import { HomeIcon, PercentIcon, SwapIcon, TagIcon, TargetIcon, TransferIcon, UploadIcon, UsersIcon, WalletIcon } from '@/shared/ui/icons'
 
 const OVERVIEW_ITEM = { to: '/', label: 'Dashboard', icon: HomeIcon }
 
@@ -17,6 +17,7 @@ const NAV_SECTIONS = [
       { to: '/transacoes', label: 'Transações', icon: SwapIcon },
       { to: '/transferencias', label: 'Transferências', icon: TransferIcon },
       { to: '/importacoes', label: 'Importações', icon: UploadIcon },
+      { to: '/orcamentos', label: 'Orçamentos', icon: TargetIcon },
     ],
   },
   {

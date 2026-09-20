@@ -9,6 +9,7 @@ import { TransactionsPage } from '@/features/transactions/components/Transaction
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
 import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
 import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimatesPage'
+import { BudgetsPage } from '@/features/budgets/components/BudgetsPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute'
 
@@ -28,6 +29,7 @@ export function AppRouter() {
           <Route path="/transferencias" element={<TransfersPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />
           <Route path="/impostos" element={<TaxEstimatesPage />} />
+          <Route path="/orcamentos" element={<BudgetsPage />} />
         </Route>
       </Route>
 
