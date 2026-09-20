@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.persistence.entity;
 
+import com.lmf.finpro.domain.model.TaxRegime;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,6 +26,10 @@ public class TaxEstimateJpaEntity {
 
     @Column(name = "reference_month", nullable = false)
     private LocalDate referenceMonth;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "regime", nullable = false, length = 30)
+    private TaxRegime regime;
 
     @Column(name = "gross_revenue", nullable = false, precision = 14, scale = 2)
     private BigDecimal grossRevenue;
