@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, ExpandableText } from '@/shared/ui'
+import { ExpandableText, IconButton } from '@/shared/ui'
 import { ChevronDownIcon, TrashIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
@@ -18,11 +18,7 @@ export function TransferCard({ transfer, fromAccountName, toAccountName, onDelet
   const title = `${fromAccountName} → ${toAccountName}`
   const amountLabel = formatCurrency(transfer.amount)
 
-  const removeButton = (
-    <Button variant="secondary" onClick={onDelete} disabled={isDeleting} aria-label="Remover" title="Remover" className="px-3">
-      <TrashIcon />
-    </Button>
-  )
+  const removeButton = <IconButton icon={TrashIcon} label="Remover" onClick={onDelete} disabled={isDeleting} />
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">

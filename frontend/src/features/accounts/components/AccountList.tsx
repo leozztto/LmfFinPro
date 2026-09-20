@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
+import { Button, Card, CollapsibleFilters, FormField, IconButton, Input, Modal, Select } from '@/shared/ui'
 import { PencilIcon, TrashIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
@@ -106,7 +106,7 @@ export function AccountList() {
           Nenhuma conta encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((account) => (
             <Card key={account.id} className="flex items-end justify-between gap-3">
               <div className="min-w-0">
@@ -119,26 +119,14 @@ export function AccountList() {
                   Saldo atual: {formatCurrency(account.currentBalance)}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setEditingAccount(account)}
-                  aria-label="Editar"
-                  title="Editar"
-                  className="px-3"
-                >
-                  <PencilIcon />
-                </Button>
-                <Button
-                  variant="secondary"
+              <div className="flex shrink-0 gap-1.5">
+                <IconButton icon={PencilIcon} label="Editar" onClick={() => setEditingAccount(account)} />
+                <IconButton
+                  icon={TrashIcon}
+                  label="Remover"
                   onClick={() => handleDelete(account.id, account.name)}
                   disabled={deleteAccount.isPending}
-                  aria-label="Remover"
-                  title="Remover"
-                  className="px-3"
-                >
-                  <TrashIcon />
-                </Button>
+                />
               </div>
             </Card>
           ))}
