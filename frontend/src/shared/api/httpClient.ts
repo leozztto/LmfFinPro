@@ -18,7 +18,11 @@ export class ApiError extends Error {
 async function request<TResponse>(path: string, options: RequestInit = {}): Promise<TResponse> {
   const token = getStoredToken()
   const headers = new Headers(options.headers)
-  headers.set('Content-Type', 'application/json')
+  // FormData define seu próprio Content-Type (multipart/form-data; boundary=...) — o navegador
+  // só consegue gerar o boundary correto se a gente não sobrescrever o header manualmente aqui.
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json')
+  }
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
@@ -44,4 +48,5 @@ export const httpClient = {
   put: <TResponse, TBody = unknown>(path: string, body: TBody) =>
     request<TResponse>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
+  postForm: <TResponse>(path: string, formData: FormData) => request<TResponse>(path, { method: 'POST', body: formData }),
 }

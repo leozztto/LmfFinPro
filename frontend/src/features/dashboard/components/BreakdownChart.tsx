@@ -2,18 +2,19 @@ import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YA
 import { Card } from '@/shared/ui'
 import { formatCurrency } from '@/shared/format/currency'
 import { useTheme } from '@/shared/theme/ThemeContext'
-import type { CategoryBreakdownPoint } from '../utils'
+import type { BreakdownPoint } from '../utils'
 
 const OTHER_COLOR = '#71717a'
 const MAX_BARS = 7
 
-interface CategoryBreakdownChartProps {
+interface BreakdownChartProps {
   title: string
+  subtitle?: string
   emptyMessage: string
-  data: CategoryBreakdownPoint[]
+  data: BreakdownPoint[]
 }
 
-export function CategoryBreakdownChart({ title, emptyMessage, data }: CategoryBreakdownChartProps) {
+export function BreakdownChart({ title, subtitle = 'Mês atual.', emptyMessage, data }: BreakdownChartProps) {
   const { theme } = useTheme()
   const axisColor = theme === 'dark' ? '#a1a1aa' : '#71717a'
 
@@ -23,7 +24,7 @@ export function CategoryBreakdownChart({ title, emptyMessage, data }: CategoryBr
   return (
     <Card>
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{title}</h3>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">Mês atual.</p>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">{subtitle}</p>
 
       {bars.length === 0 ? (
         <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{emptyMessage}</p>
@@ -64,7 +65,7 @@ export function CategoryBreakdownChart({ title, emptyMessage, data }: CategoryBr
 function BreakdownTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null
   const entry = payload[0]
-  const point = entry.payload as CategoryBreakdownPoint
+  const point = entry.payload as BreakdownPoint
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
@@ -77,13 +78,13 @@ function BreakdownTooltip({ active, payload }: TooltipProps<number, string>) {
   )
 }
 
-/** Mantém as maiores categorias como barras individuais e soma o restante em "Outras". */
-function foldIntoOther(data: CategoryBreakdownPoint[]): CategoryBreakdownPoint[] {
+/** Mantém as maiores entradas como barras individuais e soma o restante em "Outras". */
+function foldIntoOther(data: BreakdownPoint[]): BreakdownPoint[] {
   if (data.length <= MAX_BARS) return data
 
   const head = data.slice(0, MAX_BARS - 1)
   const tail = data.slice(MAX_BARS - 1)
   const otherTotal = tail.reduce((sum, item) => sum + item.value, 0)
 
-  return [...head, { categoryId: null, name: 'Outras', color: OTHER_COLOR, value: otherTotal }]
+  return [...head, { id: null, name: 'Outras', color: OTHER_COLOR, value: otherTotal }]
 }

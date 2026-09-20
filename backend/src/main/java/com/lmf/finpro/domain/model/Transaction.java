@@ -15,7 +15,8 @@ public record Transaction(
     CategoryType type,
     TransactionOrigin origin,
     LocalDateTime createdAt,
-    Long transferId
+    Long transferId,
+    Long importBatchId
 ) {
 
     public static Transaction create(
@@ -29,7 +30,7 @@ public record Transaction(
     ) {
         return new Transaction(
             null, accountId, categoryId, clientId, description, amount,
-            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now(), null
+            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now(), null, null
         );
     }
 
@@ -43,7 +44,22 @@ public record Transaction(
     ) {
         return new Transaction(
             null, accountId, null, null, description, amount,
-            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now(), transferId
+            transactionDate, type, TransactionOrigin.MANUAL, LocalDateTime.now(), transferId, null
+        );
+    }
+
+    public static Transaction createImported(
+        Long accountId,
+        Long categoryId,
+        String description,
+        BigDecimal amount,
+        LocalDate transactionDate,
+        CategoryType type,
+        Long importBatchId
+    ) {
+        return new Transaction(
+            null, accountId, categoryId, null, description, amount,
+            transactionDate, type, TransactionOrigin.IMPORTED, LocalDateTime.now(), null, importBatchId
         );
     }
 
@@ -57,7 +73,7 @@ public record Transaction(
     ) {
         return new Transaction(
             id, accountId, newCategoryId, newClientId, newDescription, newAmount,
-            newTransactionDate, newType, origin, createdAt, transferId
+            newTransactionDate, newType, origin, createdAt, transferId, importBatchId
         );
     }
 }

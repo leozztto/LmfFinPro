@@ -7,6 +7,7 @@ import { CategoriesPage } from '@/features/categories/components/CategoriesPage'
 import { ClientsPage } from '@/features/clients/components/ClientsPage'
 import { TransactionsPage } from '@/features/transactions/components/TransactionsPage'
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
+import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute'
 
@@ -24,6 +25,7 @@ export function AppRouter() {
           <Route path="/clientes" element={<ClientsPage />} />
           <Route path="/transacoes" element={<TransactionsPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
+          <Route path="/importacoes" element={<ImportsPage />} />
         </Route>
       </Route>
 

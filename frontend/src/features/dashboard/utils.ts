@@ -1,9 +1,10 @@
 import type { Category, CategoryType } from '@/features/categories/types'
+import type { Client } from '@/features/clients/types'
 import type { Transaction } from '@/features/transactions/types'
 
 const MONTH_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
-const UNCATEGORIZED_COLOR = '#94a3b8'
+const UNASSIGNED_COLOR = '#94a3b8'
 
 export interface MonthlyFlowPoint {
   month: string
@@ -12,8 +13,9 @@ export interface MonthlyFlowPoint {
   expense: number
 }
 
-export interface CategoryBreakdownPoint {
-  categoryId: number | null
+/** Ponto de um gráfico de barras "total por entidade" (categoria, cliente, etc.). */
+export interface BreakdownPoint {
+  id: number | null
   name: string
   color: string
   value: number
@@ -96,7 +98,7 @@ export function buildCategoryBreakdown(
   categories: Category[],
   yearMonth: string,
   type: CategoryType,
-): CategoryBreakdownPoint[] {
+): BreakdownPoint[] {
   const totalsByCategory = new Map<number | null, number>()
 
   for (const transaction of transactions) {
@@ -114,9 +116,37 @@ export function buildCategoryBreakdown(
     .map(([categoryId, value]) => {
       const category = categoryId != null ? categoryById.get(categoryId) : undefined
       return {
-        categoryId,
+        id: categoryId,
         name: category?.name ?? 'Sem categoria',
-        color: category?.color ?? UNCATEGORIZED_COLOR,
+        color: category?.color ?? UNASSIGNED_COLOR,
+        value,
+      }
+    })
+    .sort((a, b) => b.value - a.value)
+}
+
+/** Receita do mês informado, somada por cliente e ordenada da maior para a menor. */
+export function buildClientBreakdown(transactions: Transaction[], clients: Client[], yearMonth: string): BreakdownPoint[] {
+  const totalsByClient = new Map<number | null, number>()
+
+  for (const transaction of transactions) {
+    if (transaction.transferId != null) continue
+    if (transaction.type !== 'INCOME') continue
+    if (!transaction.transactionDate.startsWith(yearMonth)) continue
+
+    const key = transaction.clientId
+    totalsByClient.set(key, (totalsByClient.get(key) ?? 0) + transaction.amount)
+  }
+
+  const clientById = new Map(clients.map((client) => [client.id, client]))
+
+  return Array.from(totalsByClient.entries())
+    .map(([clientId, value]) => {
+      const client = clientId != null ? clientById.get(clientId) : undefined
+      return {
+        id: clientId,
+        name: client?.name ?? 'Sem cliente',
+        color: client?.color ?? UNASSIGNED_COLOR,
         value,
       }
     })
