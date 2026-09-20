@@ -50,7 +50,7 @@ public class CategoryController {
         @Valid @RequestBody CategoryRequest request
     ) {
         Category updated = categoryApplicationService.update(
-            currentUser.userId(), id, request.name(), request.type(), request.color(), request.icon()
+            currentUser.userId(), id, request.name(), request.color(), request.icon()
         );
         return mapper.toResponse(updated);
     }

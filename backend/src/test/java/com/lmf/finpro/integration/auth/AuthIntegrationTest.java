@@ -1,6 +1,7 @@
 package com.lmf.finpro.integration.auth;
 
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.infrastructure.web.dto.auth.AuthResponse;
 import com.lmf.finpro.infrastructure.web.dto.auth.LoginRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.RegisterRequest;
@@ -26,7 +27,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     void registerCreatesUserAndReturnsToken() {
         RegisterRequest request = new RegisterRequest(
             "Ana Freelancer", "ana-" + UUID.randomUUID() + "@finpro.test", "senha12345",
-            DocumentType.CPF, CpfTestFactory.randomValidCpf(), "11987654321", "SIMPLES_NACIONAL",
+            DocumentType.CPF, CpfTestFactory.randomValidCpf(), "11987654321", TaxRegime.AUTONOMO,
             TestDataFactory.sampleAddress()
         );
 
@@ -42,7 +43,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     void registerWithCnpjCreatesUserAndReturnsToken() {
         RegisterRequest request = new RegisterRequest(
             "Ana Consultoria", "cnpj-" + UUID.randomUUID() + "@finpro.test", "senha12345",
-            DocumentType.CNPJ, CnpjTestFactory.randomValidCnpj(), null, "MEI",
+            DocumentType.CNPJ, CnpjTestFactory.randomValidCnpj(), null, TaxRegime.MEI,
             TestDataFactory.sampleAddress()
         );
 
@@ -56,7 +57,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
         String email = "dup-" + UUID.randomUUID() + "@finpro.test";
         RegisterRequest request = new RegisterRequest(
             "Ana Freelancer", email, "senha12345", DocumentType.CPF, CpfTestFactory.randomValidCpf(),
-            null, null, TestDataFactory.sampleAddress()
+            null, TaxRegime.AUTONOMO, TestDataFactory.sampleAddress()
         );
         restTemplate.postForEntity("/api/auth/register", request, AuthResponse.class);
 
@@ -69,7 +70,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     void registerWithInvalidCpfReturnsBadRequest() {
         RegisterRequest request = new RegisterRequest(
             "Ana Freelancer", "invalidcpf-" + UUID.randomUUID() + "@finpro.test", "senha12345",
-            DocumentType.CPF, "12345678900", null, null, TestDataFactory.sampleAddress()
+            DocumentType.CPF, "12345678900", null, TaxRegime.AUTONOMO, TestDataFactory.sampleAddress()
         );
 
         ResponseEntity<ApiError> response = restTemplate.postForEntity("/api/auth/register", request, ApiError.class);
@@ -81,7 +82,19 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     void registerWithCpfNumberButCnpjTypeReturnsBadRequest() {
         RegisterRequest request = new RegisterRequest(
             "Ana Freelancer", "mismatched-" + UUID.randomUUID() + "@finpro.test", "senha12345",
-            DocumentType.CNPJ, CpfTestFactory.randomValidCpf(), null, null, TestDataFactory.sampleAddress()
+            DocumentType.CNPJ, CpfTestFactory.randomValidCpf(), null, TaxRegime.MEI, TestDataFactory.sampleAddress()
+        );
+
+        ResponseEntity<ApiError> response = restTemplate.postForEntity("/api/auth/register", request, ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registerWithTaxRegimeMismatchedToDocumentTypeReturnsBadRequest() {
+        RegisterRequest request = new RegisterRequest(
+            "Ana Freelancer", "regime-mismatch-" + UUID.randomUUID() + "@finpro.test", "senha12345",
+            DocumentType.CPF, CpfTestFactory.randomValidCpf(), null, TaxRegime.MEI, TestDataFactory.sampleAddress()
         );
 
         ResponseEntity<ApiError> response = restTemplate.postForEntity("/api/auth/register", request, ApiError.class);
@@ -96,7 +109,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
             "/api/auth/register",
             new RegisterRequest(
                 "Ana Freelancer", "doc1-" + UUID.randomUUID() + "@finpro.test", "senha12345",
-                DocumentType.CPF, cpf, null, null, TestDataFactory.sampleAddress()
+                DocumentType.CPF, cpf, null, TaxRegime.AUTONOMO, TestDataFactory.sampleAddress()
             ),
             AuthResponse.class
         );
@@ -105,7 +118,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
             "/api/auth/register",
             new RegisterRequest(
                 "Ana Freelancer", "doc2-" + UUID.randomUUID() + "@finpro.test", "senha12345",
-                DocumentType.CPF, cpf, null, null, TestDataFactory.sampleAddress()
+                DocumentType.CPF, cpf, null, TaxRegime.AUTONOMO, TestDataFactory.sampleAddress()
             ),
             ApiError.class
         );
@@ -120,7 +133,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
             "/api/auth/register",
             new RegisterRequest(
                 "Ana Freelancer", email, "senha12345", DocumentType.CPF, CpfTestFactory.randomValidCpf(),
-                null, null, TestDataFactory.sampleAddress()
+                null, TaxRegime.AUTONOMO, TestDataFactory.sampleAddress()
             ),
             AuthResponse.class
         );
@@ -141,7 +154,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
             "/api/auth/register",
             new RegisterRequest(
                 "Ana Freelancer", email, "senha12345", DocumentType.CPF, CpfTestFactory.randomValidCpf(),
-                null, null, TestDataFactory.sampleAddress()
+                null, TaxRegime.AUTONOMO, TestDataFactory.sampleAddress()
             ),
             AuthResponse.class
         );
