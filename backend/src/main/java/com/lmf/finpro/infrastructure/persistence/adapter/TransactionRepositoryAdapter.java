@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,6 +57,13 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     @Override
     public BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type) {
         return transactionJpaRepository.sumAmountByAccountIdAndType(accountId, type);
+    }
+
+    @Override
+    public BigDecimal sumAmountByUserIdAndCategoryIdAndTypeBetween(
+        Long userId, Long categoryId, CategoryType type, LocalDate start, LocalDate end
+    ) {
+        return transactionJpaRepository.sumAmountByUserIdAndCategoryIdAndTypeBetween(userId, categoryId, type, start, end);
     }
 
     @Override
