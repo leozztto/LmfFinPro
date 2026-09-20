@@ -38,12 +38,15 @@ class AccountIntegrationTest extends AbstractIntegrationTest {
         assertThat(listResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(List.of(listResponse.getBody())).extracting(AccountResponse::id).contains(accountId);
 
+        // Tenta alterar o saldo inicial na edição: deve ser ignorado — só é definido na criação.
         AccountRequest updateRequest = new AccountRequest("Conta corrente renomeada", AccountType.CHECKING, BigDecimal.valueOf(1500));
         ResponseEntity<AccountResponse> updateResponse = restTemplate.exchange(
             "/api/accounts/" + accountId, HttpMethod.PUT, new HttpEntity<>(updateRequest, user.authHeaders()), AccountResponse.class
         );
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(updateResponse.getBody().name()).isEqualTo("Conta corrente renomeada");
+        assertThat(updateResponse.getBody().initialBalance()).isEqualByComparingTo("1000");
+        assertThat(updateResponse.getBody().currentBalance()).isEqualByComparingTo("1000");
 
         ResponseEntity<Void> deleteResponse = restTemplate.exchange(
             "/api/accounts/" + accountId, HttpMethod.DELETE, new HttpEntity<>(user.authHeaders()), Void.class

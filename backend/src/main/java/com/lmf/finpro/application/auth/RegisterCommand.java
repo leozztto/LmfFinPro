@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.auth;
 
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.TaxRegime;
 
 public record RegisterCommand(
     String name,
@@ -9,7 +10,7 @@ public record RegisterCommand(
     DocumentType documentType,
     String documentNumber,
     String phone,
-    String taxRegime,
+    TaxRegime taxRegime,
     AddressCommand address
 ) {
 }

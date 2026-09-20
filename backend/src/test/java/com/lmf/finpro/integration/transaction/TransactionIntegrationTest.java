@@ -76,6 +76,28 @@ class TransactionIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void rejectsTransactionWithNegativeOrZeroAmount() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+
+        TransactionRequest negativeRequest = new TransactionRequest(
+            accountId, null, null, "Despesa com valor negativo", BigDecimal.valueOf(-500), LocalDate.now(), CategoryType.EXPENSE
+        );
+        ResponseEntity<ApiError> negativeResponse = restTemplate.exchange(
+            "/api/transactions", HttpMethod.POST, new HttpEntity<>(negativeRequest, user.authHeaders()), ApiError.class
+        );
+        assertThat(negativeResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        TransactionRequest zeroRequest = new TransactionRequest(
+            accountId, null, null, "Despesa com valor zero", BigDecimal.ZERO, LocalDate.now(), CategoryType.EXPENSE
+        );
+        ResponseEntity<ApiError> zeroResponse = restTemplate.exchange(
+            "/api/transactions", HttpMethod.POST, new HttpEntity<>(zeroRequest, user.authHeaders()), ApiError.class
+        );
+        assertThat(zeroResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void userCannotCreateExpenseTransactionWithIncomeCategory() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user);
