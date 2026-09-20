@@ -7,9 +7,17 @@ import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { MonthlyFlowChart } from './MonthlyFlowChart'
 import { BalanceEvolutionChart } from './BalanceEvolutionChart'
+import { CashFlowProjectionChart } from './CashFlowProjectionChart'
 import { BreakdownChart } from './BreakdownChart'
 import { AccountBalanceChart } from './AccountBalanceChart'
-import { buildBalanceOverTime, buildCategoryBreakdown, buildClientBreakdown, buildMonthlyFlow, computeDeltaPercent } from '../utils'
+import {
+  buildBalanceOverTime,
+  buildCashFlowProjection,
+  buildCategoryBreakdown,
+  buildClientBreakdown,
+  buildMonthlyFlow,
+  computeDeltaPercent,
+} from '../utils'
 
 export function DashboardPage() {
   const { data: accounts, isLoading: loadingAccounts } = useAccounts()
@@ -36,6 +44,13 @@ export function DashboardPage() {
 
   const balanceOverTime = buildBalanceOverTime(nonTransferTransactions, initialBalanceTotal)
   const previousBalance = balanceOverTime[balanceOverTime.length - 2]?.balance
+  // Saldo ao fim do mês atual (exclui transações com data futura) — ponto de partida correto
+  // para a projeção, diferente de `currentBalance` acima, que soma transações de qualquer data.
+  const balanceAsOfCurrentMonth = balanceOverTime[balanceOverTime.length - 1].balance
+  const cashFlowProjection = [
+    ...balanceOverTime.map((point) => ({ ...point, isProjected: false })),
+    ...buildCashFlowProjection(nonTransferTransactions, balanceAsOfCurrentMonth),
+  ]
 
   const expenseByCategory = buildCategoryBreakdown(nonTransferTransactions, categories ?? [], currentYearMonth, 'EXPENSE')
   const incomeByCategory = buildCategoryBreakdown(nonTransferTransactions, categories ?? [], currentYearMonth, 'INCOME')
@@ -80,6 +95,11 @@ export function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <CashFlowProjectionChart data={cashFlowProjection} />
+            <AccountBalanceChart accounts={accounts ?? []} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <BreakdownChart
               title="Despesas por categoria"
               emptyMessage="Nenhuma despesa registrada neste mês ainda."
@@ -92,14 +112,11 @@ export function DashboardPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <BreakdownChart
-              title="Receita por cliente"
-              emptyMessage="Nenhuma receita associada a um cliente neste mês ainda."
-              data={incomeByClient}
-            />
-            <AccountBalanceChart accounts={accounts ?? []} />
-          </div>
+          <BreakdownChart
+            title="Receita por cliente"
+            emptyMessage="Nenhuma receita associada a um cliente neste mês ainda."
+            data={incomeByClient}
+          />
         </>
       )}
     </div>

@@ -291,6 +291,23 @@ export function CloseIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function MenuIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  )
+}
+
 export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -338,6 +355,25 @@ export function ArrowDownIcon(props: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <path d="M12 5v14M6 13l6 6 6-6" />
+    </svg>
+  )
+}
+
+export function PercentIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <path d="M19 5 5 19" />
+      <circle cx="7" cy="7" r="2.5" />
+      <circle cx="17" cy="17" r="2.5" />
     </svg>
   )
 }
