@@ -27,6 +27,11 @@ export interface BalancePoint {
   balance: number
 }
 
+export interface CashFlowProjectionPoint extends BalancePoint {
+  /** true para meses futuros (projetados); false para o histórico real. */
+  isProjected: boolean
+}
+
 export function formatMonthLabel(yearMonth: string): string {
   const [year, month] = yearMonth.split('-')
   return `${MONTH_LABELS[Number(month) - 1]}/${year.slice(2)}`
@@ -38,6 +43,18 @@ export function lastYearMonths(monthsCount: number): string[] {
   const now = new Date()
   for (let i = monthsCount - 1; i >= 0; i--) {
     const reference = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const month = String(reference.getMonth() + 1).padStart(2, '0')
+    result.push(`${reference.getFullYear()}-${month}`)
+  }
+  return result
+}
+
+/** Próximos `monthsCount` meses (formato "YYYY-MM") após o mês atual, do mais próximo ao mais distante. */
+export function nextYearMonths(monthsCount: number): string[] {
+  const result: string[] = []
+  const now = new Date()
+  for (let i = 1; i <= monthsCount; i++) {
+    const reference = new Date(now.getFullYear(), now.getMonth() + i, 1)
     const month = String(reference.getMonth() + 1).padStart(2, '0')
     result.push(`${reference.getFullYear()}-${month}`)
   }
@@ -89,6 +106,34 @@ export function buildBalanceOverTime(
       return sum + (transaction.type === 'INCOME' ? transaction.amount : -transaction.amount)
     }, initialBalanceTotal)
     return { month, label: formatMonthLabel(month), balance }
+  })
+}
+
+/**
+ * Projeção simplificada de fluxo de caixa para os próximos `monthsAhead` meses, a partir do
+ * saldo atual: para um mês futuro que já tem transações cadastradas (recebíveis/despesas já
+ * lançadas), usa o líquido real desse mês; senão, usa a média móvel do líquido dos últimos 3
+ * meses como estimativa. Não é garantia — só uma tendência baseada no histórico recente.
+ */
+export function buildCashFlowProjection(
+  transactions: Transaction[],
+  currentBalance: number,
+  monthsAhead = 3,
+): CashFlowProjectionPoint[] {
+  const nonTransfer = transactions.filter((transaction) => transaction.transferId == null)
+
+  const recentFlow = buildMonthlyFlow(transactions, 3)
+  const averageNet = recentFlow.reduce((sum, point) => sum + (point.income - point.expense), 0) / recentFlow.length
+
+  let balance = currentBalance
+  return nextYearMonths(monthsAhead).map((month) => {
+    const monthTransactions = nonTransfer.filter((transaction) => transaction.transactionDate.startsWith(month))
+    const net =
+      monthTransactions.length > 0
+        ? monthTransactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0)
+        : averageNet
+    balance += net
+    return { month, label: formatMonthLabel(month), balance, isProjected: true }
   })
 }
 
