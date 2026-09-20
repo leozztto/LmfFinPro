@@ -1,4 +1,4 @@
-import { Button, Card } from '@/shared/ui'
+import { Card, IconButton } from '@/shared/ui'
 import { TrashIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
@@ -59,16 +59,13 @@ export function TaxEstimateList() {
                 {formatCurrency(taxEstimate.estimatedValue)}
               </p>
             </div>
-            <Button
-              variant="secondary"
+            <IconButton
+              icon={TrashIcon}
+              label="Remover"
               onClick={() => handleDelete(taxEstimate.id, monthLabel)}
               disabled={deleteTaxEstimate.isPending}
-              aria-label="Remover"
-              title="Remover"
-              className="shrink-0 px-3"
-            >
-              <TrashIcon />
-            </Button>
+              className="shrink-0"
+            />
           </Card>
         )
       })}

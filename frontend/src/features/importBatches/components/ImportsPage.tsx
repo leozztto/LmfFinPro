@@ -1,7 +1,29 @@
-import { Card } from '@/shared/ui'
+import { Card, Tabs, type TabItem } from '@/shared/ui'
 import { CategoryRulesPanel } from '@/features/categoryRules/components/CategoryRulesPanel'
 import { ImportUploadForm } from './ImportUploadForm'
 import { ImportBatchList } from './ImportBatchList'
+
+const TABS: TabItem[] = [
+  {
+    id: 'importar',
+    label: 'Importar arquivo',
+    content: (
+      <div className="space-y-8">
+        <Card>
+          <h3 className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-100">Nova importação</h3>
+          <ImportUploadForm />
+        </Card>
+
+        <ImportBatchList />
+      </div>
+    ),
+  },
+  {
+    id: 'regras',
+    label: 'Regras de categorização',
+    content: <CategoryRulesPanel />,
+  },
+]
 
 export function ImportsPage() {
   return (
@@ -13,14 +35,7 @@ export function ImportsPage() {
         </p>
       </div>
 
-      <Card>
-        <h3 className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-100">Nova importação</h3>
-        <ImportUploadForm />
-      </Card>
-
-      <ImportBatchList />
-
-      <CategoryRulesPanel />
+      <Tabs tabs={TABS} />
     </div>
   )
 }
