@@ -15,11 +15,10 @@ import com.lmf.finpro.domain.port.out.CategoryRuleRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ImportBatchRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.io.InputStream;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -32,21 +31,31 @@ public class ImportApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
 
-    public ImportBatch importCsv(Long currentUserId, Long accountId, String originalFileName, InputStream csvContent) {
+    public ImportBatch importCsv(
+            Long currentUserId, Long accountId, String originalFileName, InputStream csvContent) {
         requireOwnedAccount(currentUserId, accountId);
         List<CsvTransactionParser.ParsedRow> rows = CsvTransactionParser.parse(csvContent);
 
-        ImportBatch batch = importBatchRepositoryPort.save(
-            ImportBatch.start(currentUserId, accountId, originalFileName, ImportFormat.CSV)
-        );
+        ImportBatch batch =
+                importBatchRepositoryPort.save(
+                        ImportBatch.start(
+                                currentUserId, accountId, originalFileName, ImportFormat.CSV));
 
-        List<CategoryRule> rules = categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(currentUserId);
+        List<CategoryRule> rules =
+                categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(currentUserId);
         for (CsvTransactionParser.ParsedRow row : rows) {
-            CategoryType type = row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
+            CategoryType type =
+                    row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
             Long categoryId = matchCategory(rules, row.description(), type);
             transactionRepositoryPort.save(
-                Transaction.createImported(accountId, categoryId, row.description(), row.signedAmount().abs(), row.date(), type, batch.id())
-            );
+                    Transaction.createImported(
+                            accountId,
+                            categoryId,
+                            row.description(),
+                            row.signedAmount().abs(),
+                            row.date(),
+                            type,
+                            batch.id()));
         }
 
         return importBatchRepositoryPort.save(batch.withStatus(ImportStatus.COMPLETED));
@@ -66,22 +75,35 @@ public class ImportApplicationService {
     }
 
     /**
-     * Corrige a categoria/cliente de uma transação importada. Quando uma categoria é informada,
-     * a regra usada para essa descrição é reforçada (ou criada) — é assim que o motor "aprende"
-     * com as correções do usuário para futuras importações.
+     * Corrige a categoria/cliente de uma transação importada. Quando uma categoria é informada, a
+     * regra usada para essa descrição é reforçada (ou criada) — é assim que o motor "aprende" com
+     * as correções do usuário para futuras importações.
      */
-    public Transaction reviewTransaction(Long currentUserId, Long batchId, Long transactionId, Long categoryId, Long clientId) {
+    public Transaction reviewTransaction(
+            Long currentUserId, Long batchId, Long transactionId, Long categoryId, Long clientId) {
         ImportBatch batch = findOwnedBatchOrThrow(currentUserId, batchId);
-        Transaction existing = transactionRepositoryPort.findById(transactionId)
-            .filter(transaction -> batch.id().equals(transaction.importBatchId()))
-            .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada nesta importação: " + transactionId));
+        Transaction existing =
+                transactionRepositoryPort
+                        .findById(transactionId)
+                        .filter(transaction -> batch.id().equals(transaction.importBatchId()))
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Transação não encontrada nesta importação: "
+                                                        + transactionId));
 
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, existing.type());
         requireOwnedClientIfPresent(currentUserId, clientId);
 
-        Transaction updated = transactionRepositoryPort.save(
-            existing.withDetails(categoryId, clientId, existing.description(), existing.amount(), existing.transactionDate(), existing.type())
-        );
+        Transaction updated =
+                transactionRepositoryPort.save(
+                        existing.withDetails(
+                                categoryId,
+                                clientId,
+                                existing.description(),
+                                existing.amount(),
+                                existing.transactionDate(),
+                                existing.type()));
 
         if (categoryId != null) {
             reinforceRule(currentUserId, existing.description(), categoryId);
@@ -90,7 +112,8 @@ public class ImportApplicationService {
         return updated;
     }
 
-    private Long matchCategory(List<CategoryRule> rules, String description, CategoryType expectedType) {
+    private Long matchCategory(
+            List<CategoryRule> rules, String description, CategoryType expectedType) {
         for (CategoryRule rule : rules) {
             if (!rule.matches(description)) {
                 continue;
@@ -105,36 +128,54 @@ public class ImportApplicationService {
 
     private void reinforceRule(Long userId, String description, Long categoryId) {
         String pattern = description.trim();
-        CategoryRule rule = categoryRuleRepositoryPort.findByUserIdAndPattern(userId, pattern)
-            .map(existing -> existing.reinforcedWith(categoryId))
-            .orElseGet(() -> CategoryRule.create(userId, pattern, categoryId));
+        CategoryRule rule =
+                categoryRuleRepositoryPort
+                        .findByUserIdAndPattern(userId, pattern)
+                        .map(existing -> existing.reinforcedWith(categoryId))
+                        .orElseGet(() -> CategoryRule.create(userId, pattern, categoryId));
         categoryRuleRepositoryPort.save(rule);
     }
 
     private ImportBatch findOwnedBatchOrThrow(Long currentUserId, Long batchId) {
-        return importBatchRepositoryPort.findById(batchId)
-            .filter(batch -> batch.belongsTo(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Importação não encontrada: " + batchId));
+        return importBatchRepositoryPort
+                .findById(batchId)
+                .filter(batch -> batch.belongsTo(currentUserId))
+                .orElseThrow(
+                        () ->
+                                new ResourceNotFoundException(
+                                        "Importação não encontrada: " + batchId));
     }
 
     private void requireOwnedAccount(Long currentUserId, Long accountId) {
-        accountRepositoryPort.findById(accountId)
-            .filter(account -> account.belongsTo(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
+        accountRepositoryPort
+                .findById(accountId)
+                .filter(account -> account.belongsTo(currentUserId))
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
-    private void requireMatchingCategoryTypeIfPresent(Long currentUserId, Long categoryId, CategoryType type) {
+    private void requireMatchingCategoryTypeIfPresent(
+            Long currentUserId, Long categoryId, CategoryType type) {
         if (categoryId == null) {
             return;
         }
-        Category category = categoryRepositoryPort.findById(categoryId)
-            .filter(candidate -> candidate.isVisibleTo(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada: " + categoryId));
+        Category category =
+                categoryRepositoryPort
+                        .findById(categoryId)
+                        .filter(candidate -> candidate.isVisibleTo(currentUserId))
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Categoria não encontrada: " + categoryId));
         if (category.type() != type) {
             throw new CategoryTypeMismatchException(
-                "A categoria \"" + category.name() + "\" é do tipo " + category.type()
-                    + " e não pode ser usada em uma transação do tipo " + type + "."
-            );
+                    "A categoria \""
+                            + category.name()
+                            + "\" é do tipo "
+                            + category.type()
+                            + " e não pode ser usada em uma transação do tipo "
+                            + type
+                            + ".");
         }
     }
 
@@ -142,8 +183,10 @@ public class ImportApplicationService {
         if (clientId == null) {
             return;
         }
-        clientRepositoryPort.findById(clientId)
-            .filter(client -> client.belongsTo(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
+        clientRepositoryPort
+                .findById(clientId)
+                .filter(client -> client.belongsTo(currentUserId))
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }
 }

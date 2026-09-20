@@ -10,6 +10,9 @@ import com.lmf.finpro.infrastructure.web.dto.importbatch.TransactionReviewReques
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.mapper.ImportBatchWebMapper;
 import com.lmf.finpro.infrastructure.web.mapper.TransactionWebMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,10 +20,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/import-batches")
@@ -34,33 +33,44 @@ public class ImportBatchController {
     @GetMapping
     public List<ImportBatchResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
         return importApplicationService.list(currentUser.userId()).stream()
-            .map(batch -> mapper.toResponse(batch, importApplicationService.listTransactions(currentUser.userId(), batch.id())))
-            .toList();
+                .map(
+                        batch ->
+                                mapper.toResponse(
+                                        batch,
+                                        importApplicationService.listTransactions(
+                                                currentUser.userId(), batch.id())))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ImportBatchResponse getById(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
+    public ImportBatchResponse getById(
+            @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         ImportBatch batch = importApplicationService.getById(currentUser.userId(), id);
-        return mapper.toResponse(batch, importApplicationService.listTransactions(currentUser.userId(), id));
+        return mapper.toResponse(
+                batch, importApplicationService.listTransactions(currentUser.userId(), id));
     }
 
     @GetMapping("/{id}/transactions")
-    public List<TransactionResponse> listTransactions(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
+    public List<TransactionResponse> listTransactions(
+            @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         return importApplicationService.listTransactions(currentUser.userId(), id).stream()
-            .map(transactionMapper::toResponse)
-            .toList();
+                .map(transactionMapper::toResponse)
+                .toList();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImportBatchResponse> upload(
-        @AuthenticationPrincipal AuthenticatedUser currentUser,
-        @RequestParam("accountId") Long accountId,
-        @RequestParam("file") MultipartFile file
-    ) {
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam("accountId") Long accountId,
+            @RequestParam("file") MultipartFile file) {
         try (InputStream content = file.getInputStream()) {
-            ImportBatch batch = importApplicationService.importCsv(currentUser.userId(), accountId, file.getOriginalFilename(), content);
-            List<Transaction> transactions = importApplicationService.listTransactions(currentUser.userId(), batch.id());
-            return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(batch, transactions));
+            ImportBatch batch =
+                    importApplicationService.importCsv(
+                            currentUser.userId(), accountId, file.getOriginalFilename(), content);
+            List<Transaction> transactions =
+                    importApplicationService.listTransactions(currentUser.userId(), batch.id());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(mapper.toResponse(batch, transactions));
         } catch (IOException e) {
             throw new ImportFileInvalidException("Não foi possível ler o arquivo enviado.");
         }
@@ -68,14 +78,17 @@ public class ImportBatchController {
 
     @PutMapping("/{batchId}/transactions/{transactionId}")
     public TransactionResponse reviewTransaction(
-        @AuthenticationPrincipal AuthenticatedUser currentUser,
-        @PathVariable Long batchId,
-        @PathVariable Long transactionId,
-        @RequestBody TransactionReviewRequest request
-    ) {
-        Transaction updated = importApplicationService.reviewTransaction(
-            currentUser.userId(), batchId, transactionId, request.categoryId(), request.clientId()
-        );
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long batchId,
+            @PathVariable Long transactionId,
+            @RequestBody TransactionReviewRequest request) {
+        Transaction updated =
+                importApplicationService.reviewTransaction(
+                        currentUser.userId(),
+                        batchId,
+                        transactionId,
+                        request.categoryId(),
+                        request.clientId());
         return transactionMapper.toResponse(updated);
     }
 }

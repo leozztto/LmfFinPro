@@ -4,10 +4,9 @@ import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.UserPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.UserJpaRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor

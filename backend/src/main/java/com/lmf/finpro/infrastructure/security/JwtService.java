@@ -7,13 +7,12 @@ import com.lmf.finpro.infrastructure.config.JwtProperties;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import javax.crypto.SecretKey;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -27,23 +26,25 @@ public class JwtService implements TokenPort {
     public String generate(Long userId, String email) {
         Instant now = Instant.now();
         return Jwts.builder()
-            .subject(String.valueOf(userId))
-            .claim(CLAIM_EMAIL, email)
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(now.plusMillis(jwtProperties.expirationMs())))
-            .signWith(signingKey())
-            .compact();
+                .subject(String.valueOf(userId))
+                .claim(CLAIM_EMAIL, email)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusMillis(jwtProperties.expirationMs())))
+                .signWith(signingKey())
+                .compact();
     }
 
     @Override
     public TokenClaims parse(String token) {
         try {
-            var claims = Jwts.parser()
-                .verifyWith(signingKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-            return new TokenClaims(Long.valueOf(claims.getSubject()), claims.get(CLAIM_EMAIL, String.class));
+            var claims =
+                    Jwts.parser()
+                            .verifyWith(signingKey())
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
+            return new TokenClaims(
+                    Long.valueOf(claims.getSubject()), claims.get(CLAIM_EMAIL, String.class));
         } catch (JwtException | IllegalArgumentException ex) {
             throw new InvalidTokenException("Token JWT inválido ou expirado");
         }

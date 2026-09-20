@@ -11,8 +11,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class FinProApplicationTests {
 
-    @Container
-    @ServiceConnection
+    @Container @ServiceConnection
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Test

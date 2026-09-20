@@ -3,11 +3,10 @@ package com.lmf.finpro.infrastructure.persistence.entity;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "transactions")

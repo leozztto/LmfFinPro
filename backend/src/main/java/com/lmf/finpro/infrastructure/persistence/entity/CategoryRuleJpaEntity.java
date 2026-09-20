@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * Regra usada pelo motor de categorização automática: quando o descritivo de uma
- * transação importada contém {@code pattern}, ela é categorizada como {@code category}.
- * O peso é reforçado quando o usuário confirma/corrige a categorização.
+ * Regra usada pelo motor de categorização automática: quando o descritivo de uma transação
+ * importada contém {@code pattern}, ela é categorizada como {@code category}. O peso é reforçado
+ * quando o usuário confirma/corrige a categorização.
  */
 @Entity
 @Table(name = "category_rules")

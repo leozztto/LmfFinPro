@@ -9,9 +9,15 @@ public class ClientWebMapper {
 
     public ClientResponse toResponse(Client client) {
         return new ClientResponse(
-            client.id(), client.name(), client.email(), client.phone(),
-            client.documentType(), client.documentNumber(), client.workType(),
-            client.notes(), client.color(), client.active()
-        );
+                client.id(),
+                client.name(),
+                client.email(),
+                client.phone(),
+                client.documentType(),
+                client.documentNumber(),
+                client.workType(),
+                client.notes(),
+                client.color(),
+                client.active());
     }
 }

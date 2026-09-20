@@ -3,17 +3,24 @@ package com.lmf.finpro.domain.model;
 import java.time.LocalDateTime;
 
 public record ImportBatch(
-    Long id,
-    Long userId,
-    Long accountId,
-    String originalFile,
-    ImportFormat format,
-    LocalDateTime importedAt,
-    ImportStatus status
-) {
+        Long id,
+        Long userId,
+        Long accountId,
+        String originalFile,
+        ImportFormat format,
+        LocalDateTime importedAt,
+        ImportStatus status) {
 
-    public static ImportBatch start(Long userId, Long accountId, String originalFile, ImportFormat format) {
-        return new ImportBatch(null, userId, accountId, originalFile, format, LocalDateTime.now(), ImportStatus.PROCESSING);
+    public static ImportBatch start(
+            Long userId, Long accountId, String originalFile, ImportFormat format) {
+        return new ImportBatch(
+                null,
+                userId,
+                accountId,
+                originalFile,
+                format,
+                LocalDateTime.now(),
+                ImportStatus.PROCESSING);
     }
 
     public boolean belongsTo(Long candidateUserId) {

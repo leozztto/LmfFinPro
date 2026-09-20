@@ -159,7 +159,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 ## 11. Checklist de qualidade técnica
 
 - Testes automatizados nos fluxos críticos (auth, contas, categorias, clientes, transações, transferências, importação/categorização, tax estimate, budget) — ✅ *feito via Testcontainers*; testes unitários (Mockito) — ⬜ *pendente*
-- Lint/formatação consistente — *pendente de verificação formal*
+- Lint/formatação consistente — ✅ *feito*: ESLint (flat config, `typescript-eslint` + `react-hooks` + `react-refresh`) no frontend e Spotless (Google Java Format, estilo AOSP de 4 espaços, ordem de imports customizada para preservar a convenção `com.lmf.*` → demais → `java.*`) no backend, vinculado à fase `verify` — os dois já rodam no CI (`npm run lint --if-present` e `mvn -B verify`)
 - CI verde (badge no README) — *CI ok, sem badge*
 - Dados seed realistas (script com usuário demo + ~6 meses de transações) — *pendente*
 - Deploy ao vivo com usuário de demonstração — *pendente*
@@ -175,7 +175,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 6. ~~Estimativa de imposto + projeção de fluxo de caixa~~ — ✅ **concluído**: módulo `TaxEstimate` completo no backend (com `TaxRateEstimator` por regime, migration V10) + tela "Impostos" no frontend; projeção de fluxo de caixa (`CashFlowProjectionChart`) calculada no dashboard a partir de média móvel + lançamentos futuros já cadastrados
 7. ~~Metas/orçamento por categoria~~ — ✅ **concluído**: módulo `Budget` completo no backend (domain/application/infrastructure + testes de integração) + tela "Orçamentos" no frontend, com o gasto real (`spentValue`) calculado no backend e devolvido pronto no `BudgetResponse` — fecha o escopo de Fase 2
 8. ~~Migrar as agregações do frontend para o backend~~ — ✅ **concluído**: decisão do usuário de que processamento/regra de negócio fica no backend, frontend só exibe e valida formulário. Auditoria módulo a módulo (Contas, Categorias, Clientes, Transações, Transferências, Importações, Auth) encontrou e corrigiu quatro brechas reais (saldo inicial e tipo de categoria editáveis após criação, valor de transação sem validação de sinal, regime tributário sem checagem contra o tipo de documento) — todas com teste de integração cobrindo o caso. O Dashboard, maior concentração de cálculo no cliente, ganhou um `DashboardController` novo (`/api/dashboard/overview`, `/monthly-flow`, `/balance-evolution`, `/cash-flow-projection`, `/category-breakdown`, `/client-breakdown`) com a lógica portada 1:1 do antigo `dashboard/utils.ts` para `DashboardAggregator` (backend); o frontend busca cada gráfico com seu próprio hook do React Query, então cada um aparece assim que sua chamada responde, em vez de esperar tudo pronto
-9. Antes do deploy: testes unitários (Mockito) nos services de aplicação, lint/formatação, seed de dados de demonstração
+9. Antes do deploy: testes unitários (Mockito) nos services de aplicação, seed de dados de demonstração — lint/formatação (ESLint + Spotless) já ✅ *feito*
 10. Fechamento: deploy (Railway/Render + Vercel), badge de CI, prints e link no README, vídeo curto de demo
 
 ## 13. Stack resumida

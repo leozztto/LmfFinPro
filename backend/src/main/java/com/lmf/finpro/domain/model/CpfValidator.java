@@ -1,13 +1,12 @@
 package com.lmf.finpro.domain.model;
 
 /**
- * Validação de CPF (formato + dígitos verificadores). Regra de negócio pura do domínio —
- * um {@link User} precisa de um CPF válido, independentemente de como o dado chega (API, import futuro, etc).
+ * Validação de CPF (formato + dígitos verificadores). Regra de negócio pura do domínio — um {@link
+ * User} precisa de um CPF válido, independentemente de como o dado chega (API, import futuro, etc).
  */
 public final class CpfValidator {
 
-    private CpfValidator() {
-    }
+    private CpfValidator() {}
 
     public static boolean isValid(String rawCpf) {
         if (rawCpf == null) {

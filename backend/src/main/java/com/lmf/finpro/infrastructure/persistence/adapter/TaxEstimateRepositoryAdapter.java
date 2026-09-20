@@ -4,11 +4,10 @@ import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.TaxEstimatePersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.TaxEstimateJpaRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -29,7 +28,9 @@ public class TaxEstimateRepositoryAdapter implements TaxEstimateRepositoryPort {
 
     @Override
     public List<TaxEstimate> findAllByUserId(Long userId) {
-        return taxEstimateJpaRepository.findByUserId(userId).stream().map(mapper::toDomain).toList();
+        return taxEstimateJpaRepository.findByUserId(userId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

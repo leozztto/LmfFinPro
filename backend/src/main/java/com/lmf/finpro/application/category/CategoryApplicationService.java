@@ -6,10 +6,9 @@ import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +17,8 @@ public class CategoryApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
 
-    public Category create(Long currentUserId, String name, CategoryType type, String color, String icon) {
+    public Category create(
+            Long currentUserId, String name, CategoryType type, String color, String icon) {
         return categoryRepositoryPort.save(Category.create(currentUserId, name, type, color, icon));
     }
 
@@ -32,34 +32,44 @@ public class CategoryApplicationService {
     }
 
     /**
-     * Categorias globais são somente leitura via API neste MVP — só as próprias podem ser alteradas.
-     * O tipo (receita/despesa) não pode ser alterado na edição: transações já lançadas nessa
-     * categoria foram validadas contra o tipo original, e trocá-lo depois as deixaria inconsistentes.
+     * Categorias globais são somente leitura via API neste MVP — só as próprias podem ser
+     * alteradas. O tipo (receita/despesa) não pode ser alterado na edição: transações já lançadas
+     * nessa categoria foram validadas contra o tipo original, e trocá-lo depois as deixaria
+     * inconsistentes.
      */
-    public Category update(Long currentUserId, Long categoryId, String name, String color, String icon) {
+    public Category update(
+            Long currentUserId, Long categoryId, String name, String color, String icon) {
         Category existing = findOwnedOrThrow(currentUserId, categoryId);
-        return categoryRepositoryPort.save(existing.withDetails(name, existing.type(), color, icon));
+        return categoryRepositoryPort.save(
+                existing.withDetails(name, existing.type(), color, icon));
     }
 
     public void delete(Long currentUserId, Long categoryId) {
         findOwnedOrThrow(currentUserId, categoryId);
         if (transactionRepositoryPort.existsByCategoryId(categoryId)) {
             throw new EntityHasLinkedRecordsException(
-                "Esta categoria possui transações vinculadas. Exclua-as ou troque a categoria delas antes de remover."
-            );
+                    "Esta categoria possui transações vinculadas. Exclua-as ou troque a categoria delas antes de remover.");
         }
         categoryRepositoryPort.deleteById(categoryId);
     }
 
     private Category findVisibleOrThrow(Long currentUserId, Long categoryId) {
-        return categoryRepositoryPort.findById(categoryId)
-            .filter(category -> category.isVisibleTo(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada: " + categoryId));
+        return categoryRepositoryPort
+                .findById(categoryId)
+                .filter(category -> category.isVisibleTo(currentUserId))
+                .orElseThrow(
+                        () ->
+                                new ResourceNotFoundException(
+                                        "Categoria não encontrada: " + categoryId));
     }
 
     private Category findOwnedOrThrow(Long currentUserId, Long categoryId) {
-        return categoryRepositoryPort.findById(categoryId)
-            .filter(category -> category.isOwnedBy(currentUserId))
-            .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada: " + categoryId));
+        return categoryRepositoryPort
+                .findById(categoryId)
+                .filter(category -> category.isOwnedBy(currentUserId))
+                .orElseThrow(
+                        () ->
+                                new ResourceNotFoundException(
+                                        "Categoria não encontrada: " + categoryId));
     }
 }

@@ -9,7 +9,11 @@ public class CategoryWebMapper {
 
     public CategoryResponse toResponse(Category category) {
         return new CategoryResponse(
-            category.id(), category.name(), category.type(), category.color(), category.icon(), category.isGlobal()
-        );
+                category.id(),
+                category.name(),
+                category.type(),
+                category.color(),
+                category.icon(),
+                category.isGlobal());
     }
 }

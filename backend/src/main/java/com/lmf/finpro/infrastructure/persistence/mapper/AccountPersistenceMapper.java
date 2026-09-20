@@ -10,23 +10,22 @@ public class AccountPersistenceMapper {
 
     public AccountJpaEntity toEntity(Account account) {
         return AccountJpaEntity.builder()
-            .id(account.id())
-            .user(UserJpaEntity.builder().id(account.userId()).build())
-            .name(account.name())
-            .type(account.type())
-            .initialBalance(account.initialBalance())
-            .createdAt(account.createdAt())
-            .build();
+                .id(account.id())
+                .user(UserJpaEntity.builder().id(account.userId()).build())
+                .name(account.name())
+                .type(account.type())
+                .initialBalance(account.initialBalance())
+                .createdAt(account.createdAt())
+                .build();
     }
 
     public Account toDomain(AccountJpaEntity entity) {
         return new Account(
-            entity.getId(),
-            entity.getUser().getId(),
-            entity.getName(),
-            entity.getType(),
-            entity.getInitialBalance(),
-            entity.getCreatedAt()
-        );
+                entity.getId(),
+                entity.getUser().getId(),
+                entity.getName(),
+                entity.getType(),
+                entity.getInitialBalance(),
+                entity.getCreatedAt());
     }
 }
