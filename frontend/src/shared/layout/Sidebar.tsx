@@ -5,10 +5,15 @@ const OVERVIEW_ITEM = { to: '/', label: 'Dashboard', icon: HomeIcon }
 
 const NAV_SECTIONS = [
   {
-    label: 'Financeiro',
+    label: 'Cadastros',
     items: [
       { to: '/contas', label: 'Contas', icon: WalletIcon },
       { to: '/categorias', label: 'Categorias', icon: TagIcon },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
       { to: '/transacoes', label: 'Transações', icon: SwapIcon },
       { to: '/transferencias', label: 'Transferências', icon: TransferIcon },
       { to: '/importacoes', label: 'Importações', icon: UploadIcon },

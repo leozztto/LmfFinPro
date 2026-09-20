@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Card, FormField, Input, Select } from '@/shared/ui'
+import { Button, Card, FormField, IconButton, Input, Select } from '@/shared/ui'
 import { TrashIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
@@ -107,16 +107,13 @@ export function CategoryRulesPanel() {
                   peso {rule.weight}
                 </span>
               </div>
-              <Button
-                variant="secondary"
+              <IconButton
+                icon={TrashIcon}
+                label="Remover regra"
                 onClick={() => handleDelete(rule.id, rule.pattern)}
                 disabled={deleteRule.isPending}
-                aria-label="Remover regra"
-                title="Remover regra"
-                className="shrink-0 px-3"
-              >
-                <TrashIcon />
-              </Button>
+                className="shrink-0"
+              />
             </div>
           ))
         )}

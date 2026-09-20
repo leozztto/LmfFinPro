@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
+import { Button, CollapsibleFilters, FormField, IconButton, Input, Modal, Select } from '@/shared/ui'
 import { PencilIcon, TrashIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
@@ -119,17 +119,20 @@ export function CategoryList() {
           Nenhuma categoria encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((category) => (
-            <Card key={category.id} className="flex items-end justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
+            <div
+              key={category.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                 <span
                   className="h-3 w-3 shrink-0 rounded-full"
                   style={{ backgroundColor: category.color ?? '#94a3b8' }}
                   aria-hidden
                 />
                 <div className="min-w-0">
-                  <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{category.name}</p>
+                  <p className="truncate font-medium text-zinc-800 dark:text-zinc-100">{category.name}</p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
                     {CATEGORY_TYPE_LABELS[category.type]}
                     {category.global ? ' · padrão do sistema' : ''}
@@ -137,29 +140,17 @@ export function CategoryList() {
                 </div>
               </div>
               {!category.global && (
-                <div className="flex shrink-0 gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setEditingCategory(category)}
-                    aria-label="Editar"
-                    title="Editar"
-                    className="px-3"
-                  >
-                    <PencilIcon />
-                  </Button>
-                  <Button
-                    variant="secondary"
+                <div className="flex shrink-0 gap-1.5">
+                  <IconButton icon={PencilIcon} label="Editar" onClick={() => setEditingCategory(category)} />
+                  <IconButton
+                    icon={TrashIcon}
+                    label="Remover"
                     onClick={() => handleDelete(category.id, category.name)}
                     disabled={deleteCategory.isPending}
-                    aria-label="Remover"
-                    title="Remover"
-                    className="px-3"
-                  >
-                    <TrashIcon />
-                  </Button>
+                  />
                 </div>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       )}

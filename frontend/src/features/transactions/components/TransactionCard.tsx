@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, ExpandableText } from '@/shared/ui'
+import { ExpandableText, IconButton } from '@/shared/ui'
 import { ChevronDownIcon, TrashIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
@@ -23,20 +23,17 @@ export function TransactionCard({ transaction, accountName, categoryName, onDele
   }`
 
   const removeButton = (
-    <Button
-      variant="secondary"
+    <IconButton
+      icon={TrashIcon}
+      label="Remover"
       onClick={onDelete}
       disabled={isDeleting || isTransfer}
-      aria-label="Remover"
       title={
         isTransfer
           ? 'Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.'
           : 'Remover'
       }
-      className="px-3"
-    >
-      <TrashIcon />
-    </Button>
+    />
   )
 
   return (
