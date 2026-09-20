@@ -1,10 +1,17 @@
 import type { HTMLAttributes } from 'react'
 import { ArrowDownIcon, ArrowUpIcon } from './icons'
 
-export function Card({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
+const PADDING_CLASSES = { sm: 'p-3', md: 'p-5' } as const
+
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  /** "sm" para telas com muitos cards lado a lado (ex: dashboard). Padrão "md". */
+  padding?: keyof typeof PADDING_CLASSES
+}
+
+export function Card({ className = '', padding = 'md', ...props }: CardProps) {
   return (
     <div
-      className={`rounded-xl border border-zinc-200 bg-zinc-50 p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 ${className}`}
+      className={`rounded-xl border border-zinc-200 bg-zinc-50 ${PADDING_CLASSES[padding]} shadow-sm dark:border-zinc-700 dark:bg-zinc-800 ${className}`}
       {...props}
     />
   )
@@ -25,9 +32,9 @@ interface StatCardProps {
 
 export function StatCard({ label, value, delta }: StatCardProps) {
   return (
-    <Card>
+    <Card padding="sm">
       <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-zinc-800 dark:text-zinc-100">{value}</p>
+      <p className="mt-0.5 text-xl font-semibold text-zinc-800 dark:text-zinc-100">{value}</p>
       {delta != null && <StatDeltaBadge {...delta} />}
     </Card>
   )

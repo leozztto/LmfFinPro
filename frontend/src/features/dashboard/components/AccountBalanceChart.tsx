@@ -36,19 +36,19 @@ export function AccountBalanceChart({ accounts }: AccountBalanceChartProps) {
     color: palette[index % palette.length],
   }))
 
-  const height = Math.max(bars.length * 40 + 24, 120)
+  const height = Math.max(bars.length * 32 + 16, 96)
   const maxAbs = Math.max(1, ...bars.map((bar) => Math.abs(bar.balance)))
   const hasNegative = bars.some((bar) => bar.balance < 0)
 
   return (
-    <Card>
+    <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Saldo por conta</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Saldo atual de cada conta cadastrada.</p>
 
       {bars.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">Nenhuma conta cadastrada ainda.</p>
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Nenhuma conta cadastrada ainda.</p>
       ) : (
-        <div className="mt-4" style={{ height }}>
+        <div className="mt-3" style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={bars} layout="vertical" margin={{ top: 4, right: 72, left: 8, bottom: 4 }}>
               <XAxis type="number" hide domain={[hasNegative ? -maxAbs * 1.2 : 0, maxAbs * 1.2]} />
