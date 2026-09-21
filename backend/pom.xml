@@ -22,6 +22,7 @@
     <jjwt.version>0.12.6</jjwt.version>
     <springdoc.version>2.6.0</springdoc.version>
     <testcontainers.version>1.21.4</testcontainers.version>
+    <pact-jvm.version>4.7.5</pact-jvm.version>
 
     <!-- SonarCloud: só o backend (Java) é analisado aqui — o frontend tem seu próprio projeto,
          configurado em frontend/sonar-project.properties e rodado pelo frontend-ci.yml. -->
@@ -117,6 +118,12 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>au.com.dius.pact.provider</groupId>
+      <artifactId>junit5spring</artifactId>
+      <version>${pact-jvm.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -1,6 +1,13 @@
 import { SESSION_EXPIRED_EVENT, authEvents, clearSession, getStoredToken } from '@/shared/auth/authStorage'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+let apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+
+/** Só para os testes de contrato Pact: aponta as chamadas pro mock server que o Pact sobe em uma
+ *  porta aleatória a cada teste — não existe forma de injetar isso via env var em tempo de teste
+ *  porque `apiBaseUrl` já teria sido lido no import do módulo. */
+export function __setApiBaseUrlForTests(url: string): void {
+  apiBaseUrl = url
+}
 
 interface ApiErrorBody {
   message?: string
@@ -27,7 +34,7 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+  const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers })
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null
