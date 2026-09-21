@@ -19,6 +19,9 @@ jobs:
       # O contexto `secrets` só pode ser usado em run/with/env — não em `if:` diretamente.
       # Por isso repassamos pra uma env de job e checamos `env.SONAR_TOKEN` no `if:` do passo abaixo.
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # Lido pelo @EnabledIfEnvironmentVariable do CategoryProviderPactTest — sem o token, o próprio
+      # JUnit pula a classe (não precisa de passo/if separado, ao contrário do scan do Sonar acima).
+      PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
