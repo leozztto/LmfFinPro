@@ -1,5 +1,18 @@
 import { NavLink } from 'react-router-dom'
-import { HomeIcon, PercentIcon, SwapIcon, TagIcon, TargetIcon, TransferIcon, UploadIcon, UsersIcon, WalletIcon } from '@/shared/ui/icons'
+import {
+  GitHubIcon,
+  HomeIcon,
+  PercentIcon,
+  SwapIcon,
+  TagIcon,
+  TargetIcon,
+  TransferIcon,
+  UploadIcon,
+  UsersIcon,
+  WalletIcon,
+} from '@/shared/ui/icons'
+
+const DOCS_URL = 'https://github.com/leozztto/LmfFinPro/tree/main/docs/FAQ.md'
 
 const OVERVIEW_ITEM = { to: '/', label: 'Dashboard', icon: HomeIcon }
 
@@ -63,6 +76,18 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </div>
         </div>
       ))}
+
+      <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-zinc-800">
+        <a
+          href={DOCS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+        >
+          <GitHubIcon className="h-4 w-4 shrink-0" />
+          Documentação
+        </a>
+      </div>
     </nav>
   )
 }

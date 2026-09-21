@@ -73,6 +73,16 @@ npm run dev
 
 A SPA sobe em `http://localhost:5173` com hot reload (mais rápido para desenvolver do que reconstruir o container a cada mudança).
 
+### Dados de demonstração
+
+Com o backend no ar (Docker ou `mvn spring-boot:run`), popule um usuário demo com ~6 meses de histórico realista (contas, categorias, clientes, transações, transferências, orçamentos e estimativas de imposto):
+
+```bash
+node scripts/seed-demo-data.mjs
+```
+
+Cria (ou reaproveita, se já existir) o usuário `demo@finpro.app` / `Demo@12345`. Rodar de novo não duplica nada. Para popular uma API que não seja a local, use `API_BASE_URL=https://sua-api.exemplo.com/api node scripts/seed-demo-data.mjs`.
+
 ## Status
 
 🚧 Em desenvolvimento — MVP em andamento. Veja o roadmap em [`docs/plano.md`](docs/plano.md#11-roadmap-sugerido).
