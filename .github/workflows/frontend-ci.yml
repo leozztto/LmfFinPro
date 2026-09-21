@@ -15,6 +15,10 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      # O contexto `secrets` só pode ser usado em run/with/env — não em `if:` diretamente.
+      # Por isso repassamos pra uma env de job e checamos `env.SONAR_TOKEN` no `if:` do passo abaixo.
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,10 +35,9 @@ jobs:
         run: npm run test:coverage --if-present
       - run: npm run build
       - name: SonarCloud scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@v3
         with:
           projectBaseDir: frontend
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
