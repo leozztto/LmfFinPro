@@ -60,6 +60,42 @@ describe('registerSchema', () => {
     expect(registerSchema.safeParse(validRegisterPayload({ name: 'Ana' })).success).toBe(false)
   })
 
+  it('rejects an empty name', () => {
+    expect(registerSchema.safeParse(validRegisterPayload({ name: '   ' })).success).toBe(false)
+  })
+
+  it('rejects an empty email', () => {
+    expect(registerSchema.safeParse(validRegisterPayload({ email: '' })).success).toBe(false)
+  })
+
+  it('rejects a malformed email', () => {
+    expect(registerSchema.safeParse(validRegisterPayload({ email: 'not-an-email' })).success).toBe(false)
+  })
+
+  it('rejects an empty document number', () => {
+    expect(registerSchema.safeParse(validRegisterPayload({ documentNumber: '' })).success).toBe(false)
+  })
+
+  it('rejects an invalid CNPJ when the regime requires CNPJ', () => {
+    const result = registerSchema.safeParse(
+      validRegisterPayload({ taxRegime: 'MEI', documentNumber: '11111111111111' }),
+    )
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects an empty confirm password', () => {
+    expect(registerSchema.safeParse(validRegisterPayload({ confirmPassword: '' })).success).toBe(false)
+  })
+
+  it('rejects an empty zip code', () => {
+    const result = registerSchema.safeParse(
+      validRegisterPayload({ address: { ...validRegisterPayload().address, zipCode: '' } }),
+    )
+
+    expect(result.success).toBe(false)
+  })
+
   it('rejects a CPF that does not match the AUTONOMO regime (should be CPF but is CNPJ-shaped)', () => {
     const result = registerSchema.safeParse(
       validRegisterPayload({ taxRegime: 'AUTONOMO', documentNumber: '11444777000161' }),
@@ -109,6 +145,38 @@ describe('registerSchema', () => {
   it('rejects a missing street', () => {
     const result = registerSchema.safeParse(
       validRegisterPayload({ address: { ...validRegisterPayload().address, street: '' } }),
+    )
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a missing address number', () => {
+    const result = registerSchema.safeParse(
+      validRegisterPayload({ address: { ...validRegisterPayload().address, number: '' } }),
+    )
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a missing neighborhood', () => {
+    const result = registerSchema.safeParse(
+      validRegisterPayload({ address: { ...validRegisterPayload().address, neighborhood: '' } }),
+    )
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a missing city', () => {
+    const result = registerSchema.safeParse(
+      validRegisterPayload({ address: { ...validRegisterPayload().address, city: '' } }),
+    )
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a missing state', () => {
+    const result = registerSchema.safeParse(
+      validRegisterPayload({ address: { ...validRegisterPayload().address, state: '' } }),
     )
 
     expect(result.success).toBe(false)

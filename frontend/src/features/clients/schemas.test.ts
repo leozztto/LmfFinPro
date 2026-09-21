@@ -45,6 +45,10 @@ describe('clientSchema', () => {
     expect(clientSchema.safeParse(validClient({ phone: '119876' })).success).toBe(false)
   })
 
+  it('rejects an empty phone', () => {
+    expect(clientSchema.safeParse(validClient({ phone: '' })).success).toBe(false)
+  })
+
   it('accepts a formatted phone as long as the digit count is right', () => {
     expect(clientSchema.safeParse(validClient({ phone: '(11) 98765-4321' })).success).toBe(true)
   })
@@ -55,6 +59,14 @@ describe('clientSchema', () => {
 
   it('rejects an invalid CPF', () => {
     expect(clientSchema.safeParse(validClient({ documentNumber: '11111111111' })).success).toBe(false)
+  })
+
+  it('rejects a missing document type', () => {
+    expect(clientSchema.safeParse(validClient({ documentType: '' })).success).toBe(false)
+  })
+
+  it('rejects a missing document number', () => {
+    expect(clientSchema.safeParse(validClient({ documentNumber: '' })).success).toBe(false)
   })
 
   it('rejects an invalid CNPJ', () => {
@@ -71,5 +83,10 @@ describe('clientSchema', () => {
 
   it('accepts notes at exactly the 1000 character limit', () => {
     expect(clientSchema.safeParse(validClient({ notes: 'a'.repeat(1000) })).success).toBe(true)
+  })
+
+  it('accepts a client with notes entirely omitted', () => {
+    const { notes: _notes, ...rest } = validClient()
+    expect(clientSchema.safeParse(rest).success).toBe(true)
   })
 })

@@ -25,4 +25,8 @@ describe('isValidCpf', () => {
   it('rejects an empty string', () => {
     expect(isValidCpf('')).toBe(false)
   })
+
+  it('accepts a valid CPF whose check digit computes to zero (remainder < 2)', () => {
+    expect(isValidCpf('12345663707')).toBe(true)
+  })
 })

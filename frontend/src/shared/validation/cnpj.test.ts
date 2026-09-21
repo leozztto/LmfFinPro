@@ -25,4 +25,8 @@ describe('isValidCnpj', () => {
   it('rejects an empty string', () => {
     expect(isValidCnpj('')).toBe(false)
   })
+
+  it('accepts a valid CNPJ whose check digit computes to zero (remainder < 2)', () => {
+    expect(isValidCnpj('01234568350203')).toBe(true)
+  })
 })
