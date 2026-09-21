@@ -1,9 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, httpClient } from './httpClient'
 
-const { getStoredToken } = vi.hoisted(() => ({ getStoredToken: vi.fn() }))
+const { getStoredToken, clearSession, authEvents } = vi.hoisted(() => ({
+  getStoredToken: vi.fn(),
+  clearSession: vi.fn(),
+  authEvents: new EventTarget(),
+}))
 
-vi.mock('@/shared/auth/authStorage', () => ({ getStoredToken }))
+vi.mock('@/shared/auth/authStorage', () => ({
+  getStoredToken,
+  clearSession,
+  authEvents,
+  SESSION_EXPIRED_EVENT: 'finpro:session-expired',
+}))
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -12,6 +21,7 @@ function jsonResponse(body: unknown, status = 200) {
 describe('httpClient', () => {
   beforeEach(() => {
     getStoredToken.mockReturnValue(null)
+    clearSession.mockReset()
     vi.stubGlobal('fetch', vi.fn())
   })
 
@@ -99,5 +109,25 @@ describe('httpClient', () => {
     await expect(httpClient.get('/accounts')).rejects.toMatchObject(
       new ApiError(500, 'Erro ao comunicar com o servidor'),
     )
+  })
+
+  it('does not clear the session or emit the expired event for a non-401 error', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ message: 'CPF inválido' }, 400))
+
+    await expect(httpClient.get('/accounts')).rejects.toThrow()
+
+    expect(clearSession).not.toHaveBeenCalled()
+  })
+
+  it('clears the session and emits the session-expired event on a 401 response', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ message: 'Token inválido' }, 401))
+    const listener = vi.fn()
+    authEvents.addEventListener('finpro:session-expired', listener)
+
+    await expect(httpClient.get('/accounts')).rejects.toMatchObject(new ApiError(401, 'Token inválido'))
+
+    expect(clearSession).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(1)
+    authEvents.removeEventListener('finpro:session-expired', listener)
   })
 })

@@ -1,4 +1,4 @@
-import { getStoredToken } from '@/shared/auth/authStorage'
+import { SESSION_EXPIRED_EVENT, authEvents, clearSession, getStoredToken } from '@/shared/auth/authStorage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
 
@@ -31,6 +31,13 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null
+    // Token ausente/expirado/inválido: sem isso a sessão continua "logada" no localStorage pra
+    // sempre, e toda tela fica com spinners que nunca resolvem — nada nunca limpava a sessão nem
+    // avisava a UI que ela morreu.
+    if (response.status === 401) {
+      clearSession()
+      authEvents.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    }
     throw new ApiError(response.status, body?.message ?? 'Erro ao comunicar com o servidor')
   }
 
