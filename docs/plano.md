@@ -18,7 +18,8 @@
 - ✅ Testes de integração com Testcontainers cobrindo account, auth, category, client, importbatch, transaction, transfer, tax estimate e budget
 - ✅ **`TaxEstimate`**: entidade de domínio, repository, service e endpoint completos (`/api/tax-estimates`), com sugestão de alíquota por regime tributário (`TaxRateEstimator`) — migration V10 adicionou a coluna `regime`. Fluxo completo (com diagramas) em [`fluxo-imposto-fluxo-caixa.md`](./fluxo-imposto-fluxo-caixa.md)
 - ✅ **`Budget`**: entidade de domínio, repository, service e endpoint completos (`/api/budgets`) — camadas hexagonal completa (domain/application/infrastructure), mesmo padrão dos demais módulos. O "gasto até agora" (`spentValue`) é calculado no backend (`BudgetApplicationService.calculateSpent`, via query agregada nas transações do usuário) e devolvido pronto no `BudgetResponse` — mesma convenção de `Account.calculateCurrentBalance`, não recalculado no frontend
-- ⬜ Testes unitários (Mockito) — hoje só existem testes de integração
+- ✅ Testes unitários (JUnit 5 + Mockito) cobrindo os 12 `ApplicationService` (mocks dos ports, sem Testcontainers) e a lógica pura de domínio (validadores de CPF/CNPJ, `TaxRateEstimator`, `DashboardAggregator`, `CategoryRule`, `Category`, `TaxRegime`, `CsvTransactionParser`) + mappers/validators/adapters de infraestrutura (`ViaCepAdapter` via servidor HTTP local, `CategoryPersistenceMapper`, `UserPersistenceMapper`, validadores de bean validation)
+- ✅ JaCoCo configurado (relatório em `target/site/jacoco`) e usado para uma varredura de gaps de cobertura: **252 testes no backend** (unitários + integração via Testcontainers), cobertura final **LINE 99.36% · INSTRUCTION 99.46% · BRANCH 96.71% · METHOD 99.57% · CLASS 100%** — gaps reais fechados incluem endpoints `GET /{id}` e `DELETE` nunca exercitados (Category/Client/Transaction/CategoryRule), validações de categoria/cliente inexistente na revisão de importação, branch de mês inválido no dashboard, handlers de erro `CepServiceUnavailable`/genérico nunca testados, e o `catch (IOException)` do parser de CSV. Os poucos pontos restantes (guardas defensivas `@PrePersist createdAt` em 5 entidades JPA, `main()`, e um `catch` de upload multipart de difícil reprodução em teste) foram avaliados como inalcançáveis ou de baixo valor e deixados de fora conscientemente
 
 **Frontend (~75%)**
 
@@ -110,7 +111,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 - Autenticação: Spring Security + JWT — ✅ *feito e plugado (filtro real, sem `permitAll()` fora de auth/cep/swagger/health)*
 - Migrations: Flyway — ✅ *feito (V1 a V10)*
 - Documentação da API: springdoc-openapi (Swagger UI) — *dependência configurada*
-- Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *integração cobrindo os 8 módulos principais*; ⬜ *nenhum teste unitário com Mockito ainda*
+- Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *193 testes no total (143 unitários + 50 de integração), `mvn verify` cobrindo tudo*
 
 **Frontend — React + Tailwind CSS + Vite**
 
@@ -158,7 +159,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ## 11. Checklist de qualidade técnica
 
-- Testes automatizados nos fluxos críticos (auth, contas, categorias, clientes, transações, transferências, importação/categorização, tax estimate, budget) — ✅ *feito via Testcontainers*; testes unitários (Mockito) — ⬜ *pendente*
+- Testes automatizados nos fluxos críticos (auth, contas, categorias, clientes, transações, transferências, importação/categorização, tax estimate, budget, dashboard) — ✅ *feito via Testcontainers*; testes unitários (Mockito, backend) e Vitest (frontend: schemas Zod, validadores, formatação, utils do dashboard) — ✅ *feito*, 252 testes backend (JaCoCo: 99.4% linhas / 96.7% branches) + 107 testes frontend
 - Lint/formatação consistente — ✅ *feito*: ESLint (flat config, `typescript-eslint` + `react-hooks` + `react-refresh`) no frontend e Spotless (Google Java Format, estilo AOSP de 4 espaços, ordem de imports customizada para preservar a convenção `com.lmf.*` → demais → `java.*`) no backend, vinculado à fase `verify` — os dois já rodam no CI (`npm run lint --if-present` e `mvn -B verify`)
 - CI verde (badge no README) — *CI ok, sem badge*
 - Dados seed realistas (script com usuário demo + ~6 meses de transações) — *pendente*
@@ -175,7 +176,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 6. ~~Estimativa de imposto + projeção de fluxo de caixa~~ — ✅ **concluído**: módulo `TaxEstimate` completo no backend (com `TaxRateEstimator` por regime, migration V10) + tela "Impostos" no frontend; projeção de fluxo de caixa (`CashFlowProjectionChart`) calculada no dashboard a partir de média móvel + lançamentos futuros já cadastrados
 7. ~~Metas/orçamento por categoria~~ — ✅ **concluído**: módulo `Budget` completo no backend (domain/application/infrastructure + testes de integração) + tela "Orçamentos" no frontend, com o gasto real (`spentValue`) calculado no backend e devolvido pronto no `BudgetResponse` — fecha o escopo de Fase 2
 8. ~~Migrar as agregações do frontend para o backend~~ — ✅ **concluído**: decisão do usuário de que processamento/regra de negócio fica no backend, frontend só exibe e valida formulário. Auditoria módulo a módulo (Contas, Categorias, Clientes, Transações, Transferências, Importações, Auth) encontrou e corrigiu quatro brechas reais (saldo inicial e tipo de categoria editáveis após criação, valor de transação sem validação de sinal, regime tributário sem checagem contra o tipo de documento) — todas com teste de integração cobrindo o caso. O Dashboard, maior concentração de cálculo no cliente, ganhou um `DashboardController` novo (`/api/dashboard/overview`, `/monthly-flow`, `/balance-evolution`, `/cash-flow-projection`, `/category-breakdown`, `/client-breakdown`) com a lógica portada 1:1 do antigo `dashboard/utils.ts` para `DashboardAggregator` (backend); o frontend busca cada gráfico com seu próprio hook do React Query, então cada um aparece assim que sua chamada responde, em vez de esperar tudo pronto
-9. Antes do deploy: testes unitários (Mockito) nos services de aplicação, seed de dados de demonstração — lint/formatação (ESLint + Spotless) já ✅ *feito*
+9. ~~Testes unitários + varredura de cobertura (JaCoCo)~~ — ✅ **concluído**: backend com JUnit 5 + Mockito + Testcontainers (252 testes) e frontend com Vitest (107 testes: schemas Zod, validadores de CPF/CNPJ, formatação, utils do dashboard) — componentes React não foram testados individualmente (decisão consciente: retorno menor para o esforço, ver seção de notas). JaCoCo adicionado e usado para fechar gaps reais de cobertura no backend (endpoints nunca chamados, validações sem teste, handlers de erro sem teste); cobertura final de 99.4% de linhas e 96.7% de branches. Falta só o seed de dados de demonstração antes do deploy
 10. Fechamento: deploy (Railway/Render + Vercel), badge de CI, prints e link no README, vídeo curto de demo
 
 ## 13. Stack resumida
@@ -184,6 +185,6 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 |---|---|
 | Backend | Java 21, Spring Boot 3, Maven, Spring Security, Spring Data JPA |
 | Banco | PostgreSQL, Flyway |
-| Testes | JUnit 5, Mockito, Testcontainers |
+| Testes | JUnit 5, Mockito, Testcontainers (backend); Vitest (frontend) |
 | Frontend | React, Tailwind CSS, Vite, React Query, Recharts |
 | Infra | Docker Compose, GitHub Actions, Railway/Render + Vercel |

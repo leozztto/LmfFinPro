@@ -235,4 +235,28 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    @Test
+    void protectedRouteWithMalformedAuthorizationHeaderReturnsUnauthorized() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.AUTHORIZATION, "NotBearer algum-valor");
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/accounts", HttpMethod.GET, new HttpEntity<>(headers), ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void protectedRouteWithInvalidTokenReturnsUnauthorized() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer token-invalido-e-mal-formado");
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/accounts", HttpMethod.GET, new HttpEntity<>(headers), ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
 }

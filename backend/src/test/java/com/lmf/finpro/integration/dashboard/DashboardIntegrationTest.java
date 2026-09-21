@@ -18,6 +18,7 @@ import com.lmf.finpro.infrastructure.web.dto.dashboard.DashboardOverviewResponse
 import com.lmf.finpro.infrastructure.web.dto.dashboard.MonthlyFlowPointResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
+import com.lmf.finpro.infrastructure.web.exception.ApiError;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
 import com.lmf.finpro.integration.support.TestDataFactory;
 import com.lmf.finpro.integration.support.TestUser;
@@ -29,6 +30,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
 
 class DashboardIntegrationTest extends AbstractIntegrationTest {
+
+    @Test
+    void categoryBreakdownRejectsInvalidMonthFormat() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/dashboard/category-breakdown?type=EXPENSE&month=not-a-month",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().message()).isEqualTo("mês inválido, use o formato aaaa-MM");
+    }
 
     @Test
     void overviewReturnsCurrentBalanceAndMonthOverMonthDeltas() {

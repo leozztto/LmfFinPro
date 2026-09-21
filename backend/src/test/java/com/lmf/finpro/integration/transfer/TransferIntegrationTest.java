@@ -21,6 +21,21 @@ import org.springframework.http.*;
 class TransferIntegrationTest extends AbstractIntegrationTest {
 
     @Test
+    void listReturnsEmptyForUserWithNoTransfers() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<TransferResponse[]> response =
+                restTemplate.exchange(
+                        "/api/transfers",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        TransferResponse[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEmpty();
+    }
+
+    @Test
     void createsListsAndDeletesTransferBetweenOwnAccounts() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long fromAccountId = createAccount(user, "Conta Corrente", BigDecimal.valueOf(1000));

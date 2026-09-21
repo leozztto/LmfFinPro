@@ -91,6 +91,40 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getByIdReturnsOwnClient() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        ClientRequest createRequest =
+                new ClientRequest(
+                        "Cliente consultado",
+                        "consultado@example.com",
+                        "11988887777",
+                        DocumentType.CPF,
+                        "11144477735",
+                        ClientWorkType.AUTONOMO,
+                        null,
+                        null,
+                        true);
+        ResponseEntity<ClientResponse> createResponse =
+                restTemplate.exchange(
+                        "/api/clients",
+                        HttpMethod.POST,
+                        new HttpEntity<>(createRequest, user.authHeaders()),
+                        ClientResponse.class);
+        Long clientId = createResponse.getBody().id();
+
+        ResponseEntity<ClientResponse> getResponse =
+                restTemplate.exchange(
+                        "/api/clients/" + clientId,
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        ClientResponse.class);
+
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getResponse.getBody().id()).isEqualTo(clientId);
+        assertThat(getResponse.getBody().name()).isEqualTo("Cliente consultado");
+    }
+
+    @Test
     void createsClientWithoutOptionalColorAndNotes() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
 
