@@ -1,6 +1,6 @@
 # FinPro — Perguntas Frequentes (FAQ)
 
-*Dúvidas comuns de quem usa o FinPro no dia a dia. Para documentação técnica de cada módulo (arquitetura, diagramas), veja os arquivos `fluxo-*.md` nesta mesma pasta, listados em [`plano.md`](./plano.md#1-status-atual-da-implementação).*
+*Dúvidas comuns de quem usa o FinPro no dia a dia.*
 
 ## Conta e acesso
 
