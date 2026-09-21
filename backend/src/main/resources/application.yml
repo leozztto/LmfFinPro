@@ -41,6 +41,11 @@ finpro:
     base-url: ${VIACEP_BASE_URL:https://viacep.com.br/ws}
     timeout-ms: ${VIACEP_TIMEOUT_MS:5000}
 
+# Usado só pelos testes de contrato Pact (CategoryProviderPactTest), não pela aplicação em si.
+pactbroker:
+  url: ${PACT_BROKER_BASE_URL:https://lezzotto.pactflow.io}
+  token: ${PACT_BROKER_TOKEN:}
+
 management:
   endpoints:
     web:
