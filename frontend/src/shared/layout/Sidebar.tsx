@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom'
 import {
-  GitHubIcon,
   HomeIcon,
   PercentIcon,
   SwapIcon,
@@ -84,7 +83,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
         >
-          <GitHubIcon className="h-4 w-4 shrink-0" />
           Documentação
         </a>
       </div>
