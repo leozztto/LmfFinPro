@@ -22,6 +22,12 @@
     <jjwt.version>0.12.6</jjwt.version>
     <springdoc.version>2.6.0</springdoc.version>
     <testcontainers.version>1.21.4</testcontainers.version>
+
+    <!-- SonarCloud: só o backend (Java) é analisado aqui — o frontend tem seu próprio projeto,
+         configurado em frontend/sonar-project.properties e rodado pelo frontend-ci.yml. -->
+    <sonar.organization>leozztto</sonar.organization>
+    <sonar.projectKey>leozztto_lmffinpro_backend</sonar.projectKey>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
   </properties>
 
   <dependencies>
@@ -134,6 +140,13 @@
 
   <build>
     <plugins>
+      <plugin>
+        <!-- Declarado explicitamente (não só via <properties>) para o prefixo `sonar:sonar`
+             resolver — sem isso o Maven não sabe em qual groupId procurar o goal. -->
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>5.8.0.7211</version>
+      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
