@@ -7,6 +7,7 @@ import { useLogin } from '../hooks/useLogin'
 import { loginSchema, type LoginFormValues } from '../schemas'
 import { Footer } from '@/shared/layout/Footer'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
+import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -33,10 +34,16 @@ export function LoginPage() {
       </div>
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-zinc-50 p-8 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-          <h1 className="text-xl font-semibold text-zinc-800 dark:text-zinc-100">Entrar no FinPro</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Controle financeiro para freelancers e autônomos.
-          </p>
+          <div className="flex items-center gap-3">
+            <img src={logoIcon} alt="FinPro" className="h-10 w-10" />
+            <div>
+              <h1 className="text-xl font-semibold">
+                <span className="text-zinc-800 dark:text-zinc-100">Entrar no Fin</span>
+                <span className="text-[#2ad6a5]">Pro</span>
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Seu financeiro no controle</p>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
             <FormField label="E-mail" htmlFor="email" error={errors.email?.message}>
@@ -50,7 +57,7 @@ export function LoginPage() {
                 {login.error instanceof ApiError ? login.error.message : 'Não foi possível entrar.'}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={login.isPending}>
+            <Button type="submit" variant="brand" className="w-full" disabled={login.isPending}>
               {login.isPending ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
