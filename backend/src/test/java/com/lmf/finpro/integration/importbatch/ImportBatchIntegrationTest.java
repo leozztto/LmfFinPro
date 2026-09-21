@@ -119,6 +119,60 @@ class ImportBatchIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void listReturnsAllBatchesForTheOwningUser() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        ImportBatchResponse uploaded = uploadCsv(user, accountId, VALID_CSV).getBody();
+
+        ResponseEntity<ImportBatchResponse[]> response =
+                restTemplate.exchange(
+                        "/api/import-batches",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        ImportBatchResponse[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(List.of(response.getBody()))
+                .extracting(ImportBatchResponse::id)
+                .contains(uploaded.id());
+    }
+
+    @Test
+    void getByIdReturnsOwnBatch() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        ImportBatchResponse uploaded = uploadCsv(user, accountId, VALID_CSV).getBody();
+
+        ResponseEntity<ImportBatchResponse> response =
+                restTemplate.exchange(
+                        "/api/import-batches/" + uploaded.id(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        ImportBatchResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().id()).isEqualTo(uploaded.id());
+        assertThat(response.getBody().transactionCount()).isEqualTo(3);
+    }
+
+    @Test
+    void getByIdThrowsWhenBatchBelongsToAnotherUser() {
+        TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
+        TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(owner);
+        ImportBatchResponse uploaded = uploadCsv(owner, accountId, VALID_CSV).getBody();
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/import-batches/" + uploaded.id(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(intruder.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void rejectsCsvWithInvalidHeader() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user);

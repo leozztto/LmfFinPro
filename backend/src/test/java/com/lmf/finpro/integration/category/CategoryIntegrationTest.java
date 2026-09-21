@@ -61,6 +61,53 @@ class CategoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getByIdReturnsOwnCategory() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        CategoryRequest createRequest =
+                new CategoryRequest("Categoria consultada", CategoryType.EXPENSE, null, null);
+        ResponseEntity<CategoryResponse> createResponse =
+                restTemplate.exchange(
+                        "/api/categories",
+                        HttpMethod.POST,
+                        new HttpEntity<>(createRequest, user.authHeaders()),
+                        CategoryResponse.class);
+        Long categoryId = createResponse.getBody().id();
+
+        ResponseEntity<CategoryResponse> getResponse =
+                restTemplate.exchange(
+                        "/api/categories/" + categoryId,
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        CategoryResponse.class);
+
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getResponse.getBody().id()).isEqualTo(categoryId);
+    }
+
+    @Test
+    void deletesOwnCategoryWithoutLinkedTransactions() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        CategoryRequest createRequest =
+                new CategoryRequest("Categoria descartável", CategoryType.EXPENSE, null, null);
+        ResponseEntity<CategoryResponse> createResponse =
+                restTemplate.exchange(
+                        "/api/categories",
+                        HttpMethod.POST,
+                        new HttpEntity<>(createRequest, user.authHeaders()),
+                        CategoryResponse.class);
+        Long categoryId = createResponse.getBody().id();
+
+        ResponseEntity<Void> deleteResponse =
+                restTemplate.exchange(
+                        "/api/categories/" + categoryId,
+                        HttpMethod.DELETE,
+                        new HttpEntity<>(user.authHeaders()),
+                        Void.class);
+
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
     void categoryTypeCannotBeChangedOnUpdate() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
 

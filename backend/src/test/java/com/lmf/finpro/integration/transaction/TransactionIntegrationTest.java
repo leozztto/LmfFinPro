@@ -84,6 +84,38 @@ class TransactionIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getByIdReturnsOwnTransaction() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        TransactionRequest createRequest =
+                new TransactionRequest(
+                        accountId,
+                        null,
+                        null,
+                        "Transação consultada",
+                        BigDecimal.valueOf(150),
+                        LocalDate.now(),
+                        CategoryType.EXPENSE);
+        ResponseEntity<TransactionResponse> createResponse =
+                restTemplate.exchange(
+                        "/api/transactions",
+                        HttpMethod.POST,
+                        new HttpEntity<>(createRequest, user.authHeaders()),
+                        TransactionResponse.class);
+        Long transactionId = createResponse.getBody().id();
+
+        ResponseEntity<TransactionResponse> getResponse =
+                restTemplate.exchange(
+                        "/api/transactions/" + transactionId,
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        TransactionResponse.class);
+
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getResponse.getBody().id()).isEqualTo(transactionId);
+    }
+
+    @Test
     void userCannotCreateTransactionOnAnotherUsersAccount() {
         TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
         TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);
