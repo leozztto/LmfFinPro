@@ -9,15 +9,14 @@ public class TransferWebMapper {
 
     public TransferResponse toResponse(TransferResult result) {
         return new TransferResponse(
-            result.transfer().id(),
-            result.transfer().fromAccountId(),
-            result.transfer().toAccountId(),
-            result.transfer().amount(),
-            result.transfer().transferDate(),
-            result.transfer().description(),
-            result.fromTransactionId(),
-            result.toTransactionId(),
-            result.transfer().createdAt()
-        );
+                result.transfer().id(),
+                result.transfer().fromAccountId(),
+                result.transfer().toAccountId(),
+                result.transfer().amount(),
+                result.transfer().transferDate(),
+                result.transfer().description(),
+                result.fromTransactionId(),
+                result.toTransactionId(),
+                result.transfer().createdAt());
     }
 }

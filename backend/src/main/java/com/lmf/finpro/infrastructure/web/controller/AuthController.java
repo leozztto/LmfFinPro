@@ -27,24 +27,24 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResult result = authApplicationService.register(
-            new RegisterCommand(
-                request.name(),
-                request.email(),
-                request.password(),
-                request.documentType(),
-                request.documentNumber(),
-                request.phone(),
-                request.taxRegime(),
-                toAddressCommand(request.address())
-            )
-        );
+        AuthResult result =
+                authApplicationService.register(
+                        new RegisterCommand(
+                                request.name(),
+                                request.email(),
+                                request.password(),
+                                request.documentType(),
+                                request.documentNumber(),
+                                request.phone(),
+                                request.taxRegime(),
+                                toAddressCommand(request.address())));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(result));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResult result = authApplicationService.login(new LoginCommand(request.email(), request.password()));
+        AuthResult result =
+                authApplicationService.login(new LoginCommand(request.email(), request.password()));
         return ResponseEntity.ok(toResponse(result));
     }
 
@@ -54,8 +54,12 @@ public class AuthController {
 
     private AddressCommand toAddressCommand(AddressRequest address) {
         return new AddressCommand(
-            address.zipCode(), address.street(), address.number(), address.complement(),
-            address.neighborhood(), address.city(), address.state()
-        );
+                address.zipCode(),
+                address.street(),
+                address.number(),
+                address.complement(),
+                address.neighborhood(),
+                address.city(),
+                address.state());
     }
 }

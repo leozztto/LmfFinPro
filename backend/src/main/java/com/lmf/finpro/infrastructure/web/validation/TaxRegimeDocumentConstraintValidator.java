@@ -3,7 +3,8 @@ package com.lmf.finpro.infrastructure.web.validation;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class TaxRegimeDocumentConstraintValidator implements ConstraintValidator<ValidTaxRegimeDocument, HasTaxRegimeDocument> {
+public class TaxRegimeDocumentConstraintValidator
+        implements ConstraintValidator<ValidTaxRegimeDocument, HasTaxRegimeDocument> {
 
     @Override
     public boolean isValid(HasTaxRegimeDocument value, ConstraintValidatorContext context) {

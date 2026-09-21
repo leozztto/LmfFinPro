@@ -5,7 +5,8 @@ import com.lmf.finpro.domain.model.CpfValidator;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class DocumentNumberConstraintValidator implements ConstraintValidator<ValidDocumentNumber, HasDocument> {
+public class DocumentNumberConstraintValidator
+        implements ConstraintValidator<ValidDocumentNumber, HasDocument> {
 
     @Override
     public boolean isValid(HasDocument value, ConstraintValidatorContext context) {

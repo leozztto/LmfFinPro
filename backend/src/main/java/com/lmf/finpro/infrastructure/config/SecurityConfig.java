@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.config;
 
 import com.lmf.finpro.infrastructure.security.JwtAuthenticationFilter;
 import com.lmf.finpro.infrastructure.web.exception.RestAuthenticationEntryPoint;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,13 +17,11 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 /**
- * Configuração de segurança stateless: autenticação é feita por JWT (ver
- * {@link JwtAuthenticationFilter}), sem sessão nem UserDetailsService — o filtro
- * popula o {@link org.springframework.security.core.context.SecurityContextHolder}
- * diretamente a partir do token, antes do filtro padrão do Spring Security.
+ * Configuração de segurança stateless: autenticação é feita por JWT (ver {@link
+ * JwtAuthenticationFilter}), sem sessão nem UserDetailsService — o filtro popula o {@link
+ * org.springframework.security.core.context.SecurityContextHolder} diretamente a partir do token,
+ * antes do filtro padrão do Spring Security.
  */
 @Configuration
 @EnableWebSecurity
@@ -40,30 +39,31 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/**",
-                    "/api/cep/**",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/actuator/health"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
-            .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(
+                        auth ->
+                                auth.requestMatchers(
+                                                "/api/auth/**",
+                                                "/api/cep/**",
+                                                "/swagger-ui/**",
+                                                "/v3/api-docs/**",
+                                                "/actuator/health")
+                                        .permitAll()
+                                        .anyRequest()
+                                        .authenticated())
+                .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
+                .addFilterBefore(
+                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * O frontend é uma SPA servida em uma origem diferente da API (portas distintas em
-     * dev/docker, domínios distintos em produção), então o navegador exige CORS explícito —
-     * sem isso, toda chamada fetch/XHR do frontend falha silenciosamente ("Failed to fetch").
+     * O frontend é uma SPA servida em uma origem diferente da API (portas distintas em dev/docker,
+     * domínios distintos em produção), então o navegador exige CORS explícito — sem isso, toda
+     * chamada fetch/XHR do frontend falha silenciosamente ("Failed to fetch").
      */
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

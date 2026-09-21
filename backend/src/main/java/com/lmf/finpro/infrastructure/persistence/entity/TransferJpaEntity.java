@@ -1,11 +1,10 @@
 package com.lmf.finpro.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "transfers")

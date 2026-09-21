@@ -4,15 +4,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record Account(
-    Long id,
-    Long userId,
-    String name,
-    AccountType type,
-    BigDecimal initialBalance,
-    LocalDateTime createdAt
-) {
+        Long id,
+        Long userId,
+        String name,
+        AccountType type,
+        BigDecimal initialBalance,
+        LocalDateTime createdAt) {
 
-    public static Account create(Long userId, String name, AccountType type, BigDecimal initialBalance) {
+    public static Account create(
+            Long userId, String name, AccountType type, BigDecimal initialBalance) {
         return new Account(null, userId, name, type, initialBalance, LocalDateTime.now());
     }
 

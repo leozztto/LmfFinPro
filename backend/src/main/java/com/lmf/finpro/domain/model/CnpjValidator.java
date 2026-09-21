@@ -1,13 +1,15 @@
 package com.lmf.finpro.domain.model;
 
-/** Validação de CNPJ (formato + dígitos verificadores) — mesma ideia do {@link CpfValidator}, para pessoa jurídica. */
+/**
+ * Validação de CNPJ (formato + dígitos verificadores) — mesma ideia do {@link CpfValidator}, para
+ * pessoa jurídica.
+ */
 public final class CnpjValidator {
 
     private static final int[] FIRST_WEIGHTS = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
     private static final int[] SECOND_WEIGHTS = {6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
 
-    private CnpjValidator() {
-    }
+    private CnpjValidator() {}
 
     public static boolean isValid(String rawCnpj) {
         if (rawCnpj == null) {

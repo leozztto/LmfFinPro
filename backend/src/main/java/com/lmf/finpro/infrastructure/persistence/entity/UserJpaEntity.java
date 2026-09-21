@@ -3,9 +3,8 @@ package com.lmf.finpro.infrastructure.persistence.entity;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.TaxRegime;
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "users")
@@ -43,8 +42,7 @@ public class UserJpaEntity {
     @Column(name = "tax_regime", length = 50)
     private TaxRegime taxRegime;
 
-    @Embedded
-    private AddressEmbeddable address;
+    @Embedded private AddressEmbeddable address;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
