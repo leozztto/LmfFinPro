@@ -47,9 +47,9 @@ jobs:
             --broker-base-url="$PACT_BROKER_BASE_URL" \
             --broker-token="$PACT_BROKER_TOKEN"
       - name: SonarCloud scan
+        # SonarSource/sonarcloud-github-action@v3 foi descontinuada pela SonarSource (a imagem
+        # Docker não tem mais o binário sonar-scanner — "command not found" em runs reais). O
+        # pacote @sonar/scan já foi validado manualmente contra o SonarCloud real nesta mesma
+        # config (lê frontend/sonar-project.properties sozinho).
         if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarcloud-github-action@v3
-        with:
-          projectBaseDir: frontend
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes @sonar/scan
