@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { httpClient } from '@/shared/api/httpClient'
-import { clearSession, loadSession, saveSession } from './authStorage'
+import { useToast } from '@/shared/toast/ToastContext'
+import { SESSION_EXPIRED_EVENT, authEvents, clearSession, loadSession, saveSession } from './authStorage'
 import type { AuthSession, LoginPayload, RegisterPayload } from './types'
 
 interface AuthResponseBody {
@@ -21,6 +22,18 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => loadSession())
+  const { showToast } = useToast()
+
+  // O httpClient já limpou a sessão do localStorage (ela já tinha morrido no servidor); aqui só
+  // sincronizamos o estado do React, o que faz o ProtectedRoute mandar pra /login sozinho.
+  useEffect(() => {
+    function handleSessionExpired() {
+      setSession(null)
+      showToast('Sua sessão expirou. Faça login novamente.')
+    }
+    authEvents.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+    return () => authEvents.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }, [showToast])
 
   async function authenticate(path: string, payload: LoginPayload | RegisterPayload) {
     const response = await httpClient.post<AuthResponseBody>(path, payload)

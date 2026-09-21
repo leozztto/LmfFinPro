@@ -16,13 +16,13 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthProvider>
-            <ToastProvider>
+          <ToastProvider>
+            <AuthProvider>
               <ConfirmProvider>
                 <AppRouter />
               </ConfirmProvider>
-            </ToastProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </ToastProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ThemeProvider>
