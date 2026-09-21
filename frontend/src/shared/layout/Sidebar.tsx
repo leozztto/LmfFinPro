@@ -12,7 +12,7 @@ import {
   WalletIcon,
 } from '@/shared/ui/icons'
 
-const DOCS_URL = 'https://github.com/leozztto/LmfFinPro/tree/main/docs/FAQ.md'
+const DOCS_URL = 'https://github.com/leozztto/LmfFinPro/blob/develop/docs/FAQ.md'
 
 const OVERVIEW_ITEM = { to: '/', label: 'Dashboard', icon: HomeIcon }
 
