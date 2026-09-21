@@ -4,6 +4,7 @@ import { useAuth } from '@/shared/auth/AuthContext'
 import { Button } from '@/shared/ui'
 import { CloseIcon, MenuIcon } from '@/shared/ui/icons'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
+import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 import { Footer } from './Footer'
 import { Sidebar } from './Sidebar'
 
@@ -38,11 +39,17 @@ export function AppLayout() {
           >
             <MenuIcon className="h-5 w-5" />
           </button>
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-xl font-semibold text-zinc-800 dark:text-zinc-100">FinPro</h1>
-            <span className="hidden text-xs text-zinc-400 dark:text-zinc-500 lg:inline">
-              Controle financeiro para freelancers e autônomos.
-            </span>
+          <div className="flex items-center gap-2">
+            <img src={logoIcon} alt="FinPro" className="h-8 w-8" />
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-xl font-semibold">
+                <span className="text-zinc-800 dark:text-zinc-100">Fin</span>
+                <span className="text-[#2ad6a5]">Pro</span>
+              </h1>
+              <span className="hidden text-xs text-zinc-400 dark:text-zinc-500 lg:inline">
+                Seu financeiro no controle
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -68,7 +75,13 @@ export function AppLayout() {
             />
             <div className="relative flex h-full w-64 max-w-[80vw] flex-col bg-white shadow-xl dark:bg-zinc-900">
               <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
-                <span className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">FinPro</span>
+                <div className="flex items-center gap-2">
+                  <img src={logoIcon} alt="FinPro" className="h-7 w-7" />
+                  <span className="text-lg font-semibold">
+                    <span className="text-zinc-800 dark:text-zinc-100">Fin</span>
+                    <span className="text-[#2ad6a5]">Pro</span>
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setMobileNavOpen(false)}

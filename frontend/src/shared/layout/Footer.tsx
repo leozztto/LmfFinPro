@@ -6,7 +6,7 @@ const LINKEDIN_URL = 'https://www.linkedin.com/in/leandro-mf'
 const PORTFOLIO_URL = 'https://portfolio-leandromf.vercel.app/'
 
 const iconLinkClassName =
-  'text-zinc-500 transition-colors hover:text-primary-600 dark:text-zinc-400 dark:hover:text-primary-500'
+  'text-zinc-500 transition-colors hover:text-[#2ad6a5] active:text-[#2ad6a5] dark:text-zinc-400 dark:hover:text-[#2ad6a5] dark:active:text-[#2ad6a5]'
 
 export function Footer() {
   return (
