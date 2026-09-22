@@ -1,6 +1,8 @@
 # FinPro — Perguntas Frequentes (FAQ)
+___
 
 *Dúvidas comuns de quem usa o FinPro no dia a dia.*
+___
 
 ## Conta e acesso
 
@@ -18,6 +20,7 @@ Seu login expira automaticamente depois de 1 hora (por segurança). Quando isso 
 
 **Meus dados financeiros são visíveis para outros usuários?**
 Não. Toda informação (contas, transações, clientes, etc.) é isolada por usuário — mesmo tentando acessar um registro de outra pessoa diretamente pela URL, o sistema trata como se ele não existisse.
+___
 
 ## Contas bancárias
 
@@ -29,6 +32,7 @@ Não. O saldo inicial é fixado na criação e não pode ser editado depois — 
 
 **Por que não consigo excluir uma conta?**
 Uma conta com transações ou transferências vinculadas não pode ser excluída — o sistema bloqueia pra evitar perder histórico financeiro sem querer. Remova (ou mova) as transações primeiro.
+___
 
 ## Categorias
 
@@ -40,6 +44,7 @@ Não. O tipo é fixado na criação. Se você errou o tipo, crie uma categoria n
 
 **Por que não consigo excluir uma categoria?**
 Categoria com transações ou regras de categorização automática vinculadas não pode ser excluída, pelo mesmo motivo das contas: evitar perder histórico ou quebrar uma regra que ainda está em uso.
+___
 
 ## Transações (receitas e despesas)
 
@@ -51,6 +56,7 @@ Hoje não — a tela de Transações só permite **criar** e **excluir**, não t
 
 **Por que uma transação aparece com o botão de excluir desabilitado?**
 Ela faz parte de uma transferência (tem a etiqueta "Transferência"). Transações desse tipo só podem ser removidas junto com a transferência inteira, na tela de Transferências — isso porque toda transferência sempre lança duas transações (uma em cada conta) e as duas precisam sumir juntas pra manter os saldos corretos.
+___
 
 ## Transferências
 
@@ -62,6 +68,7 @@ Porque, financeiramente, uma transferência é uma saída de uma conta e uma ent
 
 **Transferências contam como receita ou despesa no Dashboard?**
 Não. Elas são excluídas de todo cálculo de receita/despesa (nos cards, gráficos e orçamentos) — afinal, transferir dinheiro entre suas próprias contas não é ganhar nem gastar, só reorganizar onde o dinheiro está.
+___
 
 ## Clientes
 
@@ -70,6 +77,7 @@ Pra organizar sua receita por cliente/projeto — o Dashboard mostra um gráfico
 
 **Preciso vincular um cliente em toda transação?**
 Não, o campo cliente é opcional em qualquer transação. Receitas sem cliente vinculado aparecem agrupadas como "Sem cliente" no gráfico de receita por cliente.
+___
 
 ## Importação de extrato
 
@@ -81,6 +89,7 @@ O sistema mantém uma lista de regras (palavra-chave → categoria) e, ao import
 
 **Preciso revisar toda importação manualmente?**
 Só as transações que o sistema não conseguiu categorizar automaticamente (ele mostra quantas ficaram "sem categoria" em cada importação). O resto já entra pronto.
+___
 
 ## Orçamentos
 
@@ -89,6 +98,7 @@ Você define um limite de gasto pra uma categoria de despesa num mês específic
 
 **O que acontece se eu ultrapassar o limite?**
 A barra de progresso muda visualmente pra indicar que o limite foi estourado — é só um alerta visual, não bloqueia você de continuar lançando despesas naquela categoria.
+___
 
 ## Estimativa de imposto
 
@@ -97,6 +107,7 @@ Não. É uma estimativa simplificada e educacional, baseada em alíquotas de ref
 
 **Como a alíquota sugerida é calculada?**
 Depende do regime: MEI e Simples Nacional usam uma alíquota fixa de referência, Lucro Presumido uma alíquota efetiva aproximada pra serviços, Autônomo segue a tabela progressiva mensal do IRPF/carnê-leão (quanto maior a receita do mês, maior a faixa), e "Outro" não sugere nada — você preenche a alíquota manualmente. A sugestão é só um ponto de partida — você pode ajustar o valor antes de salvar.
+___
 
 ## Dashboard
 
@@ -108,3 +119,4 @@ De propósito: cada gráfico busca seus próprios dados de forma independente, e
 
 **O que é a projeção de fluxo de caixa?**
 Uma estimativa de como seu saldo deve evoluir nos próximos meses: pra meses em que você já tem transações futuras lançadas (ex: uma fatura já agendada), usa esse valor real; pra meses sem nada lançado ainda, usa a média do que entrou/saiu nos últimos 3 meses. No gráfico, o histórico real aparece em linha sólida e a projeção em linha tracejada.
+___
