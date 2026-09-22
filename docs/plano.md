@@ -46,7 +46,7 @@ Em resumo: autenticação, contas, categorias, clientes, transações, transfer�
 
 **Documentação por fluxo/tela** (arquitetura hexagonal + diagramas Mermaid + regras de negócio + onde cada peça vive no repositório, um `.md` por módulo em `docs/tecnica/`): [`fluxo-autenticacao.md`](./tecnica/fluxo-autenticacao.md) · [`fluxo-contas.md`](./tecnica/fluxo-contas.md) · [`fluxo-categorias.md`](./tecnica/fluxo-categorias.md) · [`fluxo-clientes.md`](./tecnica/fluxo-clientes.md) · [`fluxo-transacoes.md`](./tecnica/fluxo-transacoes.md) · [`fluxo-transferencias.md`](./tecnica/fluxo-transferencias.md) · [`fluxo-importacao-extrato.md`](./tecnica/fluxo-importacao-extrato.md) · [`fluxo-dashboard.md`](./tecnica/fluxo-dashboard.md) · [`fluxo-orcamentos.md`](./tecnica/fluxo-orcamentos.md) · [`fluxo-imposto-fluxo-caixa.md`](./tecnica/fluxo-imposto-fluxo-caixa.md)
 
-**[`FAQ.md`](./FAQ.md)** — perguntas frequentes de quem usa o app (não técnico): o que cada campo faz, o que não dá pra editar ainda, como funciona a categorização automática, etc.
+**[`../frontend/src/features/faq/docs/FAQ.md`](../frontend/src/features/faq/docs/FAQ.md)** — perguntas frequentes de quem usa o app (não técnico): o que cada campo faz, o que não dá pra editar ainda, como funciona a categorização automática, etc.
 
 ## 2. Pitch (resumo de 30 segundos)
 
