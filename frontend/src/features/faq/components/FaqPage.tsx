@@ -1,5 +1,5 @@
 import ReactMarkdown from "react-markdown";
-import faqContent from "@/features/faq/docs/faq.md?raw";
+import faqContent from "@/features/faq/docs/FAQ.md?raw";
 
 export function FaqPage() {
     return (
