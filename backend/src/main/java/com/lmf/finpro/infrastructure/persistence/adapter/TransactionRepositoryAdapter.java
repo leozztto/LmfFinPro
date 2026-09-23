@@ -54,6 +54,17 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
+    public List<Transaction> findAllByClientIdAndTypeAndDateBetween(
+            Long clientId, CategoryType type, LocalDate start, LocalDate end) {
+        return transactionJpaRepository
+                .findByClientIdAndTypeAndTransactionDateBetweenOrderByTransactionDateAsc(
+                        clientId, type, start, end)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type) {
         return transactionJpaRepository.sumAmountByAccountIdAndType(accountId, type);
     }

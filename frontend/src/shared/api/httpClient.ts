@@ -28,6 +28,22 @@ export class ApiError extends Error {
   }
 }
 
+/** Token ausente/expirado/inválido: sem isso a sessão continua "logada" no localStorage pra
+ *  sempre, e toda tela fica com spinners que nunca resolvem — nada nunca limpava a sessão nem
+ *  avisava a UI que ela morreu. */
+async function handleErrorResponse(response: Response): Promise<never> {
+  const body = (await response.json().catch(() => null)) as ApiErrorBody | null
+  if (response.status === 401) {
+    clearSession()
+    // Requisições em paralelo (ex: Dashboard) recebem 401 quase ao mesmo tempo quando a sessão
+    // expira; sem essa trava o evento dispararia uma vez por requisição, empilhando toasts.
+    if (markSessionExpiredOnce()) {
+      authEvents.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    }
+  }
+  throw new ApiError(response.status, body?.message ?? 'Erro ao comunicar com o servidor')
+}
+
 async function request<TResponse>(path: string, options: RequestInit = {}): Promise<TResponse> {
   const token = getStoredToken()
   const headers = new Headers(options.headers)
@@ -43,19 +59,7 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
   const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers })
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as ApiErrorBody | null
-    // Token ausente/expirado/inválido: sem isso a sessão continua "logada" no localStorage pra
-    // sempre, e toda tela fica com spinners que nunca resolvem — nada nunca limpava a sessão nem
-    // avisava a UI que ela morreu.
-    if (response.status === 401) {
-      clearSession()
-      // Requisições em paralelo (ex: Dashboard) recebem 401 quase ao mesmo tempo quando a sessão
-      // expira; sem essa trava o evento dispararia uma vez por requisição, empilhando toasts.
-      if (markSessionExpiredOnce()) {
-        authEvents.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
-      }
-    }
-    throw new ApiError(response.status, body?.message ?? 'Erro ao comunicar com o servidor')
+    await handleErrorResponse(response)
   }
 
   if (response.status === 204) {
@@ -63,6 +67,23 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
   }
 
   return (await response.json()) as TResponse
+}
+
+/** Para downloads de arquivo (ex: PDF de relatório) — resposta não é JSON. */
+async function requestBlob(path: string): Promise<Blob> {
+  const token = getStoredToken()
+  const headers = new Headers()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const response = await fetch(`${apiBaseUrl}${path}`, { headers })
+
+  if (!response.ok) {
+    await handleErrorResponse(response)
+  }
+
+  return response.blob()
 }
 
 export const httpClient = {
@@ -73,4 +94,5 @@ export const httpClient = {
     request<TResponse>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
   postForm: <TResponse>(path: string, formData: FormData) => request<TResponse>(path, { method: 'POST', body: formData }),
+  getBlob: (path: string) => requestBlob(path),
 }

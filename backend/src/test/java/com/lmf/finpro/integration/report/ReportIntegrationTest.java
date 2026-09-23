@@ -1,0 +1,160 @@
+package com.lmf.finpro.integration.report;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.ClientWorkType;
+import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
+import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
+import com.lmf.finpro.infrastructure.web.dto.client.ClientRequest;
+import com.lmf.finpro.infrastructure.web.dto.client.ClientResponse;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
+import com.lmf.finpro.infrastructure.web.exception.ApiError;
+import com.lmf.finpro.integration.support.AbstractIntegrationTest;
+import com.lmf.finpro.integration.support.TestDataFactory;
+import com.lmf.finpro.integration.support.TestUser;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.*;
+
+class ReportIntegrationTest extends AbstractIntegrationTest {
+
+    @Test
+    void generatesClientReceiptPdfForOwnedClientAndPeriod() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long clientId = createClient(user);
+        createIncomeTransaction(
+                user,
+                accountId,
+                clientId,
+                "Serviço de consultoria",
+                "1000.00",
+                LocalDate.of(2026, 9, 5));
+        createIncomeTransaction(
+                user,
+                accountId,
+                clientId,
+                "Manutenção mensal",
+                "500.00",
+                LocalDate.of(2026, 9, 20));
+        // fora do período pedido — não deve entrar no recibo
+        createIncomeTransaction(
+                user,
+                accountId,
+                clientId,
+                "Serviço de agosto",
+                "300.00",
+                LocalDate.of(2026, 8, 15));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/client-receipt?clientId="
+                                + clientId
+                                + "&referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void returnsNotFoundWhenClientBelongsToAnotherUser() {
+        TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
+        TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);
+        Long clientId = createClient(owner);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/reports/client-receipt?clientId="
+                                + clientId
+                                + "&referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(intruder.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void returnsNotFoundWhenClientDoesNotExist() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/reports/client-receipt?clientId=999999&referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    private void createIncomeTransaction(
+            TestUser user,
+            Long accountId,
+            Long clientId,
+            String description,
+            String amount,
+            LocalDate date) {
+        TransactionRequest request =
+                new TransactionRequest(
+                        accountId,
+                        null,
+                        clientId,
+                        description,
+                        new BigDecimal(amount),
+                        date,
+                        CategoryType.INCOME);
+        restTemplate.exchange(
+                "/api/transactions",
+                HttpMethod.POST,
+                new HttpEntity<>(request, user.authHeaders()),
+                TransactionResponse.class);
+    }
+
+    private Long createClient(TestUser user) {
+        ClientRequest request =
+                new ClientRequest(
+                        "Cliente do recibo",
+                        "cliente.recibo@x.com",
+                        "11987654321",
+                        DocumentType.CNPJ,
+                        "11444777000161",
+                        ClientWorkType.PJ,
+                        null,
+                        null,
+                        true);
+        ResponseEntity<ClientResponse> response =
+                restTemplate.exchange(
+                        "/api/clients",
+                        HttpMethod.POST,
+                        new HttpEntity<>(request, user.authHeaders()),
+                        ClientResponse.class);
+        return response.getBody().id();
+    }
+
+    private Long createAccount(TestUser user) {
+        AccountRequest accountRequest =
+                new AccountRequest("Conta para recibo", AccountType.CHECKING, BigDecimal.ZERO);
+        ResponseEntity<AccountResponse> response =
+                restTemplate.exchange(
+                        "/api/accounts",
+                        HttpMethod.POST,
+                        new HttpEntity<>(accountRequest, user.authHeaders()),
+                        AccountResponse.class);
+        return response.getBody().id();
+    }
+}

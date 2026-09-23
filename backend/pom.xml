@@ -23,6 +23,7 @@
     <springdoc.version>2.6.0</springdoc.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <pact-jvm.version>4.7.5</pact-jvm.version>
+    <openpdf.version>1.3.42</openpdf.version>
 
     <!-- SonarCloud: só o backend (Java) é analisado aqui — o frontend tem seu próprio projeto,
          configurado em frontend/sonar-project.properties e rodado pelo frontend-ci.yml. -->
@@ -92,6 +93,13 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>${springdoc.version}</version>
+    </dependency>
+
+    <!-- Geração de PDF (recibo por cliente) -->
+    <dependency>
+      <groupId>com.github.librepdf</groupId>
+      <artifactId>openpdf</artifactId>
+      <version>${openpdf.version}</version>
     </dependency>
 
     <dependency>

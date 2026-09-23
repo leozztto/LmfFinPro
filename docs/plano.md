@@ -87,10 +87,10 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ### Fase 3
 
-- Recibo/cobrança em PDF por cliente
+- Recibo/cobrança em PDF por cliente — ✅ **feito** (adiantado em relação ao plano original) — tela "Relatórios" (`/relatorios`, estruturada para múltiplos tipos de relatório futuros) gera um recibo em PDF somando as receitas lançadas para um cliente num mês. Backend: `ReportController` (`/api/reports/client-receipt`), `ReportApplicationService` busca cliente/emissor/transações e `OpenPdfReceiptGenerator` (lib OpenPDF, sem template engine, mesma filosofia "monta na mão" do `CsvTransactionParser`) monta o PDF — primeira resposta binária do backend. Frontend: `httpClient.getBlob` (novo, primeiro download de arquivo do projeto) + download via `URL.createObjectURL`
 - Multi-moeda
 - Modo escuro, responsividade mobile completa — *modo escuro e responsividade já entregues na Fase 1, adiantado em relação ao plano original*
-- Exportação de relatórios (PDF/Excel)
+- Exportação de relatórios (PDF/Excel) — parcialmente feito: recibo por cliente em PDF já existe (ver item acima); outros tipos de relatório e exportação em Excel continuam pendentes
 
 ## 6. Modelo de dados (entidades principais)
 

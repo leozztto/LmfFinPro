@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
+  FileTextIcon,
   HelpCircleIcon,
   HomeIcon,
   PercentIcon,
@@ -36,6 +37,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/clientes', label: 'Clientes', icon: UsersIcon },
       { to: '/impostos', label: 'Impostos', icon: PercentIcon },
+      { to: '/relatorios', label: 'Relatórios', icon: FileTextIcon },
     ],
   },
 ]
