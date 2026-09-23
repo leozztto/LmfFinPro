@@ -23,6 +23,7 @@ export function saveSession(session: AuthSession): void {
   } catch {
     // localStorage indisponível (modo privado, etc.) — a sessão simplesmente não persiste entre reloads.
   }
+  sessionExpiredNotified = false
 }
 
 export function clearSession(): void {
@@ -35,4 +36,17 @@ export function clearSession(): void {
 
 export function getStoredToken(): string | null {
   return loadSession()?.token ?? null
+}
+
+let sessionExpiredNotified = false
+
+/** Uma tela costuma disparar várias requisições em paralelo (ex: Dashboard); quando a sessão
+ *  expira, todas elas recebem 401 quase ao mesmo tempo. Sem essa trava, o httpClient dispararia
+ *  SESSION_EXPIRED_EVENT uma vez por requisição e o usuário veria vários toasts empilhados.
+ *  Retorna true apenas na primeira chamada após um login — as seguintes retornam false até a
+ *  próxima sessão ser criada (saveSession reseta a trava). */
+export function markSessionExpiredOnce(): boolean {
+  if (sessionExpiredNotified) return false
+  sessionExpiredNotified = true
+  return true
 }

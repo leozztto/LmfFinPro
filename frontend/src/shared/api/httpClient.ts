@@ -1,4 +1,10 @@
-import { SESSION_EXPIRED_EVENT, authEvents, clearSession, getStoredToken } from '@/shared/auth/authStorage'
+import {
+  SESSION_EXPIRED_EVENT,
+  authEvents,
+  clearSession,
+  getStoredToken,
+  markSessionExpiredOnce,
+} from '@/shared/auth/authStorage'
 
 let apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
 
@@ -43,7 +49,11 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
     // avisava a UI que ela morreu.
     if (response.status === 401) {
       clearSession()
-      authEvents.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+      // Requisições em paralelo (ex: Dashboard) recebem 401 quase ao mesmo tempo quando a sessão
+      // expira; sem essa trava o evento dispararia uma vez por requisição, empilhando toasts.
+      if (markSessionExpiredOnce()) {
+        authEvents.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+      }
     }
     throw new ApiError(response.status, body?.message ?? 'Erro ao comunicar com o servidor')
   }

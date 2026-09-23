@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
+  HelpCircleIcon,
   HomeIcon,
   PercentIcon,
   SwapIcon,
@@ -80,6 +81,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             onClick={onNavigate}
             className={linkClassName}
         >
+          <HelpCircleIcon className="h-4 w-4 shrink-0" />
           Documentação
         </NavLink>
       </div>
