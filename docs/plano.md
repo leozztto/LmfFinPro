@@ -4,7 +4,7 @@
 
 ## 1. Status atual da implementação
 
-*Leitura feita direto no código do repositório em 20/09/2026. Desde a última revisão, backend e frontend ganharam o módulo `Budget` (metas/orçamento por categoria), único item de Fase 2 que ainda faltava.*
+*Leitura feita direto no código do repositório em 23/09/2026. Desde a última revisão (20/09/2026), a FaqPage do frontend ganhou estrutura de verdade (busca, índice de categorias, accordion por pergunta, em vez do markdown cru) e foi corrigido um bug de UX na expiração de sessão (toasts duplicados).*
 
 **Backend (~80%)**
 
@@ -24,7 +24,7 @@
 **Frontend (~75%)**
 
 - ✅ Setup Vite + React 19 + TypeScript + Tailwind CSS 4
-- ✅ Autenticação ponta a ponta: login/registro com validação (React Hook Form + Zod), autocomplete de CEP, validação de CPF/CNPJ, `AuthContext` + `ProtectedRoute` + armazenamento de JWT — inclui tratamento de sessão expirada: o `httpClient` nunca reagia a um 401 (token expirado, padrão de 1h no backend), deixando a sessão "logada" pra sempre no `localStorage` e toda tela presa num spinner que nunca resolvia; agora o `httpClient` limpa a sessão e emite `finpro:session-expired` (via `EventTarget` próprio, não `window`, pra funcionar igual em teste e browser), o `AuthContext` escuta e desloga de verdade, `ProtectedRoute` manda pra `/login` e um toast explica o motivo
+- ✅ Autenticação ponta a ponta: login/registro com validação (React Hook Form + Zod), autocomplete de CEP, validação de CPF/CNPJ, `AuthContext` + `ProtectedRoute` + armazenamento de JWT — inclui tratamento de sessão expirada: o `httpClient` nunca reagia a um 401 (token expirado, padrão de 1h no backend), deixando a sessão "logada" pra sempre no `localStorage` e toda tela presa num spinner que nunca resolvia; agora o `httpClient` limpa a sessão e emite `finpro:session-expired` (via `EventTarget` próprio, não `window`, pra funcionar igual em teste e browser), o `AuthContext` escuta e desloga de verdade, `ProtectedRoute` manda pra `/login` e um toast explica o motivo. Corrigido também um bug de UX: telas com várias chamadas em paralelo (ex.: Dashboard) recebiam vários 401 quase ao mesmo tempo quando a sessão expirava, e cada um disparava o evento — o usuário via vários toasts empilhados. Uma trava em `authStorage.ts` (`markSessionExpiredOnce`, resetada a cada novo login) garante que só a primeira notifica, validado ao vivo forçando um token inválido
 - ✅ CRUD funcional consumindo a API real para **Contas**, **Categorias**, **Clientes**, **Transações** e **Transferências** (cada módulo com client de API, hooks React Query, formulários e listas com filtros via `CollapsibleFilters`)
 - ✅ Dashboard com dados reais e gráficos (Recharts): cards com variação % vs. mês anterior, receita x despesa por mês, evolução do saldo consolidado, despesa e receita por categoria, **receita por cliente**, saldo por conta — transferências entre contas próprias excluídas dos cálculos de receita/despesa. Todo o cálculo é feito no backend (`DashboardController`/`DashboardAggregator`); cada gráfico busca seus dados com um hook próprio, aparecendo assim que a resposta chega
 - ✅ Importação de extrato: upload de CSV, lista de importações com status/contagem de "sem categoria", tela de revisão inline (categoria/cliente por transação) e CRUD de regras de categorização (`ImportsPage`, `CategoryRulesPanel`)
@@ -46,7 +46,7 @@ Em resumo: autenticação, contas, categorias, clientes, transações, transfer�
 
 **Documentação por fluxo/tela** (arquitetura hexagonal + diagramas Mermaid + regras de negócio + onde cada peça vive no repositório, um `.md` por módulo em `docs/tecnica/`): [`fluxo-autenticacao.md`](./tecnica/fluxo-autenticacao.md) · [`fluxo-contas.md`](./tecnica/fluxo-contas.md) · [`fluxo-categorias.md`](./tecnica/fluxo-categorias.md) · [`fluxo-clientes.md`](./tecnica/fluxo-clientes.md) · [`fluxo-transacoes.md`](./tecnica/fluxo-transacoes.md) · [`fluxo-transferencias.md`](./tecnica/fluxo-transferencias.md) · [`fluxo-importacao-extrato.md`](./tecnica/fluxo-importacao-extrato.md) · [`fluxo-dashboard.md`](./tecnica/fluxo-dashboard.md) · [`fluxo-orcamentos.md`](./tecnica/fluxo-orcamentos.md) · [`fluxo-imposto-fluxo-caixa.md`](./tecnica/fluxo-imposto-fluxo-caixa.md)
 
-**[`../frontend/src/features/faq/docs/FAQ.md`](../frontend/src/features/faq/docs/FAQ.md)** — perguntas frequentes de quem usa o app (não técnico): o que cada campo faz, o que não dá pra editar ainda, como funciona a categorização automática, etc.
+**[`../frontend/src/features/faq/docs/FAQ.md`](../frontend/src/features/faq/docs/FAQ.md)** — perguntas frequentes de quem usa o app (não técnico): o que cada campo faz, o que não dá pra editar ainda, como funciona a categorização automática, etc. A `FaqPage` (frontend) parseia esse markdown em categorias/perguntas estruturadas (`parseFaq.ts`) e renderiza com busca (acentos normalizados), índice de categorias navegável e perguntas em accordion — antes era o markdown cru jogado na tela sem nenhuma estilização.
 
 ## 2. Pitch (resumo de 30 segundos)
 
@@ -152,7 +152,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 ## 10. Telas principais
 
 - Visão geral (saldo, receita/despesa, variação % e gráficos) — ✅ *feito*
-- Extrato (filtros por conta/categoria/período) — ✅ *feito* (`TransactionsPage` com `CollapsibleFilters`); filtro por cliente — ⬜ *pendente*
+- Extrato (filtros por conta/categoria/cliente/período) — ✅ *feito* (`TransactionsPage` com `CollapsibleFilters`)
 - Contas — ✅ *feito*
 - Categorias — ✅ *feito*
 - Transferências entre contas — ✅ *feito* (não previsto no plano original)
