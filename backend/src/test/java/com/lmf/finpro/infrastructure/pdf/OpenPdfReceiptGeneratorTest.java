@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
+import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
@@ -233,6 +234,36 @@ class OpenPdfReceiptGeneratorTest {
         byte[] pdf = generator.generateClientAnnualStatement(data);
 
         assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesACategoryExpenseReportPdfDocumentStartingWithThePdfMagicBytes() {
+        CategoryExpenseReportData data =
+                new CategoryExpenseReportData(
+                        issuer(),
+                        YearMonth.of(2026, 9),
+                        List.of(
+                                new CategoryExpenseReportData.CategoryExpense(
+                                        "Aluguel", new BigDecimal("1500.00")),
+                                new CategoryExpenseReportData.CategoryExpense(
+                                        "Software", new BigDecimal("100.00"))),
+                        new BigDecimal("1600.00"));
+
+        byte[] pdf = generator.generateCategoryExpenseReport(data);
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesACategoryExpenseReportPdfEvenWithNoExpensesInThePeriod() {
+        CategoryExpenseReportData data =
+                new CategoryExpenseReportData(
+                        issuer(), YearMonth.of(2026, 9), List.of(), BigDecimal.ZERO);
+
+        byte[] pdf = generator.generateCategoryExpenseReport(data);
+
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 }

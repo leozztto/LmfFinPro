@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
+import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
@@ -130,6 +131,28 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             document.add(footer("demonstrativo"));
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar o PDF do demonstrativo.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    @Override
+    public byte[] generateCategoryExpenseReport(CategoryExpenseReportData data) {
+        Document document = new Document(PageSize.A4, 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            String monthLabel = monthLabel(data.referenceMonth());
+
+            document.add(titleBlock("DESPESAS POR CATEGORIA", monthLabel));
+            document.add(partyBlock("TITULAR", issuerFields(data.issuer())));
+            document.add(categoryExpensesBlock(data.categoryExpenses(), data.totalExpense()));
+            document.add(footer("relatório"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
         } finally {
             document.close();
         }
@@ -359,6 +382,38 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         PdfPCell totalLabel = headerCell("TOTAL RECEBIDO NO ANO");
         table.addCell(totalLabel);
         table.addCell(amountCell(formatCurrency(totalYear), TOTAL_FONT));
+        return table;
+    }
+
+    /** Uma linha por categoria com despesa no período (já vem ordenada da maior para a menor). */
+    private PdfPTable categoryExpensesBlock(
+            List<CategoryExpenseReportData.CategoryExpense> categoryExpenses,
+            BigDecimal totalExpense) {
+        PdfPTable table = gridTable(new float[] {3f, 2f});
+
+        PdfPCell section = headerCell("DESPESAS POR CATEGORIA");
+        section.setColspan(2);
+        table.addCell(section);
+
+        table.addCell(labelCell("Categoria"));
+        PdfPCell valueHeader = labelCell("Valor gasto");
+        valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(valueHeader);
+
+        if (categoryExpenses.isEmpty()) {
+            PdfPCell empty = valueCell("Nenhuma despesa registrada neste período.");
+            empty.setColspan(2);
+            table.addCell(empty);
+        } else {
+            for (CategoryExpenseReportData.CategoryExpense categoryExpense : categoryExpenses) {
+                table.addCell(valueCell(categoryExpense.categoryName()));
+                table.addCell(amountCell(formatCurrency(categoryExpense.total()), BODY_FONT));
+            }
+        }
+
+        PdfPCell totalLabel = headerCell("TOTAL DE DESPESAS NO PERÍODO");
+        table.addCell(totalLabel);
+        table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
         return table;
     }
 

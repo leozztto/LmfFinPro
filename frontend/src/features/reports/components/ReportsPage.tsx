@@ -4,6 +4,7 @@ import { REPORT_TYPE_LABELS, type ReportType } from '../types'
 import { ClientReceiptForm } from './ClientReceiptForm'
 import { AccountStatementForm } from './AccountStatementForm'
 import { ClientAnnualStatementForm } from './ClientAnnualStatementForm'
+import { CategoryExpenseReportForm } from './CategoryExpenseReportForm'
 
 export function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('CLIENT_RECEIPT')
@@ -36,6 +37,7 @@ export function ReportsPage() {
       {reportType === 'CLIENT_RECEIPT' && <ClientReceiptForm />}
       {reportType === 'ACCOUNT_STATEMENT' && <AccountStatementForm />}
       {reportType === 'CLIENT_ANNUAL_STATEMENT' && <ClientAnnualStatementForm />}
+      {reportType === 'CATEGORY_EXPENSE_REPORT' && <CategoryExpenseReportForm />}
     </div>
   )
 }

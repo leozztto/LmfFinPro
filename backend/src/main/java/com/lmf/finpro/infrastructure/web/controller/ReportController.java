@@ -75,4 +75,21 @@ public class ReportController {
                         "attachment; filename=\"" + filename + "\"")
                 .body(pdf);
     }
+
+    @GetMapping(value = "/category-expenses", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> categoryExpenses(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
+        byte[] pdf =
+                reportApplicationService.generateCategoryExpenseReport(
+                        currentUser.userId(), referenceMonth);
+
+        String filename = "despesas-por-categoria-" + referenceMonth + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
 }

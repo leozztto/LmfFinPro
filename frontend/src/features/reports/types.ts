@@ -1,4 +1,8 @@
-export type ReportType = 'CLIENT_RECEIPT' | 'ACCOUNT_STATEMENT' | 'CLIENT_ANNUAL_STATEMENT'
+export type ReportType =
+  | 'CLIENT_RECEIPT'
+  | 'ACCOUNT_STATEMENT'
+  | 'CLIENT_ANNUAL_STATEMENT'
+  | 'CATEGORY_EXPENSE_REPORT'
 
 export interface ClientReceiptInput {
   clientId: number
@@ -15,8 +19,13 @@ export interface ClientAnnualStatementInput {
   year: string
 }
 
+export interface CategoryExpenseReportInput {
+  referenceMonth: string
+}
+
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   CLIENT_RECEIPT: 'Recibo por cliente',
   ACCOUNT_STATEMENT: 'Extrato de conta',
   CLIENT_ANNUAL_STATEMENT: 'Demonstrativo anual por cliente',
+  CATEGORY_EXPENSE_REPORT: 'Despesas por categoria',
 }

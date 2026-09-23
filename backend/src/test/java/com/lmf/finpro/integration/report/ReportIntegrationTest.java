@@ -8,6 +8,8 @@ import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
+import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
+import com.lmf.finpro.infrastructure.web.dto.category.CategoryResponse;
 import com.lmf.finpro.infrastructure.web.dto.client.ClientRequest;
 import com.lmf.finpro.infrastructure.web.dto.client.ClientResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
@@ -224,12 +226,84 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void generatesCategoryExpenseReportPdfGroupingExpensesAcrossCategories() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long rentCategoryId = createExpenseCategory(user, "Aluguel");
+        createExpenseTransaction(
+                user,
+                accountId,
+                rentCategoryId,
+                "Aluguel escritório",
+                "1500.00",
+                LocalDate.of(2026, 9, 5));
+        createExpenseTransaction(
+                user, accountId, "Despesa sem categoria", "50.00", LocalDate.of(2026, 9, 10));
+        createIncomeTransaction(
+                user,
+                accountId,
+                null,
+                "Receita não deve entrar",
+                "9999.00",
+                LocalDate.of(2026, 9, 12));
+        // fora do período pedido — não deve entrar no relatório
+        createExpenseTransaction(
+                user,
+                accountId,
+                rentCategoryId,
+                "Aluguel de agosto",
+                "1500.00",
+                LocalDate.of(2026, 8, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/category-expenses?referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void generatesCategoryExpenseReportPdfEvenWithNoExpensesInThePeriod() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/category-expenses?referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        byte[] body = response.getBody();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
     private void createExpenseTransaction(
             TestUser user, Long accountId, String description, String amount, LocalDate date) {
+        createExpenseTransaction(user, accountId, null, description, amount, date);
+    }
+
+    private void createExpenseTransaction(
+            TestUser user,
+            Long accountId,
+            Long categoryId,
+            String description,
+            String amount,
+            LocalDate date) {
         TransactionRequest request =
                 new TransactionRequest(
                         accountId,
-                        null,
+                        categoryId,
                         null,
                         description,
                         new BigDecimal(amount),
@@ -240,6 +314,17 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
                 HttpMethod.POST,
                 new HttpEntity<>(request, user.authHeaders()),
                 TransactionResponse.class);
+    }
+
+    private Long createExpenseCategory(TestUser user, String name) {
+        CategoryRequest request = new CategoryRequest(name, CategoryType.EXPENSE, null, null);
+        ResponseEntity<CategoryResponse> response =
+                restTemplate.exchange(
+                        "/api/categories",
+                        HttpMethod.POST,
+                        new HttpEntity<>(request, user.authHeaders()),
+                        CategoryResponse.class);
+        return response.getBody().id();
     }
 
     private void createIncomeTransaction(

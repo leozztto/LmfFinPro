@@ -13,6 +13,8 @@ import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
+import com.lmf.finpro.domain.model.Category;
+import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
@@ -24,6 +26,7 @@ import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
@@ -48,6 +51,7 @@ class ReportApplicationServiceTest {
 
     @Mock private ClientRepositoryPort clientRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
+    @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private ReceiptGeneratorPort receiptGeneratorPort;
@@ -419,6 +423,185 @@ class ReportApplicationServiceTest {
         assertThat(data.totalYear()).isEqualByComparingTo("0");
         assertThat(data.monthlyIncomes())
                 .allMatch(monthly -> monthly.total().compareTo(BigDecimal.ZERO) == 0);
+    }
+
+    @Test
+    void generateCategoryExpenseReportGroupsExpensesAcrossAllAccountsSortedDescending() {
+        User issuer = issuer();
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer));
+
+        Account checking =
+                new Account(
+                        5L,
+                        10L,
+                        "Conta Corrente",
+                        AccountType.CHECKING,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now());
+        Account wallet =
+                new Account(
+                        6L,
+                        10L,
+                        "Carteira",
+                        AccountType.WALLET,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now());
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(checking, wallet));
+
+        Category rent = new Category(1L, 10L, "Aluguel", CategoryType.EXPENSE, null, null);
+        Category software = new Category(2L, 10L, "Software", CategoryType.EXPENSE, null, null);
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of(rent, software));
+
+        Transaction rentExpense =
+                new Transaction(
+                        1L,
+                        5L,
+                        1L,
+                        null,
+                        "Aluguel escritório",
+                        BigDecimal.valueOf(1500),
+                        LocalDate.of(2026, 9, 5),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction softwareExpense =
+                new Transaction(
+                        2L,
+                        6L,
+                        2L,
+                        null,
+                        "Assinatura",
+                        BigDecimal.valueOf(100),
+                        LocalDate.of(2026, 9, 10),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction uncategorizedExpense =
+                new Transaction(
+                        3L,
+                        5L,
+                        null,
+                        null,
+                        "Despesa sem categoria",
+                        BigDecimal.valueOf(50),
+                        LocalDate.of(2026, 9, 12),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction income =
+                new Transaction(
+                        4L,
+                        5L,
+                        null,
+                        null,
+                        "Receita não deve entrar",
+                        BigDecimal.valueOf(9999),
+                        LocalDate.of(2026, 9, 15),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction outsidePeriod =
+                new Transaction(
+                        5L,
+                        5L,
+                        1L,
+                        null,
+                        "Aluguel de agosto",
+                        BigDecimal.valueOf(1500),
+                        LocalDate.of(2026, 8, 5),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L, 6L)))
+                .thenReturn(
+                        List.of(
+                                rentExpense,
+                                softwareExpense,
+                                uncategorizedExpense,
+                                income,
+                                outsidePeriod));
+        when(receiptGeneratorPort.generateCategoryExpenseReport(any())).thenReturn(new byte[] {4});
+
+        byte[] result = service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9));
+
+        assertThat(result).containsExactly(4);
+        ArgumentCaptor<CategoryExpenseReportData> captor =
+                ArgumentCaptor.forClass(CategoryExpenseReportData.class);
+        verify(receiptGeneratorPort).generateCategoryExpenseReport(captor.capture());
+        CategoryExpenseReportData data = captor.getValue();
+
+        assertThat(data.categoryExpenses())
+                .extracting(CategoryExpenseReportData.CategoryExpense::categoryName)
+                .containsExactly("Aluguel", "Software", "Sem categoria");
+        assertThat(data.categoryExpenses().get(0).total()).isEqualByComparingTo("1500");
+        assertThat(data.categoryExpenses().get(1).total()).isEqualByComparingTo("100");
+        assertThat(data.categoryExpenses().get(2).total()).isEqualByComparingTo("50");
+        assertThat(data.totalExpense()).isEqualByComparingTo("1650");
+        assertThat(data.issuer()).isEqualTo(issuer);
+        assertThat(data.referenceMonth()).isEqualTo(YearMonth.of(2026, 9));
+    }
+
+    @Test
+    void generateCategoryExpenseReportUsesRemovedCategoryLabelWhenCategoryNoLongerExists() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        Account account = ownedAccount();
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(account));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+
+        Transaction expenseWithDeletedCategory =
+                new Transaction(
+                        1L,
+                        5L,
+                        999L,
+                        null,
+                        "Despesa antiga",
+                        BigDecimal.valueOf(200),
+                        LocalDate.of(2026, 9, 5),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(expenseWithDeletedCategory));
+        when(receiptGeneratorPort.generateCategoryExpenseReport(any())).thenReturn(new byte[0]);
+
+        service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<CategoryExpenseReportData> captor =
+                ArgumentCaptor.forClass(CategoryExpenseReportData.class);
+        verify(receiptGeneratorPort).generateCategoryExpenseReport(captor.capture());
+        assertThat(captor.getValue().categoryExpenses())
+                .extracting(CategoryExpenseReportData.CategoryExpense::categoryName)
+                .containsExactly("Categoria removida");
+    }
+
+    @Test
+    void generateCategoryExpenseReportReturnsEmptyListWhenThereAreNoExpenses() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(receiptGeneratorPort.generateCategoryExpenseReport(any())).thenReturn(new byte[0]);
+
+        service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<CategoryExpenseReportData> captor =
+                ArgumentCaptor.forClass(CategoryExpenseReportData.class);
+        verify(receiptGeneratorPort).generateCategoryExpenseReport(captor.capture());
+        CategoryExpenseReportData data = captor.getValue();
+        assertThat(data.categoryExpenses()).isEmpty();
+        assertThat(data.totalExpense()).isEqualByComparingTo("0");
     }
 
     private static BigDecimal monthlyTotal(ClientAnnualStatementData data, Month month) {
