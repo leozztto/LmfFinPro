@@ -94,12 +94,13 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         return output.toByteArray();
     }
 
-    /** Título à esquerda; à direita, os cabeçalhos "Referência" e "Emissão" com os valores abaixo. */
+    /**
+     * Título à esquerda; à direita, os cabeçalhos "Referência" e "Emissão" com os valores abaixo.
+     */
     private PdfPTable titleBlock(String monthLabel) {
         PdfPTable table = gridTable(new float[] {4f, 1.3f, 1.3f});
 
-        PdfPCell title =
-                new PdfPCell(new Paragraph("RECIBO DE PRESTAÇÃO DE SERVIÇOS", TITLE_FONT));
+        PdfPCell title = new PdfPCell(new Paragraph("RECIBO DE PRESTAÇÃO DE SERVIÇOS", TITLE_FONT));
         title.setRowspan(2);
         title.setVerticalAlignment(Element.ALIGN_MIDDLE);
         title.setPadding(10);
