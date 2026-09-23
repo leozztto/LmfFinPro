@@ -5,6 +5,7 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.User;
@@ -15,10 +16,15 @@ import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.Year;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -105,6 +111,47 @@ public class ReportApplicationService {
                         totalIncome,
                         totalExpense,
                         closingBalance));
+    }
+
+    /**
+     * Soma as receitas do cliente em cada um dos 12 meses do ano (mesmo os que ficarem zerados),
+     * reaproveitando {@code findAllByClientIdAndTypeAndDateBetween} com o intervalo do ano inteiro
+     * em vez de um mês, igual ao recibo mensal.
+     */
+    public byte[] generateClientAnnualStatement(Long currentUserId, Long clientId, Year year) {
+        Client client = findOwnedClientOrThrow(currentUserId, clientId);
+        User issuer = findUserOrThrow(currentUserId);
+
+        LocalDate start = year.atDay(1);
+        LocalDate end = year.plusYears(1).atDay(1);
+        List<Transaction> transactions =
+                transactionRepositoryPort.findAllByClientIdAndTypeAndDateBetween(
+                        clientId, CategoryType.INCOME, start, end);
+
+        Map<Month, BigDecimal> totalsByMonth = new EnumMap<>(Month.class);
+        for (Month month : Month.values()) {
+            totalsByMonth.put(month, BigDecimal.ZERO);
+        }
+        for (Transaction transaction : transactions) {
+            totalsByMonth.merge(
+                    transaction.transactionDate().getMonth(), transaction.amount(), BigDecimal::add);
+        }
+
+        List<ClientAnnualStatementData.MonthlyIncome> monthlyIncomes =
+                Arrays.stream(Month.values())
+                        .map(
+                                month ->
+                                        new ClientAnnualStatementData.MonthlyIncome(
+                                                month, totalsByMonth.get(month)))
+                        .toList();
+
+        BigDecimal totalYear =
+                transactions.stream()
+                        .map(Transaction::amount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return receiptGeneratorPort.generateClientAnnualStatement(
+                new ClientAnnualStatementData(issuer, client, year, monthlyIncomes, totalYear));
     }
 
     private Client findOwnedClientOrThrow(Long currentUserId, Long clientId) {

@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.report.ReportApplicationService;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
+import java.time.Year;
 import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -49,6 +50,26 @@ public class ReportController {
                         currentUser.userId(), accountId, referenceMonth);
 
         String filename = "extrato-conta-" + accountId + "-" + referenceMonth + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
+
+    @GetMapping(
+            value = "/client-annual-statement",
+            produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> clientAnnualStatement(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam Long clientId,
+            @RequestParam @DateTimeFormat(pattern = "yyyy") Year year) {
+        byte[] pdf =
+                reportApplicationService.generateClientAnnualStatement(
+                        currentUser.userId(), clientId, year);
+
+        String filename = "demonstrativo-anual-cliente-" + clientId + "-" + year + ".pdf";
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(

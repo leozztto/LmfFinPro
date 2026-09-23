@@ -9,6 +9,7 @@ import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
@@ -20,7 +21,10 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.Year;
 import java.time.YearMonth;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -199,6 +203,28 @@ class OpenPdfReceiptGeneratorTest {
 
         byte[] pdf = generator.generateAccountStatement(data);
 
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesAClientAnnualStatementPdfDocumentStartingWithThePdfMagicBytes() {
+        List<ClientAnnualStatementData.MonthlyIncome> monthlyIncomes =
+                Arrays.stream(Month.values())
+                        .map(
+                                month ->
+                                        new ClientAnnualStatementData.MonthlyIncome(
+                                                month,
+                                                month == Month.JANUARY
+                                                        ? new BigDecimal("1000.00")
+                                                        : BigDecimal.ZERO))
+                        .toList();
+        ClientAnnualStatementData data =
+                new ClientAnnualStatementData(
+                        issuer(), client(), Year.of(2026), monthlyIncomes, new BigDecimal("1000.00"));
+
+        byte[] pdf = generator.generateClientAnnualStatement(data);
+
+        assertThat(pdf).isNotEmpty();
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 }

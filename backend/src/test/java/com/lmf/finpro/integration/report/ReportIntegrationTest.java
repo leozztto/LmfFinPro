@@ -164,6 +164,51 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void generatesClientAnnualStatementPdfForOwnedClientAndYear() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long clientId = createClient(user);
+        createIncomeTransaction(
+                user, accountId, clientId, "Serviço de janeiro", "1000.00", LocalDate.of(2026, 1, 10));
+        createIncomeTransaction(
+                user, accountId, clientId, "Serviço de dezembro", "500.00", LocalDate.of(2026, 12, 1));
+        // fora do ano pedido — não deve entrar no demonstrativo
+        createIncomeTransaction(
+                user, accountId, clientId, "Serviço do ano anterior", "300.00", LocalDate.of(2025, 6, 1));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/client-annual-statement?clientId=" + clientId + "&year=2026",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void returnsNotFoundWhenClientAnnualStatementClientBelongsToAnotherUser() {
+        TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
+        TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);
+        Long clientId = createClient(owner);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/reports/client-annual-statement?clientId=" + clientId + "&year=2026",
+                        HttpMethod.GET,
+                        new HttpEntity<>(intruder.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
     private void createExpenseTransaction(
             TestUser user, Long accountId, String description, String amount, LocalDate date) {
         TransactionRequest request =

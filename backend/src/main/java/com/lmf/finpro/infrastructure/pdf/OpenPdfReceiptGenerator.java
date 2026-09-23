@@ -6,6 +6,7 @@ import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.Transaction;
@@ -27,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
@@ -111,10 +113,31 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         return output.toByteArray();
     }
 
+    @Override
+    public byte[] generateClientAnnualStatement(ClientAnnualStatementData data) {
+        Document document = new Document(PageSize.A4, 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            String yearLabel = data.referenceYear().toString();
+
+            document.add(titleBlock("DEMONSTRATIVO ANUAL DE RECEITA", yearLabel));
+            document.add(partyBlock("PRESTADOR", issuerFields(data.issuer())));
+            document.add(partyBlock("CLIENTE", clientFields(data.client())));
+            document.add(annualIncomeBlock(data.monthlyIncomes(), data.totalYear()));
+            document.add(footer("demonstrativo"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do demonstrativo.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
     private String monthLabel(YearMonth referenceMonth) {
-        return capitalize(referenceMonth.getMonth().getDisplayName(TextStyle.FULL, PT_BR))
-                + " de "
-                + referenceMonth.getYear();
+        return monthLabelOnly(referenceMonth.getMonth()) + " de " + referenceMonth.getYear();
     }
 
     private Paragraph footer(String documentNoun) {
@@ -309,6 +332,35 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
         table.addCell(amountCell(formatCurrency(closingBalance), TOTAL_FONT));
         return table;
+    }
+
+    /** Uma linha por mês do ano (mesmo os zerados), na ordem de janeiro a dezembro, com o total anual ao final. */
+    private PdfPTable annualIncomeBlock(
+            List<ClientAnnualStatementData.MonthlyIncome> monthlyIncomes, BigDecimal totalYear) {
+        PdfPTable table = gridTable(new float[] {3f, 2f});
+
+        PdfPCell section = headerCell("RECEITA POR MÊS");
+        section.setColspan(2);
+        table.addCell(section);
+
+        table.addCell(labelCell("Mês"));
+        PdfPCell valueHeader = labelCell("Valor recebido");
+        valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(valueHeader);
+
+        for (ClientAnnualStatementData.MonthlyIncome monthlyIncome : monthlyIncomes) {
+            table.addCell(valueCell(monthLabelOnly(monthlyIncome.month())));
+            table.addCell(amountCell(formatCurrency(monthlyIncome.total()), BODY_FONT));
+        }
+
+        PdfPCell totalLabel = headerCell("TOTAL RECEBIDO NO ANO");
+        table.addCell(totalLabel);
+        table.addCell(amountCell(formatCurrency(totalYear), TOTAL_FONT));
+        return table;
+    }
+
+    private String monthLabelOnly(Month month) {
+        return capitalize(month.getDisplayName(TextStyle.FULL, PT_BR));
     }
 
     private String accountTypeLabel(AccountType type) {

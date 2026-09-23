@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient'
-import type { AccountStatementInput, ClientReceiptInput } from '../types'
+import type { AccountStatementInput, ClientAnnualStatementInput, ClientReceiptInput } from '../types'
 
 export const reportsApi = {
   downloadClientReceipt: (input: ClientReceiptInput) =>
@@ -9,5 +9,9 @@ export const reportsApi = {
   downloadAccountStatement: (input: AccountStatementInput) =>
     httpClient.getBlob(
       `/reports/account-statement?accountId=${input.accountId}&referenceMonth=${input.referenceMonth}`,
+    ),
+  downloadClientAnnualStatement: (input: ClientAnnualStatementInput) =>
+    httpClient.getBlob(
+      `/reports/client-annual-statement?clientId=${input.clientId}&year=${input.year}`,
     ),
 }

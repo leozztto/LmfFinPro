@@ -15,6 +15,7 @@ import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
@@ -30,6 +31,8 @@ import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.Year;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -275,5 +278,93 @@ class ReportApplicationServiceTest {
         assertThat(data.openingBalance()).isEqualByComparingTo("1000");
         assertThat(data.closingBalance()).isEqualByComparingTo("1000");
         assertThat(data.transactions()).isEmpty();
+    }
+
+    @Test
+    void generateClientAnnualStatementThrowsWhenClientDoesNotBelongToCurrentUser() {
+        when(clientRepositoryPort.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.generateClientAnnualStatement(10L, 1L, Year.of(2026)))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void generateClientAnnualStatementFillsAllTwelveMonthsAndSumsOnlyTheGivenYear() {
+        Client client = ownedClient();
+        User issuer = issuer();
+        when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(client));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer));
+
+        Transaction january =
+                new Transaction(
+                        1L, 5L, null, 1L, "Serviço de janeiro", BigDecimal.valueOf(1000),
+                        LocalDate.of(2026, 1, 10), CategoryType.INCOME, TransactionOrigin.MANUAL,
+                        LocalDateTime.now(), null, null);
+        Transaction anotherInJanuary =
+                new Transaction(
+                        2L, 5L, null, 1L, "Segundo serviço de janeiro", BigDecimal.valueOf(500),
+                        LocalDate.of(2026, 1, 20), CategoryType.INCOME, TransactionOrigin.MANUAL,
+                        LocalDateTime.now(), null, null);
+        Transaction december =
+                new Transaction(
+                        3L, 5L, null, 1L, "Serviço de dezembro", BigDecimal.valueOf(300),
+                        LocalDate.of(2026, 12, 1), CategoryType.INCOME, TransactionOrigin.MANUAL,
+                        LocalDateTime.now(), null, null);
+        when(transactionRepositoryPort.findAllByClientIdAndTypeAndDateBetween(
+                        eq(1L),
+                        eq(CategoryType.INCOME),
+                        eq(LocalDate.of(2026, 1, 1)),
+                        eq(LocalDate.of(2027, 1, 1))))
+                .thenReturn(List.of(january, anotherInJanuary, december));
+        when(receiptGeneratorPort.generateClientAnnualStatement(any()))
+                .thenReturn(new byte[] {7});
+
+        byte[] result = service.generateClientAnnualStatement(10L, 1L, Year.of(2026));
+
+        assertThat(result).containsExactly(7);
+        ArgumentCaptor<ClientAnnualStatementData> captor =
+                ArgumentCaptor.forClass(ClientAnnualStatementData.class);
+        verify(receiptGeneratorPort).generateClientAnnualStatement(captor.capture());
+        ClientAnnualStatementData data = captor.getValue();
+
+        assertThat(data.monthlyIncomes()).hasSize(12);
+        assertThat(data.monthlyIncomes())
+                .extracting(ClientAnnualStatementData.MonthlyIncome::month)
+                .containsExactly(Month.values());
+        assertThat(monthlyTotal(data, Month.JANUARY)).isEqualByComparingTo("1500");
+        assertThat(monthlyTotal(data, Month.DECEMBER)).isEqualByComparingTo("300");
+        assertThat(monthlyTotal(data, Month.FEBRUARY)).isEqualByComparingTo("0");
+        assertThat(data.totalYear()).isEqualByComparingTo("1800");
+        assertThat(data.client()).isEqualTo(client);
+        assertThat(data.issuer()).isEqualTo(issuer);
+        assertThat(data.referenceYear()).isEqualTo(Year.of(2026));
+    }
+
+    @Test
+    void generateClientAnnualStatementReturnsAllZeroMonthsWhenThereAreNoTransactions() {
+        when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedClient()));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(transactionRepositoryPort.findAllByClientIdAndTypeAndDateBetween(
+                        any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(receiptGeneratorPort.generateClientAnnualStatement(any())).thenReturn(new byte[0]);
+
+        service.generateClientAnnualStatement(10L, 1L, Year.of(2026));
+
+        ArgumentCaptor<ClientAnnualStatementData> captor =
+                ArgumentCaptor.forClass(ClientAnnualStatementData.class);
+        verify(receiptGeneratorPort).generateClientAnnualStatement(captor.capture());
+        ClientAnnualStatementData data = captor.getValue();
+        assertThat(data.totalYear()).isEqualByComparingTo("0");
+        assertThat(data.monthlyIncomes())
+                .allMatch(monthly -> monthly.total().compareTo(BigDecimal.ZERO) == 0);
+    }
+
+    private static BigDecimal monthlyTotal(ClientAnnualStatementData data, Month month) {
+        return data.monthlyIncomes().stream()
+                .filter(monthly -> monthly.month() == month)
+                .findFirst()
+                .orElseThrow()
+                .total();
     }
 }
