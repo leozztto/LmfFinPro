@@ -134,7 +134,9 @@ public class ReportApplicationService {
         }
         for (Transaction transaction : transactions) {
             totalsByMonth.merge(
-                    transaction.transactionDate().getMonth(), transaction.amount(), BigDecimal::add);
+                    transaction.transactionDate().getMonth(),
+                    transaction.amount(),
+                    BigDecimal::add);
         }
 
         List<ClientAnnualStatementData.MonthlyIncome> monthlyIncomes =

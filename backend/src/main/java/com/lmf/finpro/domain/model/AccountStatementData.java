@@ -6,8 +6,8 @@ import java.util.List;
 
 /**
  * Dados já resolvidos e validados para montar o extrato em PDF de uma conta num mês: titular
- * (usuário logado), a conta, o saldo de abertura do período (saldo inicial da conta + tudo antes
- * do período), as transações lançadas dentro do período e os totais/saldo de fechamento.
+ * (usuário logado), a conta, o saldo de abertura do período (saldo inicial da conta + tudo antes do
+ * período), as transações lançadas dentro do período e os totais/saldo de fechamento.
  */
 public record AccountStatementData(
         User issuer,

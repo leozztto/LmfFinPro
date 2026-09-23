@@ -170,12 +170,27 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         Long accountId = createAccount(user);
         Long clientId = createClient(user);
         createIncomeTransaction(
-                user, accountId, clientId, "Serviço de janeiro", "1000.00", LocalDate.of(2026, 1, 10));
+                user,
+                accountId,
+                clientId,
+                "Serviço de janeiro",
+                "1000.00",
+                LocalDate.of(2026, 1, 10));
         createIncomeTransaction(
-                user, accountId, clientId, "Serviço de dezembro", "500.00", LocalDate.of(2026, 12, 1));
+                user,
+                accountId,
+                clientId,
+                "Serviço de dezembro",
+                "500.00",
+                LocalDate.of(2026, 12, 1));
         // fora do ano pedido — não deve entrar no demonstrativo
         createIncomeTransaction(
-                user, accountId, clientId, "Serviço do ano anterior", "300.00", LocalDate.of(2025, 6, 1));
+                user,
+                accountId,
+                clientId,
+                "Serviço do ano anterior",
+                "300.00",
+                LocalDate.of(2025, 6, 1));
 
         ResponseEntity<byte[]> response =
                 restTemplate.exchange(

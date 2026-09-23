@@ -107,7 +107,11 @@ class OpenPdfReceiptGeneratorTest {
 
     private static Account account() {
         return new Account(
-                5L, 10L, "Conta Corrente", AccountType.CHECKING, new BigDecimal("1000.00"),
+                5L,
+                10L,
+                "Conta Corrente",
+                AccountType.CHECKING,
+                new BigDecimal("1000.00"),
                 LocalDateTime.now());
     }
 
@@ -220,7 +224,11 @@ class OpenPdfReceiptGeneratorTest {
                         .toList();
         ClientAnnualStatementData data =
                 new ClientAnnualStatementData(
-                        issuer(), client(), Year.of(2026), monthlyIncomes, new BigDecimal("1000.00"));
+                        issuer(),
+                        client(),
+                        Year.of(2026),
+                        monthlyIncomes,
+                        new BigDecimal("1000.00"));
 
         byte[] pdf = generator.generateClientAnnualStatement(data);
 

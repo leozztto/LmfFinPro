@@ -58,9 +58,7 @@ public class ReportController {
                 .body(pdf);
     }
 
-    @GetMapping(
-            value = "/client-annual-statement",
-            produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/client-annual-statement", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> clientAnnualStatement(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam Long clientId,

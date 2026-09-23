@@ -71,7 +71,11 @@ class ReportApplicationServiceTest {
 
     private static Account ownedAccount() {
         return new Account(
-                5L, 10L, "Conta Corrente", AccountType.CHECKING, BigDecimal.valueOf(1000),
+                5L,
+                10L,
+                "Conta Corrente",
+                AccountType.CHECKING,
+                BigDecimal.valueOf(1000),
                 LocalDateTime.now());
     }
 
@@ -209,7 +213,11 @@ class ReportApplicationServiceTest {
     void generateAccountStatementThrowsWhenAccountBelongsToAnotherUser() {
         Account otherUsersAccount =
                 new Account(
-                        5L, 999L, "Conta", AccountType.CHECKING, BigDecimal.ZERO,
+                        5L,
+                        999L,
+                        "Conta",
+                        AccountType.CHECKING,
+                        BigDecimal.ZERO,
                         LocalDateTime.now());
         when(accountRepositoryPort.findById(5L)).thenReturn(Optional.of(otherUsersAccount));
 
@@ -226,19 +234,46 @@ class ReportApplicationServiceTest {
 
         Transaction beforePeriod =
                 new Transaction(
-                        1L, 5L, null, null, "Antes do período", BigDecimal.valueOf(200),
-                        LocalDate.of(2026, 8, 15), CategoryType.INCOME, TransactionOrigin.MANUAL,
-                        LocalDateTime.now(), null, null);
+                        1L,
+                        5L,
+                        null,
+                        null,
+                        "Antes do período",
+                        BigDecimal.valueOf(200),
+                        LocalDate.of(2026, 8, 15),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
         Transaction incomeInPeriod =
                 new Transaction(
-                        2L, 5L, null, null, "Receita do mês", BigDecimal.valueOf(1000),
-                        LocalDate.of(2026, 9, 5), CategoryType.INCOME, TransactionOrigin.MANUAL,
-                        LocalDateTime.now(), null, null);
+                        2L,
+                        5L,
+                        null,
+                        null,
+                        "Receita do mês",
+                        BigDecimal.valueOf(1000),
+                        LocalDate.of(2026, 9, 5),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
         Transaction expenseInPeriod =
                 new Transaction(
-                        3L, 5L, null, null, "Despesa do mês", BigDecimal.valueOf(300),
-                        LocalDate.of(2026, 9, 20), CategoryType.EXPENSE, TransactionOrigin.MANUAL,
-                        LocalDateTime.now(), null, null);
+                        3L,
+                        5L,
+                        null,
+                        null,
+                        "Despesa do mês",
+                        BigDecimal.valueOf(300),
+                        LocalDate.of(2026, 9, 20),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
                 .thenReturn(List.of(expenseInPeriod, beforePeriod, incomeInPeriod));
         when(receiptGeneratorPort.generateAccountStatement(any())).thenReturn(new byte[] {9});
@@ -297,27 +332,53 @@ class ReportApplicationServiceTest {
 
         Transaction january =
                 new Transaction(
-                        1L, 5L, null, 1L, "Serviço de janeiro", BigDecimal.valueOf(1000),
-                        LocalDate.of(2026, 1, 10), CategoryType.INCOME, TransactionOrigin.MANUAL,
-                        LocalDateTime.now(), null, null);
+                        1L,
+                        5L,
+                        null,
+                        1L,
+                        "Serviço de janeiro",
+                        BigDecimal.valueOf(1000),
+                        LocalDate.of(2026, 1, 10),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
         Transaction anotherInJanuary =
                 new Transaction(
-                        2L, 5L, null, 1L, "Segundo serviço de janeiro", BigDecimal.valueOf(500),
-                        LocalDate.of(2026, 1, 20), CategoryType.INCOME, TransactionOrigin.MANUAL,
-                        LocalDateTime.now(), null, null);
+                        2L,
+                        5L,
+                        null,
+                        1L,
+                        "Segundo serviço de janeiro",
+                        BigDecimal.valueOf(500),
+                        LocalDate.of(2026, 1, 20),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
         Transaction december =
                 new Transaction(
-                        3L, 5L, null, 1L, "Serviço de dezembro", BigDecimal.valueOf(300),
-                        LocalDate.of(2026, 12, 1), CategoryType.INCOME, TransactionOrigin.MANUAL,
-                        LocalDateTime.now(), null, null);
+                        3L,
+                        5L,
+                        null,
+                        1L,
+                        "Serviço de dezembro",
+                        BigDecimal.valueOf(300),
+                        LocalDate.of(2026, 12, 1),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
         when(transactionRepositoryPort.findAllByClientIdAndTypeAndDateBetween(
                         eq(1L),
                         eq(CategoryType.INCOME),
                         eq(LocalDate.of(2026, 1, 1)),
                         eq(LocalDate.of(2027, 1, 1))))
                 .thenReturn(List.of(january, anotherInJanuary, december));
-        when(receiptGeneratorPort.generateClientAnnualStatement(any()))
-                .thenReturn(new byte[] {7});
+        when(receiptGeneratorPort.generateClientAnnualStatement(any())).thenReturn(new byte[] {7});
 
         byte[] result = service.generateClientAnnualStatement(10L, 1L, Year.of(2026));
 

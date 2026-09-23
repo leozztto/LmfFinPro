@@ -334,7 +334,10 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         return table;
     }
 
-    /** Uma linha por mês do ano (mesmo os zerados), na ordem de janeiro a dezembro, com o total anual ao final. */
+    /**
+     * Uma linha por mês do ano (mesmo os zerados), na ordem de janeiro a dezembro, com o total
+     * anual ao final.
+     */
     private PdfPTable annualIncomeBlock(
             List<ClientAnnualStatementData.MonthlyIncome> monthlyIncomes, BigDecimal totalYear) {
         PdfPTable table = gridTable(new float[] {3f, 2f});
