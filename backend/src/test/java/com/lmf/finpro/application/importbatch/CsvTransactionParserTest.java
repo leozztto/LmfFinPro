@@ -34,7 +34,7 @@ class CsvTransactionParserTest {
                         + "2026-09-01,Salario,3000.00\n"
                         + "2026-09-02,Aluguel,-1500.50\n";
 
-        List<CsvTransactionParser.ParsedRow> rows = CsvTransactionParser.parse(csv(content));
+        List<ParsedTransactionRow> rows = CsvTransactionParser.parse(csv(content));
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).date()).isEqualTo(LocalDate.of(2026, 9, 1));
@@ -51,7 +51,7 @@ class CsvTransactionParserTest {
                         + "\n"
                         + "2026-09-02,Aluguel,-100\n";
 
-        List<CsvTransactionParser.ParsedRow> rows = CsvTransactionParser.parse(csv(content));
+        List<ParsedTransactionRow> rows = CsvTransactionParser.parse(csv(content));
 
         assertThat(rows).hasSize(2);
     }
@@ -133,7 +133,7 @@ class CsvTransactionParserTest {
     void acceptsHeaderWithExtraWhitespaceAndDifferentCase() {
         String content = "Date, Description , Amount\n2026-09-01,Salario,100\n";
 
-        List<CsvTransactionParser.ParsedRow> rows = CsvTransactionParser.parse(csv(content));
+        List<ParsedTransactionRow> rows = CsvTransactionParser.parse(csv(content));
 
         assertThat(rows).hasSize(1);
     }

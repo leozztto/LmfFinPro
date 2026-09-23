@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.ImportFormat;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
@@ -33,6 +34,26 @@ class ImportBatchIntegrationTest extends AbstractIntegrationTest {
         2026-01-05,UBER *TRIP HELP.UBER.COM,-32.50
         2026-01-06,PAGAMENTO CLIENTE ACME,4200.00
         2026-01-07,UBER *TRIP HELP.UBER.COM,-18.90
+        """;
+
+    private static final String VALID_OFX =
+            """
+        <OFX>
+        <BANKTRANLIST>
+        <STMTTRN>
+        <TRNTYPE>DEBIT
+        <DTPOSTED>20260105120000
+        <TRNAMT>-32.50
+        <MEMO>UBER *TRIP HELP.UBER.COM
+        </STMTTRN>
+        <STMTTRN>
+        <TRNTYPE>CREDIT
+        <DTPOSTED>20260106120000
+        <TRNAMT>4200.00
+        <MEMO>PAGAMENTO CLIENTE ACME
+        </STMTTRN>
+        </BANKTRANLIST>
+        </OFX>
         """;
 
     @Test
@@ -173,6 +194,77 @@ class ImportBatchIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void uploadsOfxAndCategorizesTransactionsUsingExistingRule() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long transportCategoryId = createCategory(user, CategoryType.EXPENSE);
+        createRule(user, "UBER", transportCategoryId);
+
+        ResponseEntity<ImportBatchResponse> uploadResponse =
+                restTemplate.exchange(
+                        "/api/import-batches",
+                        HttpMethod.POST,
+                        new HttpEntity<>(
+                                multipartBody(accountId, VALID_OFX, "extrato.ofx"),
+                                multipartHeaders(user)),
+                        ImportBatchResponse.class);
+
+        assertThat(uploadResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        ImportBatchResponse batch = uploadResponse.getBody();
+        assertThat(batch.format()).isEqualTo(ImportFormat.OFX);
+        assertThat(batch.transactionCount()).isEqualTo(2);
+        assertThat(batch.uncategorizedCount()).isEqualTo(1);
+
+        ResponseEntity<TransactionResponse[]> transactionsResponse =
+                restTemplate.exchange(
+                        "/api/import-batches/" + batch.id() + "/transactions",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        TransactionResponse[].class);
+        List<TransactionResponse> transactions = List.of(transactionsResponse.getBody());
+        assertThat(transactions)
+                .filteredOn(t -> t.description().contains("UBER"))
+                .allMatch(t -> transportCategoryId.equals(t.categoryId()));
+    }
+
+    @Test
+    void rejectsOfxWithNoTransactionBlocks() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/import-batches",
+                        HttpMethod.POST,
+                        new HttpEntity<>(
+                                multipartBody(
+                                        accountId,
+                                        "<OFX>\n<BANKTRANLIST>\n</BANKTRANLIST>\n</OFX>\n",
+                                        "extrato.ofx"),
+                                multipartHeaders(user)),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void rejectsFileWithUnsupportedExtension() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/import-batches",
+                        HttpMethod.POST,
+                        new HttpEntity<>(
+                                multipartBody(accountId, VALID_CSV, "extrato.txt"),
+                                multipartHeaders(user)),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void rejectsCsvWithInvalidHeader() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user);
@@ -217,14 +309,19 @@ class ImportBatchIntegrationTest extends AbstractIntegrationTest {
     }
 
     private MultiValueMap<String, Object> multipartBody(Long accountId, String csv) {
+        return multipartBody(accountId, csv, "extrato.csv");
+    }
+
+    private MultiValueMap<String, Object> multipartBody(
+            Long accountId, String fileContent, String filename) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("accountId", accountId.toString());
         body.add(
                 "file",
-                new ByteArrayResource(csv.getBytes(StandardCharsets.UTF_8)) {
+                new ByteArrayResource(fileContent.getBytes(StandardCharsets.UTF_8)) {
                     @Override
                     public String getFilename() {
-                        return "extrato.csv";
+                        return filename;
                     }
                 });
         return body;

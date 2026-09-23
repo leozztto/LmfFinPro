@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.importbatch;
 
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
+import com.lmf.finpro.domain.exception.ImportFileInvalidException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryRule;
@@ -17,6 +18,7 @@ import com.lmf.finpro.domain.port.out.ImportBatchRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -31,19 +33,23 @@ public class ImportApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
 
-    public ImportBatch importCsv(
-            Long currentUserId, Long accountId, String originalFileName, InputStream csvContent) {
+    public ImportBatch importFile(
+            Long currentUserId, Long accountId, String originalFileName, InputStream fileContent) {
         requireOwnedAccount(currentUserId, accountId);
-        List<CsvTransactionParser.ParsedRow> rows = CsvTransactionParser.parse(csvContent);
+        ImportFormat format = detectFormat(originalFileName);
+        List<ParsedTransactionRow> rows =
+                switch (format) {
+                    case CSV -> CsvTransactionParser.parse(fileContent);
+                    case OFX -> OfxTransactionParser.parse(fileContent);
+                };
 
         ImportBatch batch =
                 importBatchRepositoryPort.save(
-                        ImportBatch.start(
-                                currentUserId, accountId, originalFileName, ImportFormat.CSV));
+                        ImportBatch.start(currentUserId, accountId, originalFileName, format));
 
         List<CategoryRule> rules =
                 categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(currentUserId);
-        for (CsvTransactionParser.ParsedRow row : rows) {
+        for (ParsedTransactionRow row : rows) {
             CategoryType type =
                     row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
             Long categoryId = matchCategory(rules, row.description(), type);
@@ -110,6 +116,19 @@ public class ImportApplicationService {
         }
 
         return updated;
+    }
+
+    private ImportFormat detectFormat(String originalFileName) {
+        String lowerFileName =
+                originalFileName == null ? "" : originalFileName.toLowerCase(Locale.ROOT);
+        if (lowerFileName.endsWith(".csv")) {
+            return ImportFormat.CSV;
+        }
+        if (lowerFileName.endsWith(".ofx")) {
+            return ImportFormat.OFX;
+        }
+        throw new ImportFileInvalidException(
+                "Formato de arquivo não suportado. Envie um arquivo .csv ou .ofx.");
     }
 
     private Long matchCategory(
