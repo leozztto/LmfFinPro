@@ -11,7 +11,7 @@
 - ✅ Arquitetura em camadas hexagonal: `domain` (modelo + ports de saída) → `application` (services) → `infrastructure` (controllers, DTOs, adapters de persistência/segurança/cliente externo)
 - ✅ Autenticação completa e real: registro/login com JWT (`JwtService`, `JwtAuthenticationFilter`), Spring Security stateless — **não é mais `permitAll()` geral**; só `/api/auth/**`, `/api/cep/**`, Swagger e `/actuator/health` são públicos, todo o resto exige token
 - ✅ CRUD completo (Controller → Service → DTO) para **Account**, **Category**, **Transaction**, **Transfer** e **Client**, com regras de negócio de domínio (ex.: saldo insuficiente em transferência, bloqueio de exclusão de conta/categoria/cliente com registros vinculados via `EntityHasLinkedRecordsException`)
-- ✅ Importação de extrato CSV (`ImportBatchController`, upload multipart) com motor de categorização automática por `CategoryRule` (match por palavra-chave no descritivo, peso reforçado a cada correção manual do usuário)
+- ✅ Importação de extrato CSV e OFX (`ImportBatchController`, upload multipart; formato detectado pela extensão do arquivo em `ImportApplicationService.detectFormat`) com motor de categorização automática por `CategoryRule` (match por palavra-chave no descritivo, peso reforçado a cada correção manual do usuário) — `CsvTransactionParser` e `OfxTransactionParser` produzem a mesma linha intermediária agnóstica (`ParsedTransactionRow`), então todo o resto do pipeline (regras, criação de transação) é compartilhado entre os dois formatos
 - ✅ Integração com ViaCEP para autocompletar endereço no cadastro de usuário
 - ✅ Validação de CPF/CNPJ (`CpfValidator`, `CnpjValidator`) e modelagem de endereço (`Address`, `BrazilianState`)
 - ✅ Migrations Flyway V1 a V9 (schema inicial, CPF/telefone, troca para "documento" genérico, endereço, tabela de transferências, índices, detalhes/tipo de trabalho do cliente, índices de importação/regras)
@@ -27,7 +27,7 @@
 - ✅ Autenticação ponta a ponta: login/registro com validação (React Hook Form + Zod), autocomplete de CEP, validação de CPF/CNPJ, `AuthContext` + `ProtectedRoute` + armazenamento de JWT — inclui tratamento de sessão expirada: o `httpClient` nunca reagia a um 401 (token expirado, padrão de 1h no backend), deixando a sessão "logada" pra sempre no `localStorage` e toda tela presa num spinner que nunca resolvia; agora o `httpClient` limpa a sessão e emite `finpro:session-expired` (via `EventTarget` próprio, não `window`, pra funcionar igual em teste e browser), o `AuthContext` escuta e desloga de verdade, `ProtectedRoute` manda pra `/login` e um toast explica o motivo. Corrigido também um bug de UX: telas com várias chamadas em paralelo (ex.: Dashboard) recebiam vários 401 quase ao mesmo tempo quando a sessão expirava, e cada um disparava o evento — o usuário via vários toasts empilhados. Uma trava em `authStorage.ts` (`markSessionExpiredOnce`, resetada a cada novo login) garante que só a primeira notifica, validado ao vivo forçando um token inválido
 - ✅ CRUD funcional consumindo a API real para **Contas**, **Categorias**, **Clientes**, **Transações** e **Transferências** (cada módulo com client de API, hooks React Query, formulários e listas com filtros via `CollapsibleFilters`)
 - ✅ Dashboard com dados reais e gráficos (Recharts): cards com variação % vs. mês anterior, receita x despesa por mês, evolução do saldo consolidado, despesa e receita por categoria, **receita por cliente**, saldo por conta — transferências entre contas próprias excluídas dos cálculos de receita/despesa. Todo o cálculo é feito no backend (`DashboardController`/`DashboardAggregator`); cada gráfico busca seus dados com um hook próprio, aparecendo assim que a resposta chega
-- ✅ Importação de extrato: upload de CSV, lista de importações com status/contagem de "sem categoria", tela de revisão inline (categoria/cliente por transação) e CRUD de regras de categorização (`ImportsPage`, `CategoryRulesPanel`)
+- ✅ Importação de extrato: upload de CSV ou OFX (detectado pela extensão, `accept=".csv,.ofx"`), lista de importações com badge de formato, status/contagem de "sem categoria", tela de revisão inline (categoria/cliente por transação) e CRUD de regras de categorização (`ImportsPage`, `CategoryRulesPanel`)
 - ✅ Tema claro/escuro (`ThemeContext`/`ThemeToggle`), notificações toast, layout responsivo (`AppLayout`, `Footer`)
 - ✅ Biblioteca de componentes de UI reutilizáveis (Button, Card, Modal, Select, Input, FormField, Checkbox, FileInput, etc.)
 - ✅ Tela de impostos (`TaxEstimatesPage`): criação de estimativa por mês/regime com receita pré-preenchida a partir das transações e alíquota sugerida, listagem e remoção
@@ -79,7 +79,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ### Fase 2
 
-- Importação de OFX
+- Importação de OFX — ✅ **feito** (`OfxTransactionParser`, formato detectado pela extensão do arquivo; motor de categorização automática e demais regras de negócio compartilhados com o CSV via `ParsedTransactionRow`)
 - Aprendizado de categorização a partir das correções do usuário — ✅ **feito** (correção manual reforça/cria `CategoryRule`, ver seção 8)
 - Estimativa de imposto simplificada (educacional, não é orientação fiscal) — ✅ **feito**
 - Projeção de fluxo de caixa (média móvel + recebíveis futuros) — ✅ **feito**
