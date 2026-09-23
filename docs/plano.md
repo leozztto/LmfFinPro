@@ -152,7 +152,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 ## 10. Telas principais
 
 - Visão geral (saldo, receita/despesa, variação % e gráficos) — ✅ *feito*
-- Extrato (filtros por conta/categoria/período) — ✅ *feito* (`TransactionsPage` com `CollapsibleFilters`); filtro por cliente — ⬜ *pendente*
+- Extrato (filtros por conta/categoria/cliente/período) — ✅ *feito* (`TransactionsPage` com `CollapsibleFilters`)
 - Contas — ✅ *feito*
 - Categorias — ✅ *feito*
 - Transferências entre contas — ✅ *feito* (não previsto no plano original)

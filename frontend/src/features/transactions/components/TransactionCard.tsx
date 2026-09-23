@@ -9,18 +9,26 @@ interface TransactionCardProps {
   transaction: Transaction
   accountName: string
   categoryName?: string
+  clientName?: string
   onDelete: () => void
   isDeleting: boolean
 }
 
-export function TransactionCard({ transaction, accountName, categoryName, onDelete, isDeleting }: TransactionCardProps) {
+export function TransactionCard({
+  transaction,
+  accountName,
+  categoryName,
+  clientName,
+  onDelete,
+  isDeleting,
+}: TransactionCardProps) {
   const [open, setOpen] = useState(false)
   const isTransfer = transaction.transferId != null
   const amountClassName = transaction.type === 'INCOME' ? 'font-semibold text-[#5ab482]' : 'font-semibold text-[#f06464]'
   const amountLabel = `${transaction.type === 'INCOME' ? '+' : '-'} ${formatCurrency(transaction.amount)}`
   const metaLine = `${formatDateOnlyBr(transaction.transactionDate)} · ${accountName}${
     categoryName ? ` · ${categoryName}` : ''
-  }`
+  }${clientName ? ` · ${clientName}` : ''}`
 
   const removeButton = (
     <IconButton
