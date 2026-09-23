@@ -18,10 +18,9 @@ import java.util.Locale;
  * Lê o formato OFX (Open Financial Exchange) suportado para importação de extrato: um elemento por
  * linha, com ou sem fechamento de tag — cobre tanto OFX 1.x estilo SGML (ex.: {@code
  * <DTPOSTED>20260901120000}, sem {@code </DTPOSTED>}), o padrão mais comum em extratos exportados
- * por bancos brasileiros, quanto OFX 2.x XML bem formado (ex.: {@code
- * <MEMO>Aluguel</MEMO>}), desde que cada elemento continue em sua própria linha. Cada bloco {@code
- * <STMTTRN>...</STMTTRN>} vira uma {@link ParsedTransactionRow}; o sinal de {@code TRNAMT} é
- * preservado, igual ao parser de CSV.
+ * por bancos brasileiros, quanto OFX 2.x XML bem formado (ex.: {@code <MEMO>Aluguel</MEMO>}), desde
+ * que cada elemento continue em sua própria linha. Cada bloco {@code <STMTTRN>...</STMTTRN>} vira
+ * uma {@link ParsedTransactionRow}; o sinal de {@code TRNAMT} é preservado, igual ao parser de CSV.
  */
 public final class OfxTransactionParser {
 

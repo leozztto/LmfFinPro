@@ -93,7 +93,10 @@ class OfxTransactionParserTest {
 
     @Test
     void rejectsFileWithNoStmttrnBlocks() {
-        assertThatThrownBy(() -> OfxTransactionParser.parse(ofx("<OFX>\n<BANKTRANLIST>\n</BANKTRANLIST>\n</OFX>\n")))
+        assertThatThrownBy(
+                        () ->
+                                OfxTransactionParser.parse(
+                                        ofx("<OFX>\n<BANKTRANLIST>\n</BANKTRANLIST>\n</OFX>\n")))
                 .isInstanceOf(ImportFileInvalidException.class);
     }
 
@@ -129,7 +132,8 @@ class OfxTransactionParserTest {
 
     @Test
     void rejectsInvalidDate() {
-        String content = "<STMTTRN>\n<DTPOSTED>31-13-2026\n<TRNAMT>-10.00\n<MEMO>Compra\n</STMTTRN>\n";
+        String content =
+                "<STMTTRN>\n<DTPOSTED>31-13-2026\n<TRNAMT>-10.00\n<MEMO>Compra\n</STMTTRN>\n";
 
         assertThatThrownBy(() -> OfxTransactionParser.parse(ofx(content)))
                 .isInstanceOf(ImportFileInvalidException.class);

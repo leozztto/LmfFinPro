@@ -237,7 +237,10 @@ class ImportBatchIntegrationTest extends AbstractIntegrationTest {
                         "/api/import-batches",
                         HttpMethod.POST,
                         new HttpEntity<>(
-                                multipartBody(accountId, "<OFX>\n<BANKTRANLIST>\n</BANKTRANLIST>\n</OFX>\n", "extrato.ofx"),
+                                multipartBody(
+                                        accountId,
+                                        "<OFX>\n<BANKTRANLIST>\n</BANKTRANLIST>\n</OFX>\n",
+                                        "extrato.ofx"),
                                 multipartHeaders(user)),
                         ApiError.class);
 
