@@ -14,6 +14,9 @@ const STATUS_BADGE_CLASSES: Record<ImportStatus, string> = {
   FAILED: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 }
 
+const FORMAT_BADGE_CLASSNAME =
+  'rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-zinc-700 dark:text-zinc-200'
+
 export function ImportBatchList() {
   const { data: batches, isLoading } = useImportBatches()
   const { data: accounts } = useAccounts()
@@ -44,8 +47,9 @@ export function ImportBatchList() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate font-medium text-zinc-800 dark:text-zinc-100">
-                    {batch.originalFile ?? 'extrato.csv'}
+                    {batch.originalFile ?? 'extrato importado'}
                   </p>
+                  <span className={FORMAT_BADGE_CLASSNAME}>{batch.format}</span>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASSES[batch.status]}`}>
                     {IMPORT_STATUS_LABELS[batch.status]}
                   </span>

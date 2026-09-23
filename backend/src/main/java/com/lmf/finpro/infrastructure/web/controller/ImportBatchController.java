@@ -65,7 +65,7 @@ public class ImportBatchController {
             @RequestParam("file") MultipartFile file) {
         try (InputStream content = file.getInputStream()) {
             ImportBatch batch =
-                    importApplicationService.importCsv(
+                    importApplicationService.importFile(
                             currentUser.userId(), accountId, file.getOriginalFilename(), content);
             List<Transaction> transactions =
                     importApplicationService.listTransactions(currentUser.userId(), batch.id());

@@ -15,8 +15,8 @@ import java.util.List;
 /**
  * Lê o formato de CSV suportado para importação de extrato: cabeçalho fixo {@code
  * date,description,amount}, data ISO (aaaa-mm-dd), valor com ponto decimal — positivo é receita,
- * negativo é despesa. O sinal é consumido aqui; o {@link ParsedRow} sempre carrega um valor
- * absoluto e cabe ao chamador decidir o {@code CategoryType} a partir do sinal original.
+ * negativo é despesa. O sinal é preservado em {@link ParsedTransactionRow#signedAmount()}; cabe ao
+ * chamador decidir o {@code CategoryType} a partir dele.
  */
 public final class CsvTransactionParser {
 
@@ -24,10 +24,8 @@ public final class CsvTransactionParser {
 
     private CsvTransactionParser() {}
 
-    public record ParsedRow(LocalDate date, String description, BigDecimal signedAmount) {}
-
-    public static List<ParsedRow> parse(InputStream content) {
-        List<ParsedRow> rows = new ArrayList<>();
+    public static List<ParsedTransactionRow> parse(InputStream content) {
+        List<ParsedTransactionRow> rows = new ArrayList<>();
         try (BufferedReader reader =
                 new BufferedReader(new InputStreamReader(content, StandardCharsets.UTF_8))) {
             String headerLine = reader.readLine();
@@ -56,7 +54,7 @@ public final class CsvTransactionParser {
         return rows;
     }
 
-    private static ParsedRow parseRow(String line, int lineNumber) {
+    private static ParsedTransactionRow parseRow(String line, int lineNumber) {
         String[] columns = line.split(",", -1);
         if (columns.length != 3) {
             throw new ImportFileInvalidException(
@@ -88,7 +86,7 @@ public final class CsvTransactionParser {
                     "Linha " + lineNumber + ": valor não pode ser zero.");
         }
 
-        return new ParsedRow(date, description, amount);
+        return new ParsedTransactionRow(date, description, amount);
     }
 
     private static String normalizeHeader(String headerLine) {

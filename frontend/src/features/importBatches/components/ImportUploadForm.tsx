@@ -21,7 +21,7 @@ export function ImportUploadForm({ onSuccess }: ImportUploadFormProps) {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!accountId || !file) {
-      showToast('Selecione a conta e o arquivo CSV.')
+      showToast('Selecione a conta e o arquivo (CSV ou OFX).')
       return
     }
 
@@ -59,18 +59,19 @@ export function ImportUploadForm({ onSuccess }: ImportUploadFormProps) {
           ))}
         </Select>
       </FormField>
-      <FormField label="Arquivo CSV" htmlFor="import-file">
+      <FormField label="Arquivo (CSV ou OFX)" htmlFor="import-file">
         <FileInput
           id="import-file"
           ref={fileInputRef}
-          accept=".csv,text/csv"
+          accept=".csv,.ofx,text/csv"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
       </FormField>
       <div className="sm:col-span-2">
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Cabeçalho esperado: <code>date,description,amount</code> — data no formato aaaa-mm-dd, valor com ponto
-          decimal (positivo = receita, negativo = despesa).
+          O formato é detectado pela extensão do arquivo. CSV: cabeçalho <code>date,description,amount</code> — data
+          no formato aaaa-mm-dd, valor com ponto decimal (positivo = receita, negativo = despesa). OFX: extrato
+          exportado pelo banco, com um lançamento por bloco <code>&lt;STMTTRN&gt;</code>.
         </p>
       </div>
       <div className="sm:col-span-2">

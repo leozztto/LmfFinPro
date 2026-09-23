@@ -68,7 +68,7 @@ class ImportApplicationServiceTest {
 
         assertThatThrownBy(
                         () ->
-                                service.importCsv(
+                                service.importFile(
                                         10L,
                                         1L,
                                         "extrato.csv",
@@ -103,7 +103,7 @@ class ImportApplicationServiceTest {
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.importCsv(
+        service.importFile(
                 10L,
                 1L,
                 "extrato.csv",
@@ -127,7 +127,7 @@ class ImportApplicationServiceTest {
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.importCsv(
+        service.importFile(
                 10L,
                 1L,
                 "extrato.csv",
@@ -152,7 +152,7 @@ class ImportApplicationServiceTest {
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.importCsv(
+        service.importFile(
                 10L,
                 1L,
                 "extrato.csv",
@@ -175,7 +175,7 @@ class ImportApplicationServiceTest {
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.importCsv(
+        service.importFile(
                 10L,
                 1L,
                 "extrato.csv",
