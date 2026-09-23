@@ -8,6 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountStatementData;
+import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -19,6 +22,7 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.User;
+import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
@@ -40,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ReportApplicationServiceTest {
 
     @Mock private ClientRepositoryPort clientRepositoryPort;
+    @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private ReceiptGeneratorPort receiptGeneratorPort;
@@ -59,6 +64,12 @@ class ReportApplicationServiceTest {
                 null,
                 null,
                 true);
+    }
+
+    private static Account ownedAccount() {
+        return new Account(
+                5L, 10L, "Conta Corrente", AccountType.CHECKING, BigDecimal.valueOf(1000),
+                LocalDateTime.now());
     }
 
     private static User issuer() {
@@ -181,5 +192,88 @@ class ReportApplicationServiceTest {
         ArgumentCaptor<ClientReceiptData> captor = ArgumentCaptor.forClass(ClientReceiptData.class);
         verify(receiptGeneratorPort).generateClientReceipt(captor.capture());
         assertThat(captor.getValue().total()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void generateAccountStatementThrowsWhenAccountDoesNotBelongToCurrentUser() {
+        when(accountRepositoryPort.findById(5L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9)))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void generateAccountStatementThrowsWhenAccountBelongsToAnotherUser() {
+        Account otherUsersAccount =
+                new Account(
+                        5L, 999L, "Conta", AccountType.CHECKING, BigDecimal.ZERO,
+                        LocalDateTime.now());
+        when(accountRepositoryPort.findById(5L)).thenReturn(Optional.of(otherUsersAccount));
+
+        assertThatThrownBy(() -> service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9)))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void generateAccountStatementSeparatesTransactionsBeforeAndDuringThePeriod() {
+        Account account = ownedAccount();
+        User issuer = issuer();
+        when(accountRepositoryPort.findById(5L)).thenReturn(Optional.of(account));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer));
+
+        Transaction beforePeriod =
+                new Transaction(
+                        1L, 5L, null, null, "Antes do período", BigDecimal.valueOf(200),
+                        LocalDate.of(2026, 8, 15), CategoryType.INCOME, TransactionOrigin.MANUAL,
+                        LocalDateTime.now(), null, null);
+        Transaction incomeInPeriod =
+                new Transaction(
+                        2L, 5L, null, null, "Receita do mês", BigDecimal.valueOf(1000),
+                        LocalDate.of(2026, 9, 5), CategoryType.INCOME, TransactionOrigin.MANUAL,
+                        LocalDateTime.now(), null, null);
+        Transaction expenseInPeriod =
+                new Transaction(
+                        3L, 5L, null, null, "Despesa do mês", BigDecimal.valueOf(300),
+                        LocalDate.of(2026, 9, 20), CategoryType.EXPENSE, TransactionOrigin.MANUAL,
+                        LocalDateTime.now(), null, null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(expenseInPeriod, beforePeriod, incomeInPeriod));
+        when(receiptGeneratorPort.generateAccountStatement(any())).thenReturn(new byte[] {9});
+
+        byte[] result = service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9));
+
+        assertThat(result).containsExactly(9);
+        ArgumentCaptor<AccountStatementData> captor =
+                ArgumentCaptor.forClass(AccountStatementData.class);
+        verify(receiptGeneratorPort).generateAccountStatement(captor.capture());
+        AccountStatementData data = captor.getValue();
+        // saldo inicial (1000) + transação de agosto (200) = 1200
+        assertThat(data.openingBalance()).isEqualByComparingTo("1200");
+        assertThat(data.transactions()).containsExactly(incomeInPeriod, expenseInPeriod);
+        assertThat(data.totalIncome()).isEqualByComparingTo("1000");
+        assertThat(data.totalExpense()).isEqualByComparingTo("300");
+        // 1200 + 1000 - 300 = 1900
+        assertThat(data.closingBalance()).isEqualByComparingTo("1900");
+        assertThat(data.account()).isEqualTo(account);
+        assertThat(data.issuer()).isEqualTo(issuer);
+        assertThat(data.referenceMonth()).isEqualTo(YearMonth.of(2026, 9));
+    }
+
+    @Test
+    void generateAccountStatementUsesInitialBalanceAsOpeningWhenThereAreNoEarlierTransactions() {
+        when(accountRepositoryPort.findById(5L)).thenReturn(Optional.of(ownedAccount()));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(receiptGeneratorPort.generateAccountStatement(any())).thenReturn(new byte[0]);
+
+        service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<AccountStatementData> captor =
+                ArgumentCaptor.forClass(AccountStatementData.class);
+        verify(receiptGeneratorPort).generateAccountStatement(captor.capture());
+        AccountStatementData data = captor.getValue();
+        assertThat(data.openingBalance()).isEqualByComparingTo("1000");
+        assertThat(data.closingBalance()).isEqualByComparingTo("1000");
+        assertThat(data.transactions()).isEmpty();
     }
 }

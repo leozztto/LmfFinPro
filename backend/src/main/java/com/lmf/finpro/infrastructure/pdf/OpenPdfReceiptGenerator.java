@@ -1,6 +1,10 @@
 package com.lmf.finpro.infrastructure.pdf;
 
+import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountStatementData;
+import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
+import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.DocumentType;
@@ -23,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
@@ -63,29 +68,15 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             PdfWriter.getInstance(document, output);
             document.open();
 
-            String monthLabel =
-                    capitalize(
-                                    data.referenceMonth()
-                                            .getMonth()
-                                            .getDisplayName(TextStyle.FULL, PT_BR))
-                            + " de "
-                            + data.referenceMonth().getYear();
+            String monthLabel = monthLabel(data.referenceMonth());
 
-            document.add(titleBlock(monthLabel));
+            document.add(titleBlock("RECIBO DE PRESTAÇÃO DE SERVIÇOS", monthLabel));
             document.add(partyBlock("PRESTADOR DO SERVIÇO", issuerFields(data.issuer())));
             document.add(partyBlock("TOMADOR DO SERVIÇO", clientFields(data.client())));
             document.add(declarationBlock(data.client().name(), monthLabel, data.total()));
             document.add(transactionsBlock(data.transactions(), data.total()));
             document.add(placeDateSignatureBlock(data.issuer()));
-
-            Paragraph footer =
-                    new Paragraph(
-                            "Documento gerado automaticamente pelo FinPro em "
-                                    + LocalDateTime.now().format(TIMESTAMP_FORMAT)
-                                    + ". Não possui validade fiscal.",
-                            FOOTER_FONT);
-            footer.setSpacingBefore(6);
-            document.add(footer);
+            document.add(footer("recibo"));
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar o PDF do recibo.", e);
         } finally {
@@ -94,13 +85,58 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         return output.toByteArray();
     }
 
+    @Override
+    public byte[] generateAccountStatement(AccountStatementData data) {
+        Document document = new Document(PageSize.A4, 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            String monthLabel = monthLabel(data.referenceMonth());
+
+            document.add(titleBlock("EXTRATO DE CONTA", monthLabel));
+            document.add(partyBlock("TITULAR", issuerFields(data.issuer())));
+            document.add(accountBlock(data.account(), data.openingBalance()));
+            document.add(statementTransactionsBlock(data));
+            document.add(
+                    statementTotalsBlock(
+                            data.totalIncome(), data.totalExpense(), data.closingBalance()));
+            document.add(footer("extrato"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do extrato.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    private String monthLabel(YearMonth referenceMonth) {
+        return capitalize(referenceMonth.getMonth().getDisplayName(TextStyle.FULL, PT_BR))
+                + " de "
+                + referenceMonth.getYear();
+    }
+
+    private Paragraph footer(String documentNoun) {
+        Paragraph footer =
+                new Paragraph(
+                        "Documento gerado automaticamente pelo FinPro em "
+                                + LocalDateTime.now().format(TIMESTAMP_FORMAT)
+                                + ". Este "
+                                + documentNoun
+                                + " não possui validade fiscal.",
+                        FOOTER_FONT);
+        footer.setSpacingBefore(6);
+        return footer;
+    }
+
     /**
      * Título à esquerda; à direita, os cabeçalhos "Referência" e "Emissão" com os valores abaixo.
      */
-    private PdfPTable titleBlock(String monthLabel) {
+    private PdfPTable titleBlock(String titleText, String monthLabel) {
         PdfPTable table = gridTable(new float[] {4f, 1.3f, 1.3f});
 
-        PdfPCell title = new PdfPCell(new Paragraph("RECIBO DE PRESTAÇÃO DE SERVIÇOS", TITLE_FONT));
+        PdfPCell title = new PdfPCell(new Paragraph(titleText, TITLE_FONT));
         title.setRowspan(2);
         title.setVerticalAlignment(Element.ALIGN_MIDDLE);
         title.setPadding(10);
@@ -196,6 +232,91 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(totalLabel);
         table.addCell(amountCell(formatCurrency(total), TOTAL_FONT));
         return table;
+    }
+
+    /** Nome/tipo da conta e o saldo de abertura do período (saldo inicial + tudo antes dele). */
+    private PdfPTable accountBlock(Account account, BigDecimal openingBalance) {
+        PdfPTable table = gridTable(new float[] {0.9f, 2.4f, 0.9f, 2.4f});
+
+        PdfPCell header = headerCell("DADOS DA CONTA");
+        header.setColspan(4);
+        table.addCell(header);
+
+        table.addCell(labelCell("Conta"));
+        table.addCell(valueCell(account.name()));
+        table.addCell(labelCell("Tipo"));
+        table.addCell(valueCell(accountTypeLabel(account.type())));
+
+        table.addCell(labelCell("Saldo de abertura"));
+        table.addCell(valueCell(formatCurrency(openingBalance)));
+        table.completeRow();
+        return table;
+    }
+
+    /** Movimentação do período com saldo corrente calculado linha a linha a partir da abertura. */
+    private PdfPTable statementTransactionsBlock(AccountStatementData data) {
+        PdfPTable table = gridTable(new float[] {1.1f, 3.2f, 1f, 1.2f, 1.3f});
+
+        PdfPCell section = headerCell("MOVIMENTAÇÃO DO PERÍODO");
+        section.setColspan(5);
+        table.addCell(section);
+
+        table.addCell(labelCell("Data"));
+        table.addCell(labelCell("Descrição"));
+        table.addCell(labelCell("Tipo"));
+        PdfPCell valueHeader = labelCell("Valor");
+        valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(valueHeader);
+        PdfPCell balanceHeader = labelCell("Saldo");
+        balanceHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(balanceHeader);
+
+        if (data.transactions().isEmpty()) {
+            PdfPCell empty = valueCell("Nenhuma movimentação registrada neste período.");
+            empty.setColspan(5);
+            table.addCell(empty);
+        } else {
+            BigDecimal runningBalance = data.openingBalance();
+            for (Transaction transaction : data.transactions()) {
+                boolean isIncome = transaction.type() == CategoryType.INCOME;
+                runningBalance =
+                        isIncome
+                                ? runningBalance.add(transaction.amount())
+                                : runningBalance.subtract(transaction.amount());
+
+                table.addCell(valueCell(transaction.transactionDate().format(DATE_FORMAT)));
+                table.addCell(valueCell(transaction.description()));
+                table.addCell(valueCell(isIncome ? "Receita" : "Despesa"));
+                table.addCell(
+                        amountCell(
+                                (isIncome ? "+ " : "- ") + formatCurrency(transaction.amount()),
+                                BODY_FONT));
+                table.addCell(amountCell(formatCurrency(runningBalance), BODY_FONT));
+            }
+        }
+        return table;
+    }
+
+    private PdfPTable statementTotalsBlock(
+            BigDecimal totalIncome, BigDecimal totalExpense, BigDecimal closingBalance) {
+        PdfPTable table = gridTable(new float[] {1f, 1f, 1f});
+
+        table.addCell(headerCell("TOTAL DE RECEITAS"));
+        table.addCell(headerCell("TOTAL DE DESPESAS"));
+        table.addCell(headerCell("SALDO FINAL DO PERÍODO"));
+
+        table.addCell(amountCell(formatCurrency(totalIncome), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(closingBalance), TOTAL_FONT));
+        return table;
+    }
+
+    private String accountTypeLabel(AccountType type) {
+        return switch (type) {
+            case CHECKING -> "Conta corrente";
+            case SAVINGS -> "Poupança";
+            case WALLET -> "Carteira";
+        };
     }
 
     /** Linha final "Localidade | Data | Assinatura", com espaço em branco para assinar à mão. */

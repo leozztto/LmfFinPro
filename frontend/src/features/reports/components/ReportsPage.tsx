@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FormField, Select } from '@/shared/ui'
 import { REPORT_TYPE_LABELS, type ReportType } from '../types'
 import { ClientReceiptForm } from './ClientReceiptForm'
+import { AccountStatementForm } from './AccountStatementForm'
 
 export function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('CLIENT_RECEIPT')
@@ -32,6 +33,7 @@ export function ReportsPage() {
       </div>
 
       {reportType === 'CLIENT_RECEIPT' && <ClientReceiptForm />}
+      {reportType === 'ACCOUNT_STATEMENT' && <AccountStatementForm />}
     </div>
   )
 }

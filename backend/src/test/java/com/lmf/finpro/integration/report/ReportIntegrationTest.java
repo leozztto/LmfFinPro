@@ -102,6 +102,86 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void generatesAccountStatementPdfForOwnedAccountAndPeriod() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        createIncomeTransaction(
+                user, accountId, null, "Receita do mês", "1000.00", LocalDate.of(2026, 9, 5));
+        createExpenseTransaction(
+                user, accountId, "Despesa do mês", "300.00", LocalDate.of(2026, 9, 20));
+        // fora do período pedido — entra no saldo de abertura, não na lista do extrato
+        createIncomeTransaction(
+                user, accountId, null, "Receita de agosto", "200.00", LocalDate.of(2026, 8, 15));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/account-statement?accountId="
+                                + accountId
+                                + "&referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void returnsNotFoundWhenAccountBelongsToAnotherUser() {
+        TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
+        TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(owner);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/reports/account-statement?accountId="
+                                + accountId
+                                + "&referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(intruder.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void returnsNotFoundWhenAccountDoesNotExist() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/reports/account-statement?accountId=999999&referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    private void createExpenseTransaction(
+            TestUser user, Long accountId, String description, String amount, LocalDate date) {
+        TransactionRequest request =
+                new TransactionRequest(
+                        accountId,
+                        null,
+                        null,
+                        description,
+                        new BigDecimal(amount),
+                        date,
+                        CategoryType.EXPENSE);
+        restTemplate.exchange(
+                "/api/transactions",
+                HttpMethod.POST,
+                new HttpEntity<>(request, user.authHeaders()),
+                TransactionResponse.class);
+    }
+
     private void createIncomeTransaction(
             TestUser user,
             Long accountId,

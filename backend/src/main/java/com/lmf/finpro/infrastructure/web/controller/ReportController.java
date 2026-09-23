@@ -38,4 +38,22 @@ public class ReportController {
                         "attachment; filename=\"" + filename + "\"")
                 .body(pdf);
     }
+
+    @GetMapping(value = "/account-statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> accountStatement(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam Long accountId,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
+        byte[] pdf =
+                reportApplicationService.generateAccountStatement(
+                        currentUser.userId(), accountId, referenceMonth);
+
+        String filename = "extrato-conta-" + accountId + "-" + referenceMonth + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
 }

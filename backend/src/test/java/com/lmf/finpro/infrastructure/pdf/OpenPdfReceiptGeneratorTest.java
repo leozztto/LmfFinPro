@@ -2,6 +2,9 @@ package com.lmf.finpro.infrastructure.pdf;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountStatementData;
+import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -78,6 +81,11 @@ class OpenPdfReceiptGeneratorTest {
     }
 
     private static Transaction transaction(String description, String amount, LocalDate date) {
+        return transaction(description, amount, date, CategoryType.INCOME);
+    }
+
+    private static Transaction transaction(
+            String description, String amount, LocalDate date, CategoryType type) {
         return new Transaction(
                 1L,
                 5L,
@@ -86,11 +94,17 @@ class OpenPdfReceiptGeneratorTest {
                 description,
                 new BigDecimal(amount),
                 date,
-                CategoryType.INCOME,
+                type,
                 TransactionOrigin.MANUAL,
                 LocalDateTime.now(),
                 null,
                 null);
+    }
+
+    private static Account account() {
+        return new Account(
+                5L, 10L, "Conta Corrente", AccountType.CHECKING, new BigDecimal("1000.00"),
+                LocalDateTime.now());
     }
 
     @Test
@@ -137,6 +151,53 @@ class OpenPdfReceiptGeneratorTest {
                         BigDecimal.ZERO);
 
         byte[] pdf = generator.generateClientReceipt(data);
+
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesAnAccountStatementPdfDocumentStartingWithThePdfMagicBytes() {
+        AccountStatementData data =
+                new AccountStatementData(
+                        issuer(),
+                        account(),
+                        YearMonth.of(2026, 9),
+                        new BigDecimal("1000.00"),
+                        List.of(
+                                transaction(
+                                        "Receita do mês",
+                                        "1000.00",
+                                        LocalDate.of(2026, 9, 5),
+                                        CategoryType.INCOME),
+                                transaction(
+                                        "Despesa do mês",
+                                        "300.00",
+                                        LocalDate.of(2026, 9, 20),
+                                        CategoryType.EXPENSE)),
+                        new BigDecimal("1000.00"),
+                        new BigDecimal("300.00"),
+                        new BigDecimal("1700.00"));
+
+        byte[] pdf = generator.generateAccountStatement(data);
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesAnAccountStatementPdfEvenWithNoTransactionsInThePeriod() {
+        AccountStatementData data =
+                new AccountStatementData(
+                        issuer(),
+                        account(),
+                        YearMonth.of(2026, 9),
+                        new BigDecimal("1000.00"),
+                        List.of(),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        new BigDecimal("1000.00"));
+
+        byte[] pdf = generator.generateAccountStatement(data);
 
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
