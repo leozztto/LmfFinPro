@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, httpClient } from './httpClient'
 
-const { getStoredToken, clearSession, authEvents } = vi.hoisted(() => ({
+const { getStoredToken, clearSession, markSessionExpiredOnce, authEvents } = vi.hoisted(() => ({
   getStoredToken: vi.fn(),
   clearSession: vi.fn(),
+  markSessionExpiredOnce: vi.fn(),
   authEvents: new EventTarget(),
 }))
 
 vi.mock('@/shared/auth/authStorage', () => ({
   getStoredToken,
   clearSession,
+  markSessionExpiredOnce,
   authEvents,
   SESSION_EXPIRED_EVENT: 'finpro:session-expired',
 }))
@@ -22,6 +24,8 @@ describe('httpClient', () => {
   beforeEach(() => {
     getStoredToken.mockReturnValue(null)
     clearSession.mockReset()
+    markSessionExpiredOnce.mockReset()
+    markSessionExpiredOnce.mockReturnValue(true)
     vi.stubGlobal('fetch', vi.fn())
   })
 
@@ -128,6 +132,21 @@ describe('httpClient', () => {
 
     expect(clearSession).toHaveBeenCalledTimes(1)
     expect(listener).toHaveBeenCalledTimes(1)
+    authEvents.removeEventListener('finpro:session-expired', listener)
+  })
+
+  it('does not emit the session-expired event again when markSessionExpiredOnce says it already fired', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ message: 'Token inválido' }, 401))
+    markSessionExpiredOnce.mockReturnValue(false)
+    const listener = vi.fn()
+    authEvents.addEventListener('finpro:session-expired', listener)
+
+    // Simula duas requisições em paralelo recebendo 401 ao mesmo tempo (ex: Dashboard).
+    await expect(httpClient.get('/accounts')).rejects.toThrow()
+    await expect(httpClient.get('/categories')).rejects.toThrow()
+
+    expect(clearSession).toHaveBeenCalledTimes(2)
+    expect(listener).not.toHaveBeenCalled()
     authEvents.removeEventListener('finpro:session-expired', listener)
   })
 })
