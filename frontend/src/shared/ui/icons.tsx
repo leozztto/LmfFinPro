@@ -397,6 +397,25 @@ export function TargetIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function HelpCircleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.3 9a2.7 2.7 0 1 1 3.7 2.5c-.8.4-1 .8-1 1.7" />
+      <circle cx="12" cy="16.7" r="0.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function LinkedInIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" {...props}>
