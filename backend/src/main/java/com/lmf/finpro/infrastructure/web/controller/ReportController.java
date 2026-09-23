@@ -1,6 +1,7 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.report.ReportApplicationService;
+import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import java.time.Year;
 import java.time.YearMonth;
@@ -85,6 +86,24 @@ public class ReportController {
                         currentUser.userId(), referenceMonth);
 
         String filename = "despesas-por-categoria-" + referenceMonth + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
+
+    @GetMapping(value = "/income-statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> incomeStatement(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam @DateTimeFormat(pattern = "yyyy") Year year,
+            @RequestParam ReportGranularity granularity) {
+        byte[] pdf =
+                reportApplicationService.generateIncomeStatement(
+                        currentUser.userId(), year, granularity);
+
+        String filename = "resultado-periodo-" + year + "-" + granularity + ".pdf";
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(

@@ -4,6 +4,7 @@ import type {
   CategoryExpenseReportInput,
   ClientAnnualStatementInput,
   ClientReceiptInput,
+  IncomeStatementInput,
 } from '../types'
 
 export const reportsApi = {
@@ -21,4 +22,8 @@ export const reportsApi = {
     ),
   downloadCategoryExpenseReport: (input: CategoryExpenseReportInput) =>
     httpClient.getBlob(`/reports/category-expenses?referenceMonth=${input.referenceMonth}`),
+  downloadIncomeStatement: (input: IncomeStatementInput) =>
+    httpClient.getBlob(
+      `/reports/income-statement?year=${input.year}&granularity=${input.granularity}`,
+    ),
 }

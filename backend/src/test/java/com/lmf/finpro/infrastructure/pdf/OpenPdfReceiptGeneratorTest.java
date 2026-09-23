@@ -14,6 +14,8 @@ import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
@@ -265,5 +267,83 @@ class OpenPdfReceiptGeneratorTest {
         byte[] pdf = generator.generateCategoryExpenseReport(data);
 
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesAnIncomeStatementPdfDocumentStartingWithThePdfMagicBytes() {
+        List<IncomeStatementData.PeriodResult> periods =
+                Arrays.stream(Month.values())
+                        .map(
+                                month ->
+                                        new IncomeStatementData.PeriodResult(
+                                                month == Month.JANUARY ? "Janeiro" : month.name(),
+                                                month == Month.JANUARY
+                                                        ? new BigDecimal("1000.00")
+                                                        : BigDecimal.ZERO,
+                                                month == Month.JANUARY
+                                                        ? new BigDecimal("300.00")
+                                                        : BigDecimal.ZERO,
+                                                month == Month.JANUARY
+                                                        ? new BigDecimal("700.00")
+                                                        : BigDecimal.ZERO))
+                        .toList();
+        IncomeStatementData data =
+                new IncomeStatementData(
+                        issuer(),
+                        Year.of(2026),
+                        ReportGranularity.MONTHLY,
+                        periods,
+                        new BigDecimal("1000.00"),
+                        new BigDecimal("300.00"),
+                        new BigDecimal("700.00"));
+
+        byte[] pdf = generator.generateIncomeStatement(data);
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesAnIncomeStatementPdfForQuarterlyAndYearlyGranularities() {
+        IncomeStatementData quarterly =
+                new IncomeStatementData(
+                        issuer(),
+                        Year.of(2026),
+                        ReportGranularity.QUARTERLY,
+                        List.of(
+                                new IncomeStatementData.PeriodResult(
+                                        "1º trimestre",
+                                        BigDecimal.ZERO,
+                                        BigDecimal.ZERO,
+                                        BigDecimal.ZERO)),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO);
+        IncomeStatementData yearly =
+                new IncomeStatementData(
+                        issuer(),
+                        Year.of(2026),
+                        ReportGranularity.YEARLY,
+                        List.of(
+                                new IncomeStatementData.PeriodResult(
+                                        "2026", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO);
+
+        assertThat(
+                        new String(
+                                generator.generateIncomeStatement(quarterly),
+                                0,
+                                4,
+                                StandardCharsets.ISO_8859_1))
+                .isEqualTo("%PDF");
+        assertThat(
+                        new String(
+                                generator.generateIncomeStatement(yearly),
+                                0,
+                                4,
+                                StandardCharsets.ISO_8859_1))
+                .isEqualTo("%PDF");
     }
 }

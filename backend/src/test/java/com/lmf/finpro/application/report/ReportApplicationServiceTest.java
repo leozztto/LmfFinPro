@@ -21,6 +21,8 @@ import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
@@ -602,6 +604,224 @@ class ReportApplicationServiceTest {
         CategoryExpenseReportData data = captor.getValue();
         assertThat(data.categoryExpenses()).isEmpty();
         assertThat(data.totalExpense()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void generateIncomeStatementMonthlyAggregatesPerMonthAndExcludesTransfersAndOtherYears() {
+        User issuer = issuer();
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer));
+        Account account = ownedAccount();
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(account));
+
+        Transaction januaryIncome =
+                new Transaction(
+                        1L,
+                        5L,
+                        null,
+                        null,
+                        "Receita de janeiro",
+                        BigDecimal.valueOf(1000),
+                        LocalDate.of(2026, 1, 10),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction januaryExpense =
+                new Transaction(
+                        2L,
+                        5L,
+                        null,
+                        null,
+                        "Despesa de janeiro",
+                        BigDecimal.valueOf(300),
+                        LocalDate.of(2026, 1, 15),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction transfer =
+                new Transaction(
+                        3L,
+                        5L,
+                        null,
+                        null,
+                        "Transferência entre contas",
+                        BigDecimal.valueOf(5000),
+                        LocalDate.of(2026, 1, 20),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        99L,
+                        null);
+        Transaction previousYear =
+                new Transaction(
+                        4L,
+                        5L,
+                        null,
+                        null,
+                        "Receita de dezembro do ano anterior",
+                        BigDecimal.valueOf(9999),
+                        LocalDate.of(2025, 12, 31),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(januaryIncome, januaryExpense, transfer, previousYear));
+        when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.MONTHLY);
+
+        assertThat(result).containsExactly(1);
+        ArgumentCaptor<IncomeStatementData> captor =
+                ArgumentCaptor.forClass(IncomeStatementData.class);
+        verify(receiptGeneratorPort).generateIncomeStatement(captor.capture());
+        IncomeStatementData data = captor.getValue();
+
+        assertThat(data.periods()).hasSize(12);
+        IncomeStatementData.PeriodResult january = data.periods().get(0);
+        assertThat(january.income()).isEqualByComparingTo("1000");
+        assertThat(january.expense()).isEqualByComparingTo("300");
+        assertThat(january.result()).isEqualByComparingTo("700");
+        assertThat(data.periods().get(1).income()).isEqualByComparingTo("0");
+        assertThat(data.periods().get(1).expense()).isEqualByComparingTo("0");
+        assertThat(data.totalIncome()).isEqualByComparingTo("1000");
+        assertThat(data.totalExpense()).isEqualByComparingTo("300");
+        assertThat(data.totalResult()).isEqualByComparingTo("700");
+        assertThat(data.issuer()).isEqualTo(issuer);
+        assertThat(data.referenceYear()).isEqualTo(Year.of(2026));
+        assertThat(data.granularity()).isEqualTo(ReportGranularity.MONTHLY);
+    }
+
+    @Test
+    void generateIncomeStatementQuarterlyAggregatesPerQuarter() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        Account account = ownedAccount();
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(account));
+
+        Transaction firstQuarterIncome =
+                new Transaction(
+                        1L,
+                        5L,
+                        null,
+                        null,
+                        "Receita de fevereiro",
+                        BigDecimal.valueOf(1200),
+                        LocalDate.of(2026, 2, 10),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction secondQuarterExpense =
+                new Transaction(
+                        2L,
+                        5L,
+                        null,
+                        null,
+                        "Despesa de maio",
+                        BigDecimal.valueOf(400),
+                        LocalDate.of(2026, 5, 5),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(firstQuarterIncome, secondQuarterExpense));
+        when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[0]);
+
+        service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.QUARTERLY);
+
+        ArgumentCaptor<IncomeStatementData> captor =
+                ArgumentCaptor.forClass(IncomeStatementData.class);
+        verify(receiptGeneratorPort).generateIncomeStatement(captor.capture());
+        IncomeStatementData data = captor.getValue();
+
+        assertThat(data.periods()).hasSize(4);
+        assertThat(data.periods().get(0).income()).isEqualByComparingTo("1200");
+        assertThat(data.periods().get(0).expense()).isEqualByComparingTo("0");
+        assertThat(data.periods().get(1).income()).isEqualByComparingTo("0");
+        assertThat(data.periods().get(1).expense()).isEqualByComparingTo("400");
+        assertThat(data.periods().get(2).result()).isEqualByComparingTo("0");
+        assertThat(data.totalIncome()).isEqualByComparingTo("1200");
+        assertThat(data.totalExpense()).isEqualByComparingTo("400");
+    }
+
+    @Test
+    void generateIncomeStatementYearlySumsTheWholeYearIntoASinglePeriod() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+
+        Transaction income =
+                new Transaction(
+                        1L,
+                        5L,
+                        null,
+                        null,
+                        "Receita",
+                        BigDecimal.valueOf(2000),
+                        LocalDate.of(2026, 3, 1),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction expense =
+                new Transaction(
+                        2L,
+                        5L,
+                        null,
+                        null,
+                        "Despesa",
+                        BigDecimal.valueOf(800),
+                        LocalDate.of(2026, 11, 1),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(income, expense));
+        when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[0]);
+
+        service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.YEARLY);
+
+        ArgumentCaptor<IncomeStatementData> captor =
+                ArgumentCaptor.forClass(IncomeStatementData.class);
+        verify(receiptGeneratorPort).generateIncomeStatement(captor.capture());
+        IncomeStatementData data = captor.getValue();
+
+        assertThat(data.periods()).hasSize(1);
+        assertThat(data.periods().get(0).label()).isEqualTo("2026");
+        assertThat(data.periods().get(0).income()).isEqualByComparingTo("2000");
+        assertThat(data.periods().get(0).expense()).isEqualByComparingTo("800");
+        assertThat(data.periods().get(0).result()).isEqualByComparingTo("1200");
+        assertThat(data.totalResult()).isEqualByComparingTo("1200");
+    }
+
+    @Test
+    void generateIncomeStatementReturnsAllZeroTotalsWhenThereAreNoTransactions() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[0]);
+
+        service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.MONTHLY);
+
+        ArgumentCaptor<IncomeStatementData> captor =
+                ArgumentCaptor.forClass(IncomeStatementData.class);
+        verify(receiptGeneratorPort).generateIncomeStatement(captor.capture());
+        IncomeStatementData data = captor.getValue();
+        assertThat(data.totalIncome()).isEqualByComparingTo("0");
+        assertThat(data.totalExpense()).isEqualByComparingTo("0");
+        assertThat(data.totalResult()).isEqualByComparingTo("0");
+        assertThat(data.periods())
+                .allMatch(period -> period.result().compareTo(BigDecimal.ZERO) == 0);
     }
 
     private static BigDecimal monthlyTotal(ClientAnnualStatementData data, Month month) {

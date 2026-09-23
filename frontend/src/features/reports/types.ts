@@ -3,6 +3,9 @@ export type ReportType =
   | 'ACCOUNT_STATEMENT'
   | 'CLIENT_ANNUAL_STATEMENT'
   | 'CATEGORY_EXPENSE_REPORT'
+  | 'INCOME_STATEMENT'
+
+export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
 
 export interface ClientReceiptInput {
   clientId: number
@@ -23,9 +26,21 @@ export interface CategoryExpenseReportInput {
   referenceMonth: string
 }
 
+export interface IncomeStatementInput {
+  year: string
+  granularity: ReportGranularity
+}
+
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   CLIENT_RECEIPT: 'Recibo por cliente',
   ACCOUNT_STATEMENT: 'Extrato de conta',
   CLIENT_ANNUAL_STATEMENT: 'Demonstrativo anual por cliente',
   CATEGORY_EXPENSE_REPORT: 'Despesas por categoria',
+  INCOME_STATEMENT: 'Resultado do período (DRE)',
+}
+
+export const REPORT_GRANULARITY_LABELS: Record<ReportGranularity, string> = {
+  MONTHLY: 'Mensal',
+  QUARTERLY: 'Trimestral',
+  YEARLY: 'Anual',
 }

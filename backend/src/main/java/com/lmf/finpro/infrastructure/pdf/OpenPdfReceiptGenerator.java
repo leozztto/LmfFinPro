@@ -10,6 +10,8 @@ import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
@@ -150,6 +152,34 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             document.add(titleBlock("DESPESAS POR CATEGORIA", monthLabel));
             document.add(partyBlock("TITULAR", issuerFields(data.issuer())));
             document.add(categoryExpensesBlock(data.categoryExpenses(), data.totalExpense()));
+            document.add(footer("relatório"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    @Override
+    public byte[] generateIncomeStatement(IncomeStatementData data) {
+        Document document = new Document(PageSize.A4, 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            String referenceLabel =
+                    data.referenceYear() + " (" + granularityLabel(data.granularity()) + ")";
+
+            document.add(titleBlock("RESULTADO DO PERÍODO (DRE)", referenceLabel));
+            document.add(partyBlock("TITULAR", issuerFields(data.issuer())));
+            document.add(
+                    incomeStatementBlock(
+                            data.periods(),
+                            data.totalIncome(),
+                            data.totalExpense(),
+                            data.totalResult()));
             document.add(footer("relatório"));
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
@@ -415,6 +445,52 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(totalLabel);
         table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
         return table;
+    }
+
+    /** Uma linha por período (mês, trimestre ou ano) com receita, despesa e resultado. */
+    private PdfPTable incomeStatementBlock(
+            List<IncomeStatementData.PeriodResult> periods,
+            BigDecimal totalIncome,
+            BigDecimal totalExpense,
+            BigDecimal totalResult) {
+        PdfPTable table = gridTable(new float[] {1.6f, 1.3f, 1.3f, 1.3f});
+
+        PdfPCell section = headerCell("RESULTADO POR PERÍODO");
+        section.setColspan(4);
+        table.addCell(section);
+
+        table.addCell(labelCell("Período"));
+        PdfPCell incomeHeader = labelCell("Receita");
+        incomeHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(incomeHeader);
+        PdfPCell expenseHeader = labelCell("Despesa");
+        expenseHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(expenseHeader);
+        PdfPCell resultHeader = labelCell("Resultado");
+        resultHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(resultHeader);
+
+        for (IncomeStatementData.PeriodResult period : periods) {
+            table.addCell(valueCell(period.label()));
+            table.addCell(amountCell(formatCurrency(period.income()), BODY_FONT));
+            table.addCell(amountCell(formatCurrency(period.expense()), BODY_FONT));
+            table.addCell(amountCell(formatCurrency(period.result()), BODY_FONT));
+        }
+
+        PdfPCell totalLabel = headerCell("TOTAL DO PERÍODO");
+        table.addCell(totalLabel);
+        table.addCell(amountCell(formatCurrency(totalIncome), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalResult), TOTAL_FONT));
+        return table;
+    }
+
+    private String granularityLabel(ReportGranularity granularity) {
+        return switch (granularity) {
+            case MONTHLY -> "Mensal";
+            case QUARTERLY -> "Trimestral";
+            case YEARLY -> "Anual";
+        };
     }
 
     private String monthLabelOnly(Month month) {

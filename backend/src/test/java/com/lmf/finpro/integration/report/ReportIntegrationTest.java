@@ -288,6 +288,85 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 
+    @Test
+    void generatesIncomeStatementPdfConsolidatingIncomeAndExpensePerMonth() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        createIncomeTransaction(
+                user, accountId, null, "Receita de janeiro", "1000.00", LocalDate.of(2026, 1, 10));
+        createExpenseTransaction(
+                user, accountId, "Despesa de janeiro", "300.00", LocalDate.of(2026, 1, 20));
+        // fora do ano pedido — não deve entrar no resultado
+        createIncomeTransaction(
+                user,
+                accountId,
+                null,
+                "Receita do ano anterior",
+                "9999.00",
+                LocalDate.of(2025, 12, 31));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/income-statement?year=2026&granularity=MONTHLY",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void generatesIncomeStatementPdfWithQuarterlyAndYearlyGranularity() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        createIncomeTransaction(
+                user, accountId, null, "Receita de março", "2000.00", LocalDate.of(2026, 3, 1));
+        createExpenseTransaction(
+                user, accountId, "Despesa de novembro", "800.00", LocalDate.of(2026, 11, 1));
+
+        ResponseEntity<byte[]> quarterlyResponse =
+                restTemplate.exchange(
+                        "/api/reports/income-statement?year=2026&granularity=QUARTERLY",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+        ResponseEntity<byte[]> yearlyResponse =
+                restTemplate.exchange(
+                        "/api/reports/income-statement?year=2026&granularity=YEARLY",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(quarterlyResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(new String(quarterlyResponse.getBody(), 0, 4, StandardCharsets.ISO_8859_1))
+                .isEqualTo("%PDF");
+        assertThat(yearlyResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(new String(yearlyResponse.getBody(), 0, 4, StandardCharsets.ISO_8859_1))
+                .isEqualTo("%PDF");
+    }
+
+    @Test
+    void generatesIncomeStatementPdfEvenWithNoTransactionsInTheYear() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/income-statement?year=2026&granularity=MONTHLY",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        byte[] body = response.getBody();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
     private void createExpenseTransaction(
             TestUser user, Long accountId, String description, String amount, LocalDate date) {
         createExpenseTransaction(user, accountId, null, description, amount, date);
