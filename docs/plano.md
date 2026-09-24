@@ -4,17 +4,18 @@
 
 ## 1. Status atual da implementação
 
-*Leitura feita direto no código do repositório em 23/09/2026. Desde a última revisão (20/09/2026), a FaqPage do frontend ganhou estrutura de verdade (busca, índice de categorias, accordion por pergunta, em vez do markdown cru) e foi corrigido um bug de UX na expiração de sessão (toasts duplicados).*
+*Leitura feita direto no código do repositório em 24/09/2026. Desde a última revisão (23/09/2026), entrou a recuperação de senha self-service ("esqueci minha senha", com envio de e-mail e Mailpit no Docker Compose), trocar a senha passou a encerrar todas as sessões abertas, e as telas de login/cadastro foram ajustadas (sem footer, logo acima do formulário, links em azul, inputs corrigidos no tema claro/escuro).*
 
 **Backend (~80%)**
 
 - ✅ Arquitetura em camadas hexagonal: `domain` (modelo + ports de saída) → `application` (services) → `infrastructure` (controllers, DTOs, adapters de persistência/segurança/cliente externo)
 - ✅ Autenticação completa e real: registro/login com JWT (`JwtService`, `JwtAuthenticationFilter`), Spring Security stateless — **não é mais `permitAll()` geral**; só `/api/auth/**`, `/api/cep/**`, Swagger e `/actuator/health` são públicos, todo o resto exige token
+- ✅ Recuperação de senha ("esqueci minha senha"): `POST /api/auth/forgot-password` (sempre `202`, não revela se o e-mail tem conta) e `POST /api/auth/reset-password`; token aleatório de uso único, guardado só como hash SHA-256, válido por 30 min, e um novo pedido invalida os anteriores (`PasswordResetApplicationService`, tabela `password_reset_tokens`). E-mail via porta `PasswordResetMailerPort`: SMTP quando `spring.mail.host` está configurado (Mailpit no Docker Compose), senão o link só vai para o log. Trocar a senha incrementa a **versão de sessão** do usuário (`users.session_version`, claim `sv` no JWT) e o `JwtAuthenticationFilter` recusa tokens de versão antiga — todas as sessões abertas caem. Fluxo com diagramas em [`fluxo-autenticacao.md`](./tecnica/fluxo-autenticacao.md)
 - ✅ CRUD completo (Controller → Service → DTO) para **Account**, **Category**, **Transaction**, **Transfer** e **Client**, com regras de negócio de domínio (ex.: saldo insuficiente em transferência, bloqueio de exclusão de conta/categoria/cliente com registros vinculados via `EntityHasLinkedRecordsException`)
 - ✅ Importação de extrato CSV e OFX (`ImportBatchController`, upload multipart; formato detectado pela extensão do arquivo em `ImportApplicationService.detectFormat`) com motor de categorização automática por `CategoryRule` (match por palavra-chave no descritivo, peso reforçado a cada correção manual do usuário) — `CsvTransactionParser` e `OfxTransactionParser` produzem a mesma linha intermediária agnóstica (`ParsedTransactionRow`), então todo o resto do pipeline (regras, criação de transação) é compartilhado entre os dois formatos
 - ✅ Integração com ViaCEP para autocompletar endereço no cadastro de usuário
 - ✅ Validação de CPF/CNPJ (`CpfValidator`, `CnpjValidator`) e modelagem de endereço (`Address`, `BrazilianState`)
-- ✅ Migrations Flyway V1 a V9 (schema inicial, CPF/telefone, troca para "documento" genérico, endereço, tabela de transferências, índices, detalhes/tipo de trabalho do cliente, índices de importação/regras)
+- ✅ Migrations Flyway V1 a V12 (schema inicial, CPF/telefone, troca para "documento" genérico, endereço, tabela de transferências, índices, detalhes/tipo de trabalho do cliente, índices de importação/regras, regime da estimativa de imposto, tokens de redefinição de senha, versão de sessão do usuário)
 - ✅ Testes de integração com Testcontainers cobrindo account, auth, category, client, importbatch, transaction, transfer, tax estimate e budget
 - ✅ **`TaxEstimate`**: entidade de domínio, repository, service e endpoint completos (`/api/tax-estimates`), com sugestão de alíquota por regime tributário (`TaxRateEstimator`) — migration V10 adicionou a coluna `regime`. Fluxo completo (com diagramas) em [`fluxo-imposto-fluxo-caixa.md`](./tecnica/fluxo-imposto-fluxo-caixa.md)
 - ✅ **`Budget`**: entidade de domínio, repository, service e endpoint completos (`/api/budgets`) — camadas hexagonal completa (domain/application/infrastructure), mesmo padrão dos demais módulos. O "gasto até agora" (`spentValue`) é calculado no backend (`BudgetApplicationService.calculateSpent`, via query agregada nas transações do usuário) e devolvido pronto no `BudgetResponse` — mesma convenção de `Account.calculateCurrentBalance`, não recalculado no frontend
@@ -25,6 +26,8 @@
 
 - ✅ Setup Vite + React 19 + TypeScript + Tailwind CSS 4
 - ✅ Autenticação ponta a ponta: login/registro com validação (React Hook Form + Zod), autocomplete de CEP, validação de CPF/CNPJ, `AuthContext` + `ProtectedRoute` + armazenamento de JWT — inclui tratamento de sessão expirada: o `httpClient` nunca reagia a um 401 (token expirado, padrão de 1h no backend), deixando a sessão "logada" pra sempre no `localStorage` e toda tela presa num spinner que nunca resolvia; agora o `httpClient` limpa a sessão e emite `finpro:session-expired` (via `EventTarget` próprio, não `window`, pra funcionar igual em teste e browser), o `AuthContext` escuta e desloga de verdade, `ProtectedRoute` manda pra `/login` e um toast explica o motivo. Corrigido também um bug de UX: telas com várias chamadas em paralelo (ex.: Dashboard) recebiam vários 401 quase ao mesmo tempo quando a sessão expirava, e cada um disparava o evento — o usuário via vários toasts empilhados. Uma trava em `authStorage.ts` (`markSessionExpiredOnce`, resetada a cada novo login) garante que só a primeira notifica, validado ao vivo forçando um token inválido
+- ✅ Recuperação de senha: link "Esqueceu sua senha?" no login, telas `/esqueci-senha` e `/redefinir-senha?token=...` (`ForgotPasswordPage`, `ResetPasswordPage`), com as três telas públicas de acesso compartilhando o layout `AuthPageShell` (logo e título acima do formulário, dimensionados pela largura do box). Sessões derrubadas por troca de senha caem no mesmo tratamento de 401/sessão expirada
+- ✅ Menu do usuário no topo (ícone → Configurações / Sair) e tela **Configurações** (`/configuracoes`, submenu "Dados cadastrais" / "Alterar senha"): edição dos dados cadastrais (mesmas seções e validações do cadastro, via `AccountDataFields` compartilhado; trocar o e-mail exige a senha atual) e troca de senha logado (encerra as outras sessões e mantém a atual com token novo). Backend: `ProfileController` (`GET/PUT /api/profile`, `PUT /api/profile/password`) + `ProfileApplicationService`
 - ✅ CRUD funcional consumindo a API real para **Contas**, **Categorias**, **Clientes**, **Transações** e **Transferências** (cada módulo com client de API, hooks React Query, formulários e listas com filtros via `CollapsibleFilters`)
 - ✅ Dashboard com dados reais e gráficos (Recharts): cards com variação % vs. mês anterior, receita x despesa por mês, evolução do saldo consolidado, despesa e receita por categoria, **receita por cliente**, saldo por conta — transferências entre contas próprias excluídas dos cálculos de receita/despesa. Todo o cálculo é feito no backend (`DashboardController`/`DashboardAggregator`); cada gráfico busca seus dados com um hook próprio, aparecendo assim que a resposta chega
 - ✅ Importação de extrato: upload de CSV ou OFX (detectado pela extensão, `accept=".csv,.ofx"`), lista de importações com badge de formato, status/contagem de "sem categoria", tela de revisão inline (categoria/cliente por transação) e CRUD de regras de categorização (`ImportsPage`, `CategoryRulesPanel`)
@@ -36,7 +39,7 @@
 
 **Infra & docs (~85%)**
 
-- ✅ Docker Compose com postgres + backend + frontend
+- ✅ Docker Compose com postgres + backend + frontend + Mailpit (captura os e-mails enviados em dev, http://localhost:8025)
 - ✅ CI no GitHub Actions, separado por pasta (`backend-ci.yml` / `frontend-ci.yml`)
 - ✅ README com setup local e este plano de escopo
 - ⬜ Deploy real (Railway/Render + Vercel)
@@ -66,7 +69,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 ### MVP (Fase 1)
 
-- Cadastro/login de usuário (Spring Security + JWT) — ✅ **feito**, ponta a ponta (backend + frontend)
+- Cadastro/login de usuário (Spring Security + JWT) — ✅ **feito**, ponta a ponta (backend + frontend), incluindo recuperação de senha por e-mail
 - Cadastro manual de contas bancárias/carteiras — ✅ **feito**
 - CRUD de transações (receita/despesa) — ✅ **feito**
 - Cadastro de categorias (padrão do sistema + customizadas) — ✅ **feito**
@@ -103,7 +106,8 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 *O schema completo abaixo foi aplicado via Flyway desde o `V1__init_schema.sql` (mais a V10, que adicionou a coluna `regime` a `tax_estimates`). Todas as entidades já têm o tratamento hexagonal completo (domínio, port/adapter, aplicação, API).*
 
-- **User** ✅: id, nome, email, senha (hash), documento (CPF/CNPJ), telefone, endereço, regime_tributario
+- **User** ✅: id, nome, email, senha (hash), documento (CPF/CNPJ), telefone, endereço, regime_tributario, versão de sessão (encerra os logins ao trocar a senha)
+- **PasswordResetToken** ✅: id, user_id, hash do token, expira_em, usado_em — link de "esqueci minha senha"
 - **Account** ✅: id, user_id, nome, tipo, saldo_inicial
 - **Category** ✅: id, user_id (null = padrão do sistema), nome, tipo, cor, ícone
 - **Client** ✅: id, user_id, nome, email, telefone, documento, tipo de trabalho (PJ/autônomo), observações, cor, ativo
@@ -120,14 +124,14 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 - Camadas: Controller → Service → Repository, com ports/adapters (hexagonal) e DTOs separados de entidades — ✅ *implementado para Account, Category, Client, Transaction, Transfer, ImportBatch/CategoryRule, TaxEstimate, Budget, Auth e Cep*
 - Autenticação: Spring Security + JWT — ✅ *feito e plugado (filtro real, sem `permitAll()` fora de auth/cep/swagger/health)*
-- Migrations: Flyway — ✅ *feito (V1 a V10)*
+- Migrations: Flyway — ✅ *feito (V1 a V12)*
 - Documentação da API: springdoc-openapi (Swagger UI) — *dependência configurada*
 - Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *193 testes no total (143 unitários + 50 de integração), `mvn verify` cobrindo tudo*
 
 **Frontend — React + Tailwind CSS + Vite**
 
 - React Query para estado de chamadas à API — ✅ *em uso em todos os módulos*
-- React Router — ✅ *em uso (rotas públicas de login/registro + rotas protegidas com layout)*
+- React Router — ✅ *em uso (rotas públicas de login/registro/esqueci-senha/redefinir-senha + rotas protegidas com layout)*
 - Recharts para os gráficos do dashboard — ✅ *em uso (receita x despesa por mês, evolução do saldo, projeção de fluxo de caixa, despesa/receita por categoria, receita por cliente, saldo por conta)*
 - React Hook Form + Zod para formulários — ✅ *em uso em auth, contas, categorias, clientes, transações, transferências e regras de categorização*
 

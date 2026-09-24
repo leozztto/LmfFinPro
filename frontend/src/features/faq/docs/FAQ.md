@@ -13,13 +13,25 @@ Na tela de login, clique no link **Cadastre-se**. Na tela de cadastro você info
 Depende do regime tributário escolhido: **CNPJ** para MEI, Simples Nacional e Lucro Presumido; **CPF** para Autônomo e Outro. O sistema valida o documento (inclusive os dígitos verificadores) e não deixa cadastrar um CPF com um regime de pessoa jurídica (ou vice-versa). O e-mail e o CPF/CNPJ não podem já estar em uso por outra conta.
 
 **Esqueci minha senha, como recupero?**
-Hoje não existe recuperação de senha self-service (não tem "esqueci minha senha" na tela de login). Isso ainda não foi implementado.
+Na tela de login, clique em **Esqueceu sua senha?** e informe o e-mail da sua conta. Você recebe um e-mail com um link para criar uma nova senha (mínimo 8 caracteres, com confirmação). Depois de salvar, é só entrar com a senha nova.
+
+**Não recebi o e-mail de redefinição de senha — e agora?**
+Confira a caixa de spam e se o e-mail informado é o mesmo do cadastro. Por segurança, o sistema mostra a mesma mensagem exista ou não uma conta com aquele e-mail, então um e-mail digitado errado não gera aviso. Se ainda assim não chegar, peça um novo link.
+
+**O link de redefinição diz que é inválido ou expirado. Por quê?**
+O link vale por 30 minutos e só pode ser usado uma vez. Além disso, pedir um novo link cancela o anterior — só o e-mail mais recente funciona. Nesses casos, é só solicitar outro link.
 
 **Posso alterar meus dados cadastrais depois?**
-Ainda não. Hoje não existe tela de perfil — nome, documento, regime tributário e endereço informados no cadastro não podem ser editados pelo sistema.
+Sim. Clique no ícone de usuário no canto superior direito, depois em **Configurações** → **Dados cadastrais**. Dá pra alterar nome, e-mail, regime tributário, CPF/CNPJ, telefone e endereço, com as mesmas regras do cadastro — inclusive o documento precisa combinar com o regime escolhido. Para trocar o **e-mail**, que é o seu login, o sistema pede a senha atual.
+
+**Como troco minha senha estando logado?**
+Clique no ícone de usuário no canto superior direito, depois em **Configurações** → **Alterar senha**: informe a senha atual e a nova (mínimo 8 caracteres). Você continua conectado nesse navegador, mas as outras sessões abertas (outros navegadores e aparelhos) são encerradas.
 
 **Fui desconectado do nada no meio do uso — o que aconteceu?**
-Seu login expira automaticamente depois de 1 hora (por segurança). Quando isso acontece, você é deslogado e redirecionado pra tela de login, com um aviso explicando que a sessão expirou — é só entrar de novo. Para sair manualmente, use o botão **Sair** no topo da tela.
+Seu login expira automaticamente depois de 1 hora (por segurança). Também acontece quando a senha da conta é redefinida: todas as sessões abertas (outros navegadores, celular, etc.) são encerradas na hora. Em qualquer um dos casos, você é redirecionado pra tela de login com um aviso explicando que a sessão expirou — é só entrar de novo. Para sair manualmente, clique no ícone de usuário no canto superior direito e depois em **Sair**.
+
+**Troquei a senha e fui deslogado em outro aparelho. Isso é normal?**
+Sim, é de propósito. Redefinir a senha encerra todas as sessões que estavam abertas — assim, se alguém tinha acesso à sua conta com a senha antiga, perde o acesso imediatamente. Basta entrar de novo com a senha nova.
 
 **Meus dados financeiros são visíveis para outros usuários?**
 Não. Toda informação (contas, transações, clientes, etc.) é isolada por usuário — mesmo tentando acessar um registro de outra pessoa diretamente pela URL, o sistema trata como se ele não existisse.

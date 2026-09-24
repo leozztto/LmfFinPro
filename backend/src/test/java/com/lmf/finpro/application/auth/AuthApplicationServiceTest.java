@@ -76,9 +76,10 @@ class AuthApplicationServiceTest {
                                     toSave.phone(),
                                     toSave.taxRegime(),
                                     toSave.address(),
-                                    LocalDateTime.now());
+                                    LocalDateTime.now(),
+                                    0);
                         });
-        when(tokenPort.generate(1L, "ana@finpro.test")).thenReturn("jwt-token");
+        when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
 
         AuthResult result = service.register(sampleCommand());
 
@@ -117,9 +118,10 @@ class AuthApplicationServiceTest {
                                     toSave.phone(),
                                     toSave.taxRegime(),
                                     toSave.address(),
-                                    LocalDateTime.now());
+                                    LocalDateTime.now(),
+                                    0);
                         });
-        when(tokenPort.generate(1L, "ana@finpro.test")).thenReturn("jwt-token");
+        when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
 
         AuthResult result = service.register(commandWithoutAddress);
 
@@ -156,10 +158,11 @@ class AuthApplicationServiceTest {
                         "11987654321",
                         TaxRegime.AUTONOMO,
                         null,
-                        LocalDateTime.now());
+                        LocalDateTime.now(),
+                        0);
         when(userRepositoryPort.findByEmail("ana@finpro.test")).thenReturn(Optional.of(user));
         when(passwordHasherPort.matches("senha12345", "hashed-password")).thenReturn(true);
-        when(tokenPort.generate(1L, "ana@finpro.test")).thenReturn("jwt-token");
+        when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
 
         AuthResult result = service.login(new LoginCommand("ana@finpro.test", "senha12345"));
 
@@ -188,7 +191,8 @@ class AuthApplicationServiceTest {
                         "11987654321",
                         TaxRegime.AUTONOMO,
                         null,
-                        LocalDateTime.now());
+                        LocalDateTime.now(),
+                        0);
         when(userRepositoryPort.findByEmail("ana@finpro.test")).thenReturn(Optional.of(user));
         when(passwordHasherPort.matches("wrong", "hashed-password")).thenReturn(false);
 

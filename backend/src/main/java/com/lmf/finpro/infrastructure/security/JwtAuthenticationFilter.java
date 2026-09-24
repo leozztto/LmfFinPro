@@ -3,6 +3,7 @@ package com.lmf.finpro.infrastructure.security;
 import com.lmf.finpro.domain.exception.InvalidTokenException;
 import com.lmf.finpro.domain.port.out.TokenClaims;
 import com.lmf.finpro.domain.port.out.TokenPort;
+import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final TokenPort tokenPort;
+    private final UserRepositoryPort userRepositoryPort;
 
     @Override
     protected void doFilterInternal(
@@ -41,6 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(BEARER_PREFIX.length());
             try {
                 TokenClaims claims = tokenPort.parse(token);
+                if (!isCurrentSession(claims)) {
+                    throw new InvalidTokenException("Sessão encerrada");
+                }
                 AuthenticatedUser principal =
                         new AuthenticatedUser(claims.userId(), claims.email());
                 var authentication =
@@ -52,5 +57,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Token assinado e dentro da validade ainda pode ser de uma sessão encerrada: a troca de senha
+     * incrementa a versão de sessão do usuário (ver User#withPasswordHash). Usuário excluído também
+     * derruba o token.
+     */
+    private boolean isCurrentSession(TokenClaims claims) {
+        return userRepositoryPort
+                .findSessionVersion(claims.userId())
+                .map(current -> current == claims.sessionVersion())
+                .orElse(false);
     }
 }

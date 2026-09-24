@@ -114,7 +114,8 @@ class ReportApplicationServiceTest {
                 "11999998888",
                 TaxRegime.AUTONOMO,
                 address,
-                LocalDateTime.now());
+                LocalDateTime.now(),
+                0);
     }
 
     @Test
