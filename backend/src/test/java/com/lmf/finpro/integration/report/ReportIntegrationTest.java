@@ -416,6 +416,59 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 
+    @Test
+    void exportsTransactionsToCsvAcrossAllAccountsInThePeriod() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long rentCategoryId = createExpenseCategory(user, "Aluguel");
+        createExpenseTransaction(
+                user,
+                accountId,
+                rentCategoryId,
+                "Aluguel escritório",
+                "1500.00",
+                LocalDate.of(2026, 9, 5));
+        createIncomeTransaction(
+                user, accountId, null, "Receita do mês", "1000.00", LocalDate.of(2026, 9, 10));
+        // fora do período pedido — não deve entrar na exportação
+        createIncomeTransaction(
+                user, accountId, null, "Receita de agosto", "200.00", LocalDate.of(2026, 8, 15));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/transaction-export?referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).startsWith("Data;Conta;Categoria;Cliente;Descrição;Tipo;Valor\r\n");
+        assertThat(content).contains("Aluguel escritório").contains("Receita do mês");
+        assertThat(content).doesNotContain("Receita de agosto");
+    }
+
+    @Test
+    void exportsTransactionsToCsvEvenWithNoTransactionsInThePeriod() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/transaction-export?referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).isEqualTo("Data;Conta;Categoria;Cliente;Descrição;Tipo;Valor\r\n");
+    }
+
     private void createBudget(
             TestUser user, Long categoryId, String referenceMonth, String limitValue) {
         BudgetRequest request =

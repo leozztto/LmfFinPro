@@ -6,6 +6,7 @@ import type {
   ClientAnnualStatementInput,
   ClientReceiptInput,
   IncomeStatementInput,
+  TransactionExportInput,
 } from '../types'
 
 export const reportsApi = {
@@ -29,4 +30,6 @@ export const reportsApi = {
     ),
   downloadBudgetVsActualReport: (input: BudgetVsActualReportInput) =>
     httpClient.getBlob(`/reports/budget-vs-actual?referenceMonth=${input.referenceMonth}`),
+  downloadTransactionExport: (input: TransactionExportInput) =>
+    httpClient.getBlob(`/reports/transaction-export?referenceMonth=${input.referenceMonth}`),
 }

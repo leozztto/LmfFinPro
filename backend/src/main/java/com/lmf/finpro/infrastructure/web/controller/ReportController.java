@@ -128,4 +128,21 @@ public class ReportController {
                         "attachment; filename=\"" + filename + "\"")
                 .body(pdf);
     }
+
+    @GetMapping(value = "/transaction-export", produces = "text/csv")
+    public ResponseEntity<byte[]> transactionExport(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
+        byte[] csv =
+                reportApplicationService.generateTransactionExport(
+                        currentUser.userId(), referenceMonth);
+
+        String filename = "transacoes-" + referenceMonth + ".csv";
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(csv);
+    }
 }

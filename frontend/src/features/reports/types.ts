@@ -5,6 +5,7 @@ export type ReportType =
   | 'CATEGORY_EXPENSE_REPORT'
   | 'INCOME_STATEMENT'
   | 'BUDGET_VS_ACTUAL'
+  | 'TRANSACTION_EXPORT'
 
 export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
 
@@ -36,6 +37,10 @@ export interface BudgetVsActualReportInput {
   referenceMonth: string
 }
 
+export interface TransactionExportInput {
+  referenceMonth: string
+}
+
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   CLIENT_RECEIPT: 'Recibo por cliente',
   ACCOUNT_STATEMENT: 'Extrato de conta',
@@ -43,6 +48,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   CATEGORY_EXPENSE_REPORT: 'Despesas por categoria',
   INCOME_STATEMENT: 'Resultado do período (DRE)',
   BUDGET_VS_ACTUAL: 'Orçamento vs. realizado',
+  TRANSACTION_EXPORT: 'Exportação de transações (CSV)',
 }
 
 export const REPORT_GRANULARITY_LABELS: Record<ReportGranularity, string> = {

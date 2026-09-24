@@ -14,12 +14,14 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
+import com.lmf.finpro.domain.port.out.TransactionExportPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
@@ -54,6 +56,7 @@ public class ReportApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final BudgetRepositoryPort budgetRepositoryPort;
     private final ReceiptGeneratorPort receiptGeneratorPort;
+    private final TransactionExportPort transactionExportPort;
 
     public byte[] generateClientReceipt(
             Long currentUserId, Long clientId, YearMonth referenceMonth) {
@@ -422,6 +425,59 @@ public class ReportApplicationService {
             return BigDecimal.ZERO;
         }
         return comparison.spentValue().divide(comparison.limitValue(), 4, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Exporta, em CSV, o extrato bruto de transações do usuário (em todas as contas) dentro do mês,
+     * ordenado por data — ao contrário dos relatórios agregados, inclui transferências, já que o
+     * objetivo aqui é auditar o extrato completo, não somar receita/despesa.
+     */
+    public byte[] generateTransactionExport(Long currentUserId, YearMonth referenceMonth) {
+        LocalDate start = referenceMonth.atDay(1);
+        LocalDate end = referenceMonth.plusMonths(1).atDay(1);
+
+        List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
+        Map<Long, String> accountNameById =
+                accounts.stream().collect(Collectors.toMap(Account::id, Account::name));
+        List<Long> accountIds = accounts.stream().map(Account::id).toList();
+
+        Map<Long, String> categoryNameById =
+                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                        .collect(Collectors.toMap(Category::id, Category::name));
+        Map<Long, String> clientNameById =
+                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                        .collect(Collectors.toMap(Client::id, Client::name));
+
+        List<TransactionExportData.TransactionExportRow> rows =
+                transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
+                        .filter(
+                                transaction ->
+                                        !transaction.transactionDate().isBefore(start)
+                                                && transaction.transactionDate().isBefore(end))
+                        .sorted(Comparator.comparing(Transaction::transactionDate))
+                        .map(
+                                transaction ->
+                                        new TransactionExportData.TransactionExportRow(
+                                                transaction.transactionDate(),
+                                                accountNameById.getOrDefault(
+                                                        transaction.accountId(), "Conta removida"),
+                                                transaction.categoryId() == null
+                                                        ? "Sem categoria"
+                                                        : categoryNameById.getOrDefault(
+                                                                transaction.categoryId(),
+                                                                "Categoria removida"),
+                                                transaction.clientId() == null
+                                                        ? ""
+                                                        : clientNameById.getOrDefault(
+                                                                transaction.clientId(),
+                                                                "Cliente removido"),
+                                                transaction.description(),
+                                                transaction.type(),
+                                                transaction.amount()))
+                        .toList();
+
+        return transactionExportPort.exportTransactionsToCsv(
+                new TransactionExportData(referenceMonth, rows));
     }
 
     private Client findOwnedClientOrThrow(Long currentUserId, Long clientId) {

@@ -27,6 +27,7 @@ import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -34,6 +35,7 @@ import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
+import com.lmf.finpro.domain.port.out.TransactionExportPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
@@ -61,6 +63,7 @@ class ReportApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private BudgetRepositoryPort budgetRepositoryPort;
     @Mock private ReceiptGeneratorPort receiptGeneratorPort;
+    @Mock private TransactionExportPort transactionExportPort;
 
     @InjectMocks private ReportApplicationService service;
 
@@ -925,6 +928,152 @@ class ReportApplicationServiceTest {
         assertThat(data.comparisons()).isEmpty();
         assertThat(data.totalLimit()).isEqualByComparingTo("0");
         assertThat(data.totalSpent()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void generateTransactionExportIncludesAllTransactionsInThePeriodAcrossAccountsSortedByDate() {
+        Account checking =
+                new Account(
+                        5L,
+                        10L,
+                        "Conta Corrente",
+                        AccountType.CHECKING,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now());
+        Account wallet =
+                new Account(
+                        6L,
+                        10L,
+                        "Carteira",
+                        AccountType.WALLET,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now());
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(checking, wallet));
+
+        Category rent = new Category(1L, 10L, "Aluguel", CategoryType.EXPENSE, null, null);
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of(rent));
+
+        Client client = ownedClient();
+        when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(client));
+
+        Transaction later =
+                new Transaction(
+                        1L,
+                        5L,
+                        1L,
+                        null,
+                        "Aluguel escritório",
+                        BigDecimal.valueOf(1500),
+                        LocalDate.of(2026, 9, 20),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction earlier =
+                new Transaction(
+                        2L,
+                        6L,
+                        null,
+                        client.id(),
+                        "Serviço prestado",
+                        BigDecimal.valueOf(1000),
+                        LocalDate.of(2026, 9, 5),
+                        CategoryType.INCOME,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        Transaction outsidePeriod =
+                new Transaction(
+                        3L,
+                        5L,
+                        1L,
+                        null,
+                        "Aluguel de agosto",
+                        BigDecimal.valueOf(1500),
+                        LocalDate.of(2026, 8, 5),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L, 6L)))
+                .thenReturn(List.of(later, earlier, outsidePeriod));
+        when(transactionExportPort.exportTransactionsToCsv(any())).thenReturn(new byte[] {7});
+
+        byte[] result = service.generateTransactionExport(10L, YearMonth.of(2026, 9));
+
+        assertThat(result).containsExactly(7);
+        ArgumentCaptor<TransactionExportData> captor =
+                ArgumentCaptor.forClass(TransactionExportData.class);
+        verify(transactionExportPort).exportTransactionsToCsv(captor.capture());
+        TransactionExportData data = captor.getValue();
+
+        assertThat(data.rows()).hasSize(2);
+        assertThat(data.rows())
+                .extracting(TransactionExportData.TransactionExportRow::description)
+                .containsExactly("Serviço prestado", "Aluguel escritório");
+        TransactionExportData.TransactionExportRow incomeRow = data.rows().get(0);
+        assertThat(incomeRow.accountName()).isEqualTo("Carteira");
+        assertThat(incomeRow.categoryName()).isEqualTo("Sem categoria");
+        assertThat(incomeRow.clientName()).isEqualTo(client.name());
+        TransactionExportData.TransactionExportRow expenseRow = data.rows().get(1);
+        assertThat(expenseRow.accountName()).isEqualTo("Conta Corrente");
+        assertThat(expenseRow.categoryName()).isEqualTo("Aluguel");
+        assertThat(expenseRow.clientName()).isEmpty();
+        assertThat(data.referenceMonth()).isEqualTo(YearMonth.of(2026, 9));
+    }
+
+    @Test
+    void generateTransactionExportUsesRemovedLabelsWhenCategoryOrClientNoLongerExist() {
+        Account account = ownedAccount();
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(account));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
+
+        Transaction transaction =
+                new Transaction(
+                        1L,
+                        5L,
+                        999L,
+                        888L,
+                        "Transação antiga",
+                        BigDecimal.valueOf(100),
+                        LocalDate.of(2026, 9, 10),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        LocalDateTime.now(),
+                        null,
+                        null);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(transaction));
+        when(transactionExportPort.exportTransactionsToCsv(any())).thenReturn(new byte[0]);
+
+        service.generateTransactionExport(10L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<TransactionExportData> captor =
+                ArgumentCaptor.forClass(TransactionExportData.class);
+        verify(transactionExportPort).exportTransactionsToCsv(captor.capture());
+        TransactionExportData.TransactionExportRow row = captor.getValue().rows().get(0);
+        assertThat(row.categoryName()).isEqualTo("Categoria removida");
+        assertThat(row.clientName()).isEqualTo("Cliente removido");
+    }
+
+    @Test
+    void generateTransactionExportReturnsEmptyListWhenThereAreNoTransactionsInThePeriod() {
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(transactionExportPort.exportTransactionsToCsv(any())).thenReturn(new byte[0]);
+
+        service.generateTransactionExport(10L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<TransactionExportData> captor =
+                ArgumentCaptor.forClass(TransactionExportData.class);
+        verify(transactionExportPort).exportTransactionsToCsv(captor.capture());
+        assertThat(captor.getValue().rows()).isEmpty();
     }
 
     private static BigDecimal monthlyTotal(ClientAnnualStatementData data, Month month) {
