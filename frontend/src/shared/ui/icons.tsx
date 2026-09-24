@@ -397,6 +397,25 @@ export function TargetIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function FileTextIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13h6M9 17h6M9 9h2" />
+    </svg>
+  )
+}
+
 export function HelpCircleIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
