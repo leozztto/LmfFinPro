@@ -18,6 +18,12 @@ public interface TransactionRepositoryPort {
 
     List<Transaction> findAllByImportBatchId(Long importBatchId);
 
+    /**
+     * Transações de um cliente, de um tipo, dentro de [start, end), ordenadas por data crescente.
+     */
+    List<Transaction> findAllByClientIdAndTypeAndDateBetween(
+            Long clientId, CategoryType type, LocalDate start, LocalDate end);
+
     BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type);
 
     /**
