@@ -21,6 +21,40 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Faz os controles nativos (opções do select, date picker, scrollbar) seguirem o tema ativo. */
+:root {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* O autofill do navegador pinta o input de azul-claro; mantém o fundo branco com o texto padrão
+   (zinc-800). O box-shadow interno é o único jeito de cobrir o fundo aplicado pelo navegador. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-zinc-800);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-white) inset;
+  caret-color: var(--color-zinc-800);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* No dark mode, mesmo truque com input escuro (zinc-900) e texto claro (zinc-100). */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-zinc-100);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-zinc-900) inset;
+  caret-color: var(--color-zinc-100);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

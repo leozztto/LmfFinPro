@@ -5,7 +5,6 @@ import { Button, FormField, Input } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useLogin } from '../hooks/useLogin'
 import { loginSchema, type LoginFormValues } from '../schemas'
-import { Footer } from '@/shared/layout/Footer'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 
@@ -32,46 +31,52 @@ export function LoginPage() {
       <div className="flex justify-end px-4 pt-4">
         <ThemeToggle />
       </div>
-      <div className="flex flex-1 items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-zinc-50 p-8 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-          <div className="flex items-center gap-3">
-            <img src={logoIcon} alt="FinPro" className="h-10 w-10" />
-            <div>
-              <h1 className="text-xl font-semibold">
-                <span className="text-zinc-800 dark:text-zinc-100">Entrar no Fin</span>
-                <span className="text-[#2ad6a5]">Pro</span>
-              </h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Seu financeiro no controle</p>
+      <div className="flex flex-1 items-center justify-center px-4 py-6">
+        <div className="w-full max-w-sm">
+          {/* Tamanhos em cqw (relativos à largura do bloco) para logo + textos ficarem proporcionais
+              à largura do box de login em qualquer tela. */}
+          <div className="@container mb-6">
+            <div className="flex items-center justify-center gap-[3cqw]">
+              <img src={logoIcon} alt="FinPro" className="size-[14cqw]" />
+              <div>
+                <h1 className="text-[8.2cqw] leading-tight font-semibold">
+                  <span className="text-zinc-800 dark:text-zinc-100">Entrar no Fin</span>
+                  <span className="text-[#2ad6a5]">Pro</span>
+                </h1>
+                <p className="mt-[0.5cqw] text-[3.6cqw] leading-tight text-zinc-500 dark:text-zinc-400">
+                  Seu financeiro no controle
+                </p>
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-            <FormField label="E-mail" htmlFor="email" error={errors.email?.message}>
-              <Input id="email" type="email" autoComplete="email" {...register('email')} />
-            </FormField>
-            <FormField label="Senha" htmlFor="password" error={errors.password?.message}>
-              <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
-            </FormField>
-            {login.isError && (
-              <p className="text-sm text-red-600">
-                {login.error instanceof ApiError ? login.error.message : 'Não foi possível entrar.'}
-              </p>
-            )}
-            <Button type="submit" variant="brand" className="w-full" disabled={login.isPending}>
-              {login.isPending ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </form>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 sm:p-8">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <FormField label="E-mail" htmlFor="email" error={errors.email?.message}>
+                <Input id="email" type="email" autoComplete="email" {...register('email')} />
+              </FormField>
+              <FormField label="Senha" htmlFor="password" error={errors.password?.message}>
+                <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+              </FormField>
+              {login.isError && (
+                <p className="text-sm text-red-600">
+                  {login.error instanceof ApiError ? login.error.message : 'Não foi possível entrar.'}
+                </p>
+              )}
+              <Button type="submit" variant="brand" className="w-full" disabled={login.isPending}>
+                {login.isPending ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
 
-          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            Ainda não tem conta?{' '}
-            <Link to="/registro" className="font-medium text-primary-600 hover:underline">
-              Cadastre-se
-            </Link>
-          </p>
+            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+              Ainda não tem conta?{' '}
+              <Link to="/registro" className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
+                Cadastre-se
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   )
 }
