@@ -9,7 +9,6 @@ import { formatCep, formatCnpj, formatCpf, formatPhone, onlyDigits } from '@/sha
 import { useRegister } from '../hooks/useRegister'
 import { useCepLookup } from '../hooks/useCepLookup'
 import { documentTypeForTaxRegime, registerSchema, TAX_REGIME_OPTIONS, type RegisterFormValues } from '../schemas'
-import { Footer } from '@/shared/layout/Footer'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 
 export function RegisterPage() {
@@ -290,14 +289,12 @@ export function RegisterPage() {
 
           <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
             Já tem conta?{' '}
-            <Link to="/login" className="font-medium text-primary-600 hover:underline">
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
               Entrar
             </Link>
           </p>
         </div>
       </div>
-
-      <Footer />
     </div>
   )
 }
