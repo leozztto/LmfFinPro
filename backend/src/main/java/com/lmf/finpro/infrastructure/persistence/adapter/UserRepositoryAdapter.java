@@ -39,4 +39,9 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     public boolean existsByDocumentNumber(String documentNumber) {
         return userJpaRepository.existsByDocumentNumber(documentNumber);
     }
+
+    @Override
+    public Optional<Integer> findSessionVersion(Long userId) {
+        return userJpaRepository.findSessionVersionById(userId);
+    }
 }

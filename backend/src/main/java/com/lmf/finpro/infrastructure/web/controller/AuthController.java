@@ -4,11 +4,14 @@ import com.lmf.finpro.application.auth.AddressCommand;
 import com.lmf.finpro.application.auth.AuthApplicationService;
 import com.lmf.finpro.application.auth.AuthResult;
 import com.lmf.finpro.application.auth.LoginCommand;
+import com.lmf.finpro.application.auth.PasswordResetApplicationService;
 import com.lmf.finpro.application.auth.RegisterCommand;
 import com.lmf.finpro.infrastructure.web.dto.auth.AddressRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.AuthResponse;
+import com.lmf.finpro.infrastructure.web.dto.auth.ForgotPasswordRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.LoginRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.RegisterRequest;
+import com.lmf.finpro.infrastructure.web.dto.auth.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthApplicationService authApplicationService;
+    private final PasswordResetApplicationService passwordResetApplicationService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -46,6 +50,19 @@ public class AuthController {
         AuthResult result =
                 authApplicationService.login(new LoginCommand(request.email(), request.password()));
         return ResponseEntity.ok(toResponse(result));
+    }
+
+    /** Sempre 202, exista ou não conta com o e-mail — ver PasswordResetApplicationService. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetApplicationService.requestReset(request.email());
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetApplicationService.resetPassword(request.token(), request.password());
+        return ResponseEntity.noContent().build();
     }
 
     private AuthResponse toResponse(AuthResult result) {

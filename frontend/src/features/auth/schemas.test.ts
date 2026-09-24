@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { documentTypeForTaxRegime, loginSchema, registerSchema } from './schemas'
+import {
+  documentTypeForTaxRegime,
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from './schemas'
 
 describe('loginSchema', () => {
   it('accepts valid credentials', () => {
@@ -188,5 +194,31 @@ describe('registerSchema', () => {
 
   it('rejects a phone with the wrong number of digits when provided', () => {
     expect(registerSchema.safeParse(validRegisterPayload({ phone: '123' })).success).toBe(false)
+  })
+})
+
+describe('forgotPasswordSchema', () => {
+  it('accepts a valid email', () => {
+    expect(forgotPasswordSchema.safeParse({ email: 'ana@finpro.test' }).success).toBe(true)
+  })
+
+  it('rejects a malformed email', () => {
+    expect(forgotPasswordSchema.safeParse({ email: 'ana' }).success).toBe(false)
+  })
+})
+
+describe('resetPasswordSchema', () => {
+  it('accepts matching passwords with at least 8 characters', () => {
+    expect(resetPasswordSchema.safeParse({ password: 'novaSenha1', confirmPassword: 'novaSenha1' }).success).toBe(true)
+  })
+
+  it('rejects a password shorter than 8 characters', () => {
+    expect(resetPasswordSchema.safeParse({ password: 'curta', confirmPassword: 'curta' }).success).toBe(false)
+  })
+
+  it('rejects when confirmation does not match', () => {
+    const result = resetPasswordSchema.safeParse({ password: 'novaSenha1', confirmPassword: 'outraSenha1' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toEqual(['confirmPassword'])
   })
 })

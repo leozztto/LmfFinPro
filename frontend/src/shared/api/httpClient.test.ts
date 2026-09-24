@@ -87,6 +87,14 @@ describe('httpClient', () => {
     expect(result).toBeUndefined()
   })
 
+  it('returns undefined for a 202 response without body', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 202 }))
+
+    const result = await httpClient.post('/auth/forgot-password', { email: 'ana@finpro.test' })
+
+    expect(result).toBeUndefined()
+  })
+
   it('sends FormData bodies without forcing a JSON Content-Type header', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({}))
     const formData = new FormData()

@@ -19,15 +19,17 @@ import org.springframework.stereotype.Component;
 public class JwtService implements TokenPort {
 
     private static final String CLAIM_EMAIL = "email";
+    private static final String CLAIM_SESSION_VERSION = "sv";
 
     private final JwtProperties jwtProperties;
 
     @Override
-    public String generate(Long userId, String email) {
+    public String generate(Long userId, String email, int sessionVersion) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim(CLAIM_EMAIL, email)
+                .claim(CLAIM_SESSION_VERSION, sessionVersion)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(jwtProperties.expirationMs())))
                 .signWith(signingKey())
@@ -43,8 +45,12 @@ public class JwtService implements TokenPort {
                             .build()
                             .parseSignedClaims(token)
                             .getPayload();
+            // Tokens anteriores à versão de sessão não têm o claim: valem como versão 0.
+            Integer sessionVersion = claims.get(CLAIM_SESSION_VERSION, Integer.class);
             return new TokenClaims(
-                    Long.valueOf(claims.getSubject()), claims.get(CLAIM_EMAIL, String.class));
+                    Long.valueOf(claims.getSubject()),
+                    claims.get(CLAIM_EMAIL, String.class),
+                    sessionVersion == null ? 0 : sessionVersion);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new InvalidTokenException("Token JWT inválido ou expirado");
         }
