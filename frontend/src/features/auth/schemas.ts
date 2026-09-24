@@ -29,6 +29,76 @@ export function documentTypeForTaxRegime(taxRegime: string): DocumentType {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+/** Campos de dados cadastrais comuns ao cadastro e ao "Meu perfil" (ver AccountDataFields). */
+const accountFieldsShape = {
+  name: z.string(),
+  email: z.string(),
+  taxRegime: z.string(),
+  documentNumber: z.string(),
+  phone: z.string().optional(),
+  address: z.object({
+    zipCode: z.string(),
+    street: z.string(),
+    number: z.string(),
+    complement: z.string().optional(),
+    neighborhood: z.string(),
+    city: z.string(),
+    state: z.string(),
+  }),
+}
+
+export type AccountFieldsValues = z.infer<z.ZodObject<typeof accountFieldsShape>>
+
+type AddIssue = (path: (string | number)[], message: string) => void
+
+function issueAdder(ctx: z.RefinementCtx): AddIssue {
+  return (path, message) => ctx.addIssue({ code: z.ZodIssueCode.custom, path, message })
+}
+
+function validateAccountFields(data: AccountFieldsValues, addIssue: AddIssue) {
+  if (!data.name.trim()) {
+    addIssue(['name'], 'nome é obrigatório')
+  } else if (!/^\S+\s+\S+/.test(data.name)) {
+    addIssue(['name'], 'informe nome e sobrenome')
+  }
+
+  if (!data.email.trim()) {
+    addIssue(['email'], 'e-mail é obrigatório')
+  } else if (!EMAIL_PATTERN.test(data.email)) {
+    addIssue(['email'], 'e-mail inválido')
+  }
+
+  if (!data.taxRegime) {
+    addIssue(['taxRegime'], 'selecione um regime tributário')
+  }
+
+  const documentType = documentTypeForTaxRegime(data.taxRegime)
+  const documentDigits = onlyDigits(data.documentNumber)
+  if (!data.documentNumber.trim()) {
+    addIssue(['documentNumber'], 'documento é obrigatório')
+  } else if (documentType === 'CPF' && !(documentDigits.length === 11 && isValidCpf(documentDigits))) {
+    addIssue(['documentNumber'], 'CPF inválido')
+  } else if (documentType === 'CNPJ' && !(documentDigits.length === 14 && isValidCnpj(documentDigits))) {
+    addIssue(['documentNumber'], 'CNPJ inválido')
+  }
+
+  const phoneDigits = data.phone ? onlyDigits(data.phone) : ''
+  if (phoneDigits && !/^\d{10,11}$/.test(phoneDigits)) {
+    addIssue(['phone'], 'telefone deve ter DDD + número (10 ou 11 dígitos)')
+  }
+
+  if (!data.address.zipCode.trim()) {
+    addIssue(['address', 'zipCode'], 'CEP é obrigatório')
+  } else if (!/^\d{8}$/.test(onlyDigits(data.address.zipCode))) {
+    addIssue(['address', 'zipCode'], 'CEP deve ter 8 dígitos')
+  }
+  if (!data.address.street.trim()) addIssue(['address', 'street'], 'logradouro é obrigatório')
+  if (!data.address.number.trim()) addIssue(['address', 'number'], 'número é obrigatório')
+  if (!data.address.neighborhood.trim()) addIssue(['address', 'neighborhood'], 'bairro é obrigatório')
+  if (!data.address.city.trim()) addIssue(['address', 'city'], 'cidade é obrigatória')
+  if (!data.address.state) addIssue(['address', 'state'], 'selecione o estado')
+}
+
 /**
  * Todos os campos do objeto base ficam como z.string()/z.boolean() "crus", sem `.min()`/`.email()`
  * embutidos, e TODA a validação — incluindo a checagem cruzada de CPF/CNPJ conforme o regime
@@ -39,72 +109,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
  * própria cadeia. Se qualquer campo tivesse seu próprio `.min(1, ...)`, um único campo vazio
  * (ex: nome) seria suficiente para o Zod nunca chegar a validar o CPF/CNPJ — que é exatamente o
  * bug que este arquivo corrige: a validação de documento parecia simplesmente não rodar.
+ * O mesmo vale para o profileSchema abaixo.
  */
 export const registerSchema = z
   .object({
-    name: z.string(),
-    email: z.string(),
-    taxRegime: z.string(),
-    documentNumber: z.string(),
-    phone: z.string().optional(),
-    address: z.object({
-      zipCode: z.string(),
-      street: z.string(),
-      number: z.string(),
-      complement: z.string().optional(),
-      neighborhood: z.string(),
-      city: z.string(),
-      state: z.string(),
-    }),
+    ...accountFieldsShape,
     password: z.string(),
     confirmPassword: z.string(),
     acceptedTerms: z.boolean(),
   })
   .superRefine((data, ctx) => {
-    const addIssue = (path: (string | number)[], message: string) =>
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path, message })
-
-    if (!data.name.trim()) {
-      addIssue(['name'], 'nome é obrigatório')
-    } else if (!/^\S+\s+\S+/.test(data.name)) {
-      addIssue(['name'], 'informe nome e sobrenome')
-    }
-
-    if (!data.email.trim()) {
-      addIssue(['email'], 'e-mail é obrigatório')
-    } else if (!EMAIL_PATTERN.test(data.email)) {
-      addIssue(['email'], 'e-mail inválido')
-    }
-
-    if (!data.taxRegime) {
-      addIssue(['taxRegime'], 'selecione um regime tributário')
-    }
-
-    const documentType = documentTypeForTaxRegime(data.taxRegime)
-    const documentDigits = onlyDigits(data.documentNumber)
-    if (!data.documentNumber.trim()) {
-      addIssue(['documentNumber'], 'documento é obrigatório')
-    } else if (documentType === 'CPF' && !(documentDigits.length === 11 && isValidCpf(documentDigits))) {
-      addIssue(['documentNumber'], 'CPF inválido')
-    } else if (documentType === 'CNPJ' && !(documentDigits.length === 14 && isValidCnpj(documentDigits))) {
-      addIssue(['documentNumber'], 'CNPJ inválido')
-    }
-
-    const phoneDigits = data.phone ? onlyDigits(data.phone) : ''
-    if (phoneDigits && !/^\d{10,11}$/.test(phoneDigits)) {
-      addIssue(['phone'], 'telefone deve ter DDD + número (10 ou 11 dígitos)')
-    }
-
-    if (!data.address.zipCode.trim()) {
-      addIssue(['address', 'zipCode'], 'CEP é obrigatório')
-    } else if (!/^\d{8}$/.test(onlyDigits(data.address.zipCode))) {
-      addIssue(['address', 'zipCode'], 'CEP deve ter 8 dígitos')
-    }
-    if (!data.address.street.trim()) addIssue(['address', 'street'], 'logradouro é obrigatório')
-    if (!data.address.number.trim()) addIssue(['address', 'number'], 'número é obrigatório')
-    if (!data.address.neighborhood.trim()) addIssue(['address', 'neighborhood'], 'bairro é obrigatório')
-    if (!data.address.city.trim()) addIssue(['address', 'city'], 'cidade é obrigatória')
-    if (!data.address.state) addIssue(['address', 'state'], 'selecione o estado')
+    const addIssue = issueAdder(ctx)
+    validateAccountFields(data, addIssue)
 
     if (data.password.length < 8) {
       addIssue(['password'], 'senha deve ter ao menos 8 caracteres')
@@ -121,6 +137,41 @@ export const registerSchema = z
   })
 
 export type RegisterFormValues = z.infer<typeof registerSchema>
+
+export function emailChanged(originalEmail: string, email: string): boolean {
+  return originalEmail.trim().toLowerCase() !== email.trim().toLowerCase()
+}
+
+/** A senha atual só é exigida quando o e-mail (login da conta) muda — mesma regra do backend. */
+export function makeProfileSchema(originalEmail: string) {
+  return z
+    .object({
+      ...accountFieldsShape,
+      currentPassword: z.string(),
+    })
+    .superRefine((data, ctx) => {
+      const addIssue = issueAdder(ctx)
+      validateAccountFields(data, addIssue)
+      if (emailChanged(originalEmail, data.email) && !data.currentPassword) {
+        addIssue(['currentPassword'], 'informe sua senha atual para alterar o e-mail')
+      }
+    })
+}
+
+export type ProfileFormValues = z.infer<ReturnType<typeof makeProfileSchema>>
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'senha atual é obrigatória'),
+    newPassword: z.string().min(8, 'senha deve ter ao menos 8 caracteres'),
+    confirmPassword: z.string().min(1, 'confirme a nova senha'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'as senhas não coincidem',
+  })
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>
 
 export const forgotPasswordSchema = z.object({
   email: z.string().min(1, 'e-mail é obrigatório').email('e-mail inválido'),

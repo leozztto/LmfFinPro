@@ -45,6 +45,29 @@ public record User(
                 0);
     }
 
+    /** Dados cadastrais editáveis pelo próprio usuário; senha e versão de sessão não mudam. */
+    public User withProfile(
+            String newName,
+            String newEmail,
+            DocumentType newDocumentType,
+            String newDocumentNumber,
+            String newPhone,
+            TaxRegime newTaxRegime,
+            Address newAddress) {
+        return new User(
+                id,
+                newName,
+                newEmail,
+                passwordHash,
+                newDocumentType,
+                newDocumentNumber,
+                newPhone,
+                newTaxRegime,
+                newAddress,
+                createdAt,
+                sessionVersion);
+    }
+
     /** Troca a senha e encerra as sessões abertas (tokens emitidos antes deixam de valer). */
     public User withPasswordHash(String newPasswordHash) {
         return new User(

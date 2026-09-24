@@ -61,17 +61,7 @@ public class AuthApplicationService {
     }
 
     private Address toAddress(AddressCommand address) {
-        if (address == null) {
-            return null;
-        }
-        return new Address(
-                onlyDigits(address.zipCode()),
-                address.street(),
-                address.number(),
-                address.complement(),
-                address.neighborhood(),
-                address.city(),
-                address.state());
+        return address == null ? null : address.toDomain();
     }
 
     private AuthResult toAuthResult(User user) {

@@ -14,6 +14,9 @@ import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimate
 import { BudgetsPage } from '@/features/budgets/components/BudgetsPage'
 import { ReportsPage } from '@/features/reports/components/ReportsPage'
 import { FaqPage } from "@/features/faq/components/FaqPage";
+import { SettingsLayout } from '@/features/profile/components/SettingsLayout'
+import { ProfileDataPage } from '@/features/profile/components/ProfileDataPage'
+import { PasswordPage } from '@/features/profile/components/PasswordPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute'
 
@@ -38,6 +41,12 @@ export function AppRouter() {
           <Route path="/orcamentos" element={<BudgetsPage />} />
           <Route path="/relatorios" element={<ReportsPage />} />
           <Route path="/faq" element={<FaqPage />} />
+          <Route path="/configuracoes" element={<SettingsLayout />}>
+            <Route index element={<Navigate to="dados-cadastrais" replace />} />
+            <Route path="dados-cadastrais" element={<ProfileDataPage />} />
+            <Route path="senha" element={<PasswordPage />} />
+          </Route>
+          <Route path="/perfil" element={<Navigate to="/configuracoes/dados-cadastrais" replace />} />
         </Route>
       </Route>
 

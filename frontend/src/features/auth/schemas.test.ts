@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  changePasswordSchema,
+  makeProfileSchema,
   documentTypeForTaxRegime,
   forgotPasswordSchema,
   loginSchema,
@@ -220,5 +222,70 @@ describe('resetPasswordSchema', () => {
     const result = resetPasswordSchema.safeParse({ password: 'novaSenha1', confirmPassword: 'outraSenha1' })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toEqual(['confirmPassword'])
+  })
+})
+
+describe('makeProfileSchema', () => {
+  const validProfile = {
+    name: 'Ana Freelancer',
+    email: 'ana@finpro.test',
+    taxRegime: 'AUTONOMO',
+    documentNumber: '529.982.247-25',
+    phone: '',
+    address: {
+      zipCode: '01310-100',
+      street: 'Avenida Paulista',
+      number: '1000',
+      complement: '',
+      neighborhood: 'Bela Vista',
+      city: 'São Paulo',
+      state: 'SP',
+    },
+    currentPassword: '',
+  }
+
+  it('does not require the current password when the email stays the same', () => {
+    expect(makeProfileSchema('ana@finpro.test').safeParse(validProfile).success).toBe(true)
+  })
+
+  it('treats an email differing only by case as unchanged', () => {
+    expect(makeProfileSchema('ANA@finpro.test').safeParse(validProfile).success).toBe(true)
+  })
+
+  it('requires the current password when the email changes', () => {
+    const result = makeProfileSchema('antigo@finpro.test').safeParse(validProfile)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toEqual(['currentPassword'])
+  })
+
+  it('accepts an email change with the current password', () => {
+    const result = makeProfileSchema('antigo@finpro.test').safeParse({ ...validProfile, currentPassword: 'senha12345' })
+    expect(result.success).toBe(true)
+  })
+
+  it('applies the same document × tax regime rule as the registration', () => {
+    const result = makeProfileSchema('ana@finpro.test').safeParse({ ...validProfile, taxRegime: 'MEI' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toEqual(['documentNumber'])
+  })
+})
+
+describe('changePasswordSchema', () => {
+  it('accepts a valid change', () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: 'senha12345',
+      newPassword: 'novaSenha1',
+      confirmPassword: 'novaSenha1',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects when confirmation does not match', () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: 'senha12345',
+      newPassword: 'novaSenha1',
+      confirmPassword: 'outraSenha1',
+    })
+    expect(result.success).toBe(false)
   })
 })
