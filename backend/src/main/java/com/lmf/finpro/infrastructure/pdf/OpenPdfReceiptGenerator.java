@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
+import com.lmf.finpro.domain.model.BudgetVsActualReportData;
 import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
@@ -64,6 +65,8 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
     private static final Font BODY_BOLD_FONT = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
     private static final Font TOTAL_FONT = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
     private static final Font FOOTER_FONT = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 7);
+    private static final Font EXCEEDED_FONT =
+            FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new Color(178, 34, 34));
 
     @Override
     public byte[] generateClientReceipt(ClientReceiptData data) {
@@ -180,6 +183,29 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
                             data.totalIncome(),
                             data.totalExpense(),
                             data.totalResult()));
+            document.add(footer("relatório"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    @Override
+    public byte[] generateBudgetVsActualReport(BudgetVsActualReportData data) {
+        Document document = new Document(PageSize.A4, 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            String monthLabel = monthLabel(data.referenceMonth());
+
+            document.add(titleBlock("ORÇAMENTO VS. REALIZADO", monthLabel));
+            document.add(partyBlock("TITULAR", issuerFields(data.issuer())));
+            document.add(
+                    budgetVsActualBlock(data.comparisons(), data.totalLimit(), data.totalSpent()));
             document.add(footer("relatório"));
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
@@ -482,6 +508,53 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(amountCell(formatCurrency(totalIncome), TOTAL_FONT));
         table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
         table.addCell(amountCell(formatCurrency(totalResult), TOTAL_FONT));
+        return table;
+    }
+
+    /**
+     * Uma linha por orçamento cadastrado no mês (já vem ordenada do maior percentual de uso para o
+     * menor), com o limite, o gasto real e a diferença — em vermelho quando o limite foi estourado.
+     */
+    private PdfPTable budgetVsActualBlock(
+            List<BudgetVsActualReportData.BudgetComparison> comparisons,
+            BigDecimal totalLimit,
+            BigDecimal totalSpent) {
+        PdfPTable table = gridTable(new float[] {1.6f, 1.3f, 1.3f, 1.3f});
+
+        PdfPCell section = headerCell("ORÇAMENTO POR CATEGORIA");
+        section.setColspan(4);
+        table.addCell(section);
+
+        table.addCell(labelCell("Categoria"));
+        PdfPCell limitHeader = labelCell("Limite");
+        limitHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(limitHeader);
+        PdfPCell spentHeader = labelCell("Gasto real");
+        spentHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(spentHeader);
+        PdfPCell differenceHeader = labelCell("Diferença");
+        differenceHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(differenceHeader);
+
+        if (comparisons.isEmpty()) {
+            PdfPCell empty = valueCell("Nenhum orçamento cadastrado neste mês.");
+            empty.setColspan(4);
+            table.addCell(empty);
+        } else {
+            for (BudgetVsActualReportData.BudgetComparison comparison : comparisons) {
+                Font font = comparison.exceeded() ? EXCEEDED_FONT : BODY_FONT;
+                table.addCell(valueCell(comparison.categoryName()));
+                table.addCell(amountCell(formatCurrency(comparison.limitValue()), BODY_FONT));
+                table.addCell(amountCell(formatCurrency(comparison.spentValue()), font));
+                table.addCell(amountCell(formatCurrency(comparison.difference()), font));
+            }
+        }
+
+        PdfPCell totalLabel = headerCell("TOTAL DO MÊS");
+        table.addCell(totalLabel);
+        table.addCell(amountCell(formatCurrency(totalLimit), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalSpent), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalLimit.subtract(totalSpent)), TOTAL_FONT));
         return table;
     }
 

@@ -13,6 +13,8 @@ import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
+import com.lmf.finpro.domain.model.Budget;
+import com.lmf.finpro.domain.model.BudgetVsActualReportData;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -28,6 +30,7 @@ import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
@@ -56,6 +59,7 @@ class ReportApplicationServiceTest {
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
+    @Mock private BudgetRepositoryPort budgetRepositoryPort;
     @Mock private ReceiptGeneratorPort receiptGeneratorPort;
 
     @InjectMocks private ReportApplicationService service;
@@ -822,6 +826,105 @@ class ReportApplicationServiceTest {
         assertThat(data.totalResult()).isEqualByComparingTo("0");
         assertThat(data.periods())
                 .allMatch(period -> period.result().compareTo(BigDecimal.ZERO) == 0);
+    }
+
+    @Test
+    void generateBudgetVsActualReportComparesLimitAndSpentSortedByUsageDescending() {
+        User issuer = issuer();
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer));
+
+        Category rent = new Category(1L, 10L, "Aluguel", CategoryType.EXPENSE, null, null);
+        Category food = new Category(2L, 10L, "Alimentação", CategoryType.EXPENSE, null, null);
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of(rent, food));
+
+        Budget rentBudget =
+                new Budget(1L, 10L, 1L, YearMonth.of(2026, 9), BigDecimal.valueOf(1000));
+        Budget foodBudget = new Budget(2L, 10L, 2L, YearMonth.of(2026, 9), BigDecimal.valueOf(500));
+        Budget otherMonthBudget =
+                new Budget(3L, 10L, 1L, YearMonth.of(2026, 8), BigDecimal.valueOf(999));
+        when(budgetRepositoryPort.findAllByUserId(10L))
+                .thenReturn(List.of(rentBudget, foodBudget, otherMonthBudget));
+
+        when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+                        10L,
+                        1L,
+                        CategoryType.EXPENSE,
+                        LocalDate.of(2026, 9, 1),
+                        LocalDate.of(2026, 10, 1)))
+                .thenReturn(BigDecimal.valueOf(1200));
+        when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+                        10L,
+                        2L,
+                        CategoryType.EXPENSE,
+                        LocalDate.of(2026, 9, 1),
+                        LocalDate.of(2026, 10, 1)))
+                .thenReturn(BigDecimal.valueOf(100));
+        when(receiptGeneratorPort.generateBudgetVsActualReport(any())).thenReturn(new byte[] {5});
+
+        byte[] result = service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9));
+
+        assertThat(result).containsExactly(5);
+        ArgumentCaptor<BudgetVsActualReportData> captor =
+                ArgumentCaptor.forClass(BudgetVsActualReportData.class);
+        verify(receiptGeneratorPort).generateBudgetVsActualReport(captor.capture());
+        BudgetVsActualReportData data = captor.getValue();
+
+        assertThat(data.comparisons()).hasSize(2);
+        assertThat(data.comparisons())
+                .extracting(BudgetVsActualReportData.BudgetComparison::categoryName)
+                .containsExactly("Aluguel", "Alimentação");
+        BudgetVsActualReportData.BudgetComparison rentComparison = data.comparisons().get(0);
+        assertThat(rentComparison.limitValue()).isEqualByComparingTo("1000");
+        assertThat(rentComparison.spentValue()).isEqualByComparingTo("1200");
+        assertThat(rentComparison.difference()).isEqualByComparingTo("-200");
+        assertThat(rentComparison.exceeded()).isTrue();
+        BudgetVsActualReportData.BudgetComparison foodComparison = data.comparisons().get(1);
+        assertThat(foodComparison.spentValue()).isEqualByComparingTo("100");
+        assertThat(foodComparison.exceeded()).isFalse();
+        assertThat(data.totalLimit()).isEqualByComparingTo("1500");
+        assertThat(data.totalSpent()).isEqualByComparingTo("1300");
+        assertThat(data.issuer()).isEqualTo(issuer);
+        assertThat(data.referenceMonth()).isEqualTo(YearMonth.of(2026, 9));
+    }
+
+    @Test
+    void generateBudgetVsActualReportUsesRemovedCategoryLabelWhenCategoryNoLongerExists() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+
+        Budget budget = new Budget(1L, 10L, 999L, YearMonth.of(2026, 9), BigDecimal.valueOf(300));
+        when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(budget));
+        when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+                        any(), any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
+        when(receiptGeneratorPort.generateBudgetVsActualReport(any())).thenReturn(new byte[0]);
+
+        service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<BudgetVsActualReportData> captor =
+                ArgumentCaptor.forClass(BudgetVsActualReportData.class);
+        verify(receiptGeneratorPort).generateBudgetVsActualReport(captor.capture());
+        assertThat(captor.getValue().comparisons())
+                .extracting(BudgetVsActualReportData.BudgetComparison::categoryName)
+                .containsExactly("Categoria removida");
+    }
+
+    @Test
+    void generateBudgetVsActualReportReturnsEmptyListWhenThereAreNoBudgetsInTheMonth() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
+        when(receiptGeneratorPort.generateBudgetVsActualReport(any())).thenReturn(new byte[0]);
+
+        service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9));
+
+        ArgumentCaptor<BudgetVsActualReportData> captor =
+                ArgumentCaptor.forClass(BudgetVsActualReportData.class);
+        verify(receiptGeneratorPort).generateBudgetVsActualReport(captor.capture());
+        BudgetVsActualReportData data = captor.getValue();
+        assertThat(data.comparisons()).isEmpty();
+        assertThat(data.totalLimit()).isEqualByComparingTo("0");
+        assertThat(data.totalSpent()).isEqualByComparingTo("0");
     }
 
     private static BigDecimal monthlyTotal(ClientAnnualStatementData data, Month month) {

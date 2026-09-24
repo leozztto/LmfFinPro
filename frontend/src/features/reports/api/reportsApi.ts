@@ -1,6 +1,7 @@
 import { httpClient } from '@/shared/api/httpClient'
 import type {
   AccountStatementInput,
+  BudgetVsActualReportInput,
   CategoryExpenseReportInput,
   ClientAnnualStatementInput,
   ClientReceiptInput,
@@ -26,4 +27,6 @@ export const reportsApi = {
     httpClient.getBlob(
       `/reports/income-statement?year=${input.year}&granularity=${input.granularity}`,
     ),
+  downloadBudgetVsActualReport: (input: BudgetVsActualReportInput) =>
+    httpClient.getBlob(`/reports/budget-vs-actual?referenceMonth=${input.referenceMonth}`),
 }

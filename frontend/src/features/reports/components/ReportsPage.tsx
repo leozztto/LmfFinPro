@@ -6,6 +6,7 @@ import { AccountStatementForm } from './AccountStatementForm'
 import { ClientAnnualStatementForm } from './ClientAnnualStatementForm'
 import { CategoryExpenseReportForm } from './CategoryExpenseReportForm'
 import { IncomeStatementForm } from './IncomeStatementForm'
+import { BudgetVsActualReportForm } from './BudgetVsActualReportForm'
 
 export function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('CLIENT_RECEIPT')
@@ -40,6 +41,7 @@ export function ReportsPage() {
       {reportType === 'CLIENT_ANNUAL_STATEMENT' && <ClientAnnualStatementForm />}
       {reportType === 'CATEGORY_EXPENSE_REPORT' && <CategoryExpenseReportForm />}
       {reportType === 'INCOME_STATEMENT' && <IncomeStatementForm />}
+      {reportType === 'BUDGET_VS_ACTUAL' && <BudgetVsActualReportForm />}
     </div>
   )
 }

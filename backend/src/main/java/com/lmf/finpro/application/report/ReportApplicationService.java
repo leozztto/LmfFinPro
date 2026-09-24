@@ -3,6 +3,8 @@ package com.lmf.finpro.application.report;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountStatementData;
+import com.lmf.finpro.domain.model.Budget;
+import com.lmf.finpro.domain.model.BudgetVsActualReportData;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -14,12 +16,14 @@ import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.Year;
@@ -48,6 +52,7 @@ public class ReportApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
+    private final BudgetRepositoryPort budgetRepositoryPort;
     private final ReceiptGeneratorPort receiptGeneratorPort;
 
     public byte[] generateClientReceipt(
@@ -352,6 +357,71 @@ public class ReportApplicationService {
     private String capitalizeMonth(Month month) {
         String name = month.getDisplayName(TextStyle.FULL, PT_BR);
         return name.substring(0, 1).toUpperCase(PT_BR) + name.substring(1);
+    }
+
+    /**
+     * Compara, para cada orçamento cadastrado no mês, o limite definido com o total já gasto na
+     * categoria (mesmo cálculo de {@code BudgetApplicationService.calculateSpent}, refeito aqui
+     * para não acoplar um application service a outro), ordenado do maior percentual de uso para o
+     * menor — assim os orçamentos estourados ou perto do limite aparecem primeiro.
+     */
+    public byte[] generateBudgetVsActualReport(Long currentUserId, YearMonth referenceMonth) {
+        User issuer = findUserOrThrow(currentUserId);
+
+        List<Budget> budgets =
+                budgetRepositoryPort.findAllByUserId(currentUserId).stream()
+                        .filter(budget -> budget.referenceMonth().equals(referenceMonth))
+                        .toList();
+
+        Map<Long, String> categoryNameById =
+                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                        .collect(Collectors.toMap(Category::id, Category::name));
+
+        List<BudgetVsActualReportData.BudgetComparison> comparisons =
+                budgets.stream()
+                        .map(budget -> budgetComparison(budget, categoryNameById))
+                        .sorted(Comparator.comparing(this::usageRatio).reversed())
+                        .toList();
+
+        BigDecimal totalLimit =
+                comparisons.stream()
+                        .map(BudgetVsActualReportData.BudgetComparison::limitValue)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSpent =
+                comparisons.stream()
+                        .map(BudgetVsActualReportData.BudgetComparison::spentValue)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return receiptGeneratorPort.generateBudgetVsActualReport(
+                new BudgetVsActualReportData(
+                        issuer, referenceMonth, comparisons, totalLimit, totalSpent));
+    }
+
+    private BudgetVsActualReportData.BudgetComparison budgetComparison(
+            Budget budget, Map<Long, String> categoryNameById) {
+        BigDecimal spent =
+                transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+                        budget.userId(),
+                        budget.categoryId(),
+                        CategoryType.EXPENSE,
+                        budget.referenceMonth().atDay(1),
+                        budget.referenceMonth().plusMonths(1).atDay(1));
+        String categoryName =
+                categoryNameById.getOrDefault(budget.categoryId(), "Categoria removida");
+        BigDecimal difference = budget.limitValue().subtract(spent);
+        return new BudgetVsActualReportData.BudgetComparison(
+                categoryName,
+                budget.limitValue(),
+                spent,
+                difference,
+                spent.compareTo(budget.limitValue()) > 0);
+    }
+
+    private BigDecimal usageRatio(BudgetVsActualReportData.BudgetComparison comparison) {
+        if (comparison.limitValue().compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return comparison.spentValue().divide(comparison.limitValue(), 4, RoundingMode.HALF_UP);
     }
 
     private Client findOwnedClientOrThrow(Long currentUserId, Long clientId) {

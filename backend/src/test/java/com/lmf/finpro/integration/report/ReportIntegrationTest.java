@@ -8,6 +8,8 @@ import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
+import com.lmf.finpro.infrastructure.web.dto.budget.BudgetRequest;
+import com.lmf.finpro.infrastructure.web.dto.budget.BudgetResponse;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryResponse;
 import com.lmf.finpro.infrastructure.web.dto.client.ClientRequest;
@@ -21,6 +23,7 @@ import com.lmf.finpro.integration.support.TestUser;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
 
@@ -365,6 +368,64 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         byte[] body = response.getBody();
         assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void generatesBudgetVsActualReportPdfComparingLimitAndSpentPerCategory() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long rentCategoryId = createExpenseCategory(user, "Aluguel");
+        createBudget(user, rentCategoryId, "2026-09", "1000.00");
+        createExpenseTransaction(
+                user,
+                accountId,
+                rentCategoryId,
+                "Aluguel escritório",
+                "1200.00",
+                LocalDate.of(2026, 9, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/budget-vs-actual?referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        byte[] body = response.getBody();
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void generatesBudgetVsActualReportPdfEvenWithNoBudgetsInTheMonth() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/budget-vs-actual?referenceMonth=2026-09",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        byte[] body = response.getBody();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    private void createBudget(
+            TestUser user, Long categoryId, String referenceMonth, String limitValue) {
+        BudgetRequest request =
+                new BudgetRequest(
+                        categoryId, YearMonth.parse(referenceMonth), new BigDecimal(limitValue));
+        restTemplate.exchange(
+                "/api/budgets",
+                HttpMethod.POST,
+                new HttpEntity<>(request, user.authHeaders()),
+                BudgetResponse.class);
     }
 
     private void createExpenseTransaction(

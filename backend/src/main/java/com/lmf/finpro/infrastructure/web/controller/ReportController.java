@@ -111,4 +111,21 @@ public class ReportController {
                         "attachment; filename=\"" + filename + "\"")
                 .body(pdf);
     }
+
+    @GetMapping(value = "/budget-vs-actual", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> budgetVsActual(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
+        byte[] pdf =
+                reportApplicationService.generateBudgetVsActualReport(
+                        currentUser.userId(), referenceMonth);
+
+        String filename = "orcamento-vs-realizado-" + referenceMonth + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
 }

@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.model.AccountStatementData;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
+import com.lmf.finpro.domain.model.BudgetVsActualReportData;
 import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
@@ -345,5 +346,48 @@ class OpenPdfReceiptGeneratorTest {
                                 4,
                                 StandardCharsets.ISO_8859_1))
                 .isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesABudgetVsActualReportPdfDocumentStartingWithThePdfMagicBytes() {
+        BudgetVsActualReportData data =
+                new BudgetVsActualReportData(
+                        issuer(),
+                        YearMonth.of(2026, 9),
+                        List.of(
+                                new BudgetVsActualReportData.BudgetComparison(
+                                        "Aluguel",
+                                        new BigDecimal("1000.00"),
+                                        new BigDecimal("1200.00"),
+                                        new BigDecimal("-200.00"),
+                                        true),
+                                new BudgetVsActualReportData.BudgetComparison(
+                                        "Alimentação",
+                                        new BigDecimal("500.00"),
+                                        new BigDecimal("100.00"),
+                                        new BigDecimal("400.00"),
+                                        false)),
+                        new BigDecimal("1500.00"),
+                        new BigDecimal("1300.00"));
+
+        byte[] pdf = generator.generateBudgetVsActualReport(data);
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesABudgetVsActualReportPdfEvenWithNoBudgetsInTheMonth() {
+        BudgetVsActualReportData data =
+                new BudgetVsActualReportData(
+                        issuer(),
+                        YearMonth.of(2026, 9),
+                        List.of(),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO);
+
+        byte[] pdf = generator.generateBudgetVsActualReport(data);
+
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 }
