@@ -75,7 +75,7 @@ public class AuthApplicationService {
     }
 
     private AuthResult toAuthResult(User user) {
-        String token = tokenPort.generate(user.id(), user.email());
+        String token = tokenPort.generate(user.id(), user.email(), user.sessionVersion());
         return new AuthResult(token, user.id(), user.name(), user.email());
     }
 

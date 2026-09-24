@@ -62,11 +62,13 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
     await handleErrorResponse(response)
   }
 
-  if (response.status === 204) {
+  // 204 e respostas sem corpo (ex: 202 do "esqueci minha senha") não têm JSON para ler.
+  const text = await response.text()
+  if (!text) {
     return undefined as TResponse
   }
 
-  return (await response.json()) as TResponse
+  return JSON.parse(text) as TResponse
 }
 
 /** Para downloads de arquivo (ex: PDF de relatório) — resposta não é JSON. */

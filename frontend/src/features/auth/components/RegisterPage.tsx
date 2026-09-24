@@ -10,6 +10,7 @@ import { useRegister } from '../hooks/useRegister'
 import { useCepLookup } from '../hooks/useCepLookup'
 import { documentTypeForTaxRegime, registerSchema, TAX_REGIME_OPTIONS, type RegisterFormValues } from '../schemas'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
+import { authLinkClassName } from './AuthPageShell'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -289,7 +290,7 @@ export function RegisterPage() {
 
           <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
             Já tem conta?{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
+            <Link to="/login" className={authLinkClassName}>
               Entrar
             </Link>
           </p>

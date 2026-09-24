@@ -57,7 +57,8 @@ class OpenPdfReceiptGeneratorTest {
                 "11999998888",
                 TaxRegime.AUTONOMO,
                 address,
-                LocalDateTime.now());
+                LocalDateTime.now(),
+                0);
     }
 
     private static User issuerWithoutAddress() {
@@ -71,7 +72,8 @@ class OpenPdfReceiptGeneratorTest {
                 "11999998888",
                 TaxRegime.AUTONOMO,
                 null,
-                LocalDateTime.now());
+                LocalDateTime.now(),
+                0);
     }
 
     private static Client client() {

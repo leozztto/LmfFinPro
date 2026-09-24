@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from '@/features/auth/components/LoginPage'
 import { RegisterPage } from '@/features/auth/components/RegisterPage'
+import { ForgotPasswordPage } from '@/features/auth/components/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/features/auth/components/ResetPasswordPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { AccountsPage } from '@/features/accounts/components/AccountsPage'
 import { CategoriesPage } from '@/features/categories/components/CategoriesPage'
@@ -20,6 +22,8 @@ export function AppRouter() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/registro" element={<RegisterPage />} />
+      <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+      <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>

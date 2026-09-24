@@ -13,4 +13,7 @@ public interface UserRepositoryPort {
     boolean existsByEmail(String email);
 
     boolean existsByDocumentNumber(String documentNumber);
+
+    /** Consulta leve (só a coluna), chamada a cada requisição autenticada. */
+    Optional<Integer> findSessionVersion(Long userId);
 }

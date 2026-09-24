@@ -39,11 +39,16 @@ LmfFinPro/
 docker compose up --build
 ```
 
-Isso sobe três containers: Postgres, backend (Spring Boot) e frontend (build estático servido por Nginx).
+Isso sobe quatro containers: Postgres, backend (Spring Boot), frontend (build estático servido por Nginx) e Mailpit (servidor de e-mail falso para desenvolvimento).
 
-- Frontend: http://localhost:5173
+- Frontend: http://localhost
 - API: http://localhost:8080 (Swagger UI em `/swagger-ui.html`)
 - Postgres: localhost:5432
+- Mailpit: http://localhost:8025 — caixa de entrada com todos os e-mails que o backend envia (ex.: link de "esqueci minha senha"); nenhum e-mail sai de verdade
+
+### E-mail (redefinição de senha)
+
+O backend envia e-mail via SMTP quando `SPRING_MAIL_HOST` está definido — no Docker Compose ele aponta para o Mailpit. Rodando o backend fora do Docker sem SMTP configurado, o link de redefinição de senha só é escrito no log do backend. Em produção, configure um SMTP real (`SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`) e `FRONTEND_URL` com o endereço público do frontend (usado para montar o link do e-mail).
 
 ### Rodando cada parte na mão (útil durante o desenvolvimento, com hot reload)
 
@@ -51,6 +56,8 @@ Isso sobe três containers: Postgres, backend (Spring Boot) e frontend (build es
 
 ```bash
 docker compose up -d postgres
+# opcional, para receber os e-mails de redefinição de senha: docker compose up -d mailpit
+# e SPRING_MAIL_HOST=localhost / SPRING_MAIL_PORT=1025 no .env do backend
 ```
 
 **2. Backend**

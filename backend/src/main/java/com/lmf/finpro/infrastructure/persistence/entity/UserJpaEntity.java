@@ -47,6 +47,9 @@ public class UserJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "session_version", nullable = false)
+    private int sessionVersion;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

@@ -44,7 +44,8 @@ class UserPersistenceMapperTest {
                         "11987654321",
                         TaxRegime.AUTONOMO,
                         null,
-                        LocalDateTime.now());
+                        LocalDateTime.now(),
+                        0);
 
         UserJpaEntity entity = mapper.toEntity(user);
 
@@ -64,7 +65,8 @@ class UserPersistenceMapperTest {
                         "11987654321",
                         TaxRegime.AUTONOMO,
                         sampleAddress(),
-                        LocalDateTime.now());
+                        LocalDateTime.now(),
+                        0);
 
         UserJpaEntity entity = mapper.toEntity(user);
 

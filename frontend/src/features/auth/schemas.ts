@@ -121,3 +121,21 @@ export const registerSchema = z
   })
 
 export type RegisterFormValues = z.infer<typeof registerSchema>
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().min(1, 'e-mail é obrigatório').email('e-mail inválido'),
+})
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>
+
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8, 'senha deve ter ao menos 8 caracteres'),
+    confirmPassword: z.string().min(1, 'confirme a senha'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'as senhas não coincidem',
+  })
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>
