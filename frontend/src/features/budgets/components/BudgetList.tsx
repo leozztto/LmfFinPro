@@ -8,6 +8,7 @@ import { formatMonthLabel } from '@/features/dashboard/utils'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useBudgets } from '../hooks/useBudgets'
 import { useDeleteBudget } from '../hooks/useDeleteBudget'
+import { budgetUsage } from '../utils'
 
 export function BudgetList() {
   const { data: budgets, isLoading } = useBudgets()
@@ -40,14 +41,13 @@ export function BudgetList() {
   const sorted = [...budgets].sort((a, b) => b.referenceMonth.localeCompare(a.referenceMonth))
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 lg:grid-cols-2">
       {sorted.map((budget) => {
         const category = categoryById.get(budget.categoryId)
         const categoryName = category?.name ?? 'Categoria removida'
         const monthLabel = formatMonthLabel(budget.referenceMonth)
         const spent = budget.spentValue
-        const percentage = Math.min(100, (spent / budget.limitValue) * 100)
-        const isOverBudget = spent > budget.limitValue
+        const { percentage, isOverBudget, color } = budgetUsage(spent, budget.limitValue)
 
         return (
           <Card key={budget.id} className="flex items-center justify-between gap-3">
@@ -55,10 +55,18 @@ export function BudgetList() {
               <p className="font-medium text-zinc-800 dark:text-zinc-100">
                 {categoryName} · {monthLabel}
               </p>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <div
+                role="progressbar"
+                aria-label={`Gasto de ${categoryName}`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(percentage)}
+                className="mt-2 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700"
+              >
+                {/* Cor vai do azul claro ao verde (até 25%) e daí ao laranja; vermelho ao ultrapassar. */}
                 <div
-                  className={`h-full rounded-full transition-all ${isOverBudget ? 'bg-red-500' : 'bg-primary-500'}`}
-                  style={{ width: `${percentage}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${percentage}%`, backgroundColor: color }}
                 />
               </div>
               <p
