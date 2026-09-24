@@ -12,6 +12,7 @@ import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
@@ -21,7 +22,7 @@ import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
-import com.lmf.finpro.domain.port.out.TransactionExportPort;
+import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
@@ -56,9 +57,17 @@ public class ReportApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final BudgetRepositoryPort budgetRepositoryPort;
     private final ReceiptGeneratorPort receiptGeneratorPort;
-    private final TransactionExportPort transactionExportPort;
+    private final ReportCsvExporterPort reportCsvExporterPort;
 
     public byte[] generateClientReceipt(
+            Long currentUserId, Long clientId, YearMonth referenceMonth, ReportFormat format) {
+        ClientReceiptData data = buildClientReceiptData(currentUserId, clientId, referenceMonth);
+        return format == ReportFormat.CSV
+                ? reportCsvExporterPort.exportClientReceipt(data)
+                : receiptGeneratorPort.generateClientReceipt(data);
+    }
+
+    private ClientReceiptData buildClientReceiptData(
             Long currentUserId, Long clientId, YearMonth referenceMonth) {
         Client client = findOwnedClientOrThrow(currentUserId, clientId);
         User issuer = findUserOrThrow(currentUserId);
@@ -74,8 +83,7 @@ public class ReportApplicationService {
                         .map(Transaction::amount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return receiptGeneratorPort.generateClientReceipt(
-                new ClientReceiptData(issuer, client, referenceMonth, transactions, total));
+        return new ClientReceiptData(issuer, client, referenceMonth, transactions, total);
     }
 
     /**
@@ -85,6 +93,15 @@ public class ReportApplicationService {
      * criar uma query nova só para isso.
      */
     public byte[] generateAccountStatement(
+            Long currentUserId, Long accountId, YearMonth referenceMonth, ReportFormat format) {
+        AccountStatementData data =
+                buildAccountStatementData(currentUserId, accountId, referenceMonth);
+        return format == ReportFormat.CSV
+                ? reportCsvExporterPort.exportAccountStatement(data)
+                : receiptGeneratorPort.generateAccountStatement(data);
+    }
+
+    private AccountStatementData buildAccountStatementData(
             Long currentUserId, Long accountId, YearMonth referenceMonth) {
         Account account = findOwnedAccountOrThrow(currentUserId, accountId);
         User issuer = findUserOrThrow(currentUserId);
@@ -121,16 +138,15 @@ public class ReportApplicationService {
 
         BigDecimal closingBalance = openingBalance.add(totalIncome).subtract(totalExpense);
 
-        return receiptGeneratorPort.generateAccountStatement(
-                new AccountStatementData(
-                        issuer,
-                        account,
-                        referenceMonth,
-                        openingBalance,
-                        periodTransactions,
-                        totalIncome,
-                        totalExpense,
-                        closingBalance));
+        return new AccountStatementData(
+                issuer,
+                account,
+                referenceMonth,
+                openingBalance,
+                periodTransactions,
+                totalIncome,
+                totalExpense,
+                closingBalance);
     }
 
     /**
@@ -138,7 +154,17 @@ public class ReportApplicationService {
      * reaproveitando {@code findAllByClientIdAndTypeAndDateBetween} com o intervalo do ano inteiro
      * em vez de um mês, igual ao recibo mensal.
      */
-    public byte[] generateClientAnnualStatement(Long currentUserId, Long clientId, Year year) {
+    public byte[] generateClientAnnualStatement(
+            Long currentUserId, Long clientId, Year year, ReportFormat format) {
+        ClientAnnualStatementData data =
+                buildClientAnnualStatementData(currentUserId, clientId, year);
+        return format == ReportFormat.CSV
+                ? reportCsvExporterPort.exportClientAnnualStatement(data)
+                : receiptGeneratorPort.generateClientAnnualStatement(data);
+    }
+
+    private ClientAnnualStatementData buildClientAnnualStatementData(
+            Long currentUserId, Long clientId, Year year) {
         Client client = findOwnedClientOrThrow(currentUserId, clientId);
         User issuer = findUserOrThrow(currentUserId);
 
@@ -172,8 +198,7 @@ public class ReportApplicationService {
                         .map(Transaction::amount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return receiptGeneratorPort.generateClientAnnualStatement(
-                new ClientAnnualStatementData(issuer, client, year, monthlyIncomes, totalYear));
+        return new ClientAnnualStatementData(issuer, client, year, monthlyIncomes, totalYear);
     }
 
     /**
@@ -182,7 +207,17 @@ public class ReportApplicationService {
      * sem categoria entram como "Sem categoria"; uma categoria excluída depois de usada entra como
      * "Categoria removida", já que o histórico da transação não pode sumir.
      */
-    public byte[] generateCategoryExpenseReport(Long currentUserId, YearMonth referenceMonth) {
+    public byte[] generateCategoryExpenseReport(
+            Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+        CategoryExpenseReportData data =
+                buildCategoryExpenseReportData(currentUserId, referenceMonth);
+        return format == ReportFormat.CSV
+                ? reportCsvExporterPort.exportCategoryExpenseReport(data)
+                : receiptGeneratorPort.generateCategoryExpenseReport(data);
+    }
+
+    private CategoryExpenseReportData buildCategoryExpenseReportData(
+            Long currentUserId, YearMonth referenceMonth) {
         User issuer = findUserOrThrow(currentUserId);
 
         LocalDate start = referenceMonth.atDay(1);
@@ -233,9 +268,8 @@ public class ReportApplicationService {
                         .map(CategoryExpenseReportData.CategoryExpense::total)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return receiptGeneratorPort.generateCategoryExpenseReport(
-                new CategoryExpenseReportData(
-                        issuer, referenceMonth, categoryExpenses, totalExpense));
+        return new CategoryExpenseReportData(
+                issuer, referenceMonth, categoryExpenses, totalExpense);
     }
 
     /**
@@ -244,6 +278,14 @@ public class ReportApplicationService {
      * transferências entre contas próprias são excluídas, igual ao Dashboard.
      */
     public byte[] generateIncomeStatement(
+            Long currentUserId, Year year, ReportGranularity granularity, ReportFormat format) {
+        IncomeStatementData data = buildIncomeStatementData(currentUserId, year, granularity);
+        return format == ReportFormat.CSV
+                ? reportCsvExporterPort.exportIncomeStatement(data)
+                : receiptGeneratorPort.generateIncomeStatement(data);
+    }
+
+    private IncomeStatementData buildIncomeStatementData(
             Long currentUserId, Year year, ReportGranularity granularity) {
         User issuer = findUserOrThrow(currentUserId);
 
@@ -276,15 +318,8 @@ public class ReportApplicationService {
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalResult = totalIncome.subtract(totalExpense);
 
-        return receiptGeneratorPort.generateIncomeStatement(
-                new IncomeStatementData(
-                        issuer,
-                        year,
-                        granularity,
-                        periods,
-                        totalIncome,
-                        totalExpense,
-                        totalResult));
+        return new IncomeStatementData(
+                issuer, year, granularity, periods, totalIncome, totalExpense, totalResult);
     }
 
     private List<IncomeStatementData.PeriodResult> monthlyPeriods(List<Transaction> transactions) {
@@ -368,7 +403,17 @@ public class ReportApplicationService {
      * para não acoplar um application service a outro), ordenado do maior percentual de uso para o
      * menor — assim os orçamentos estourados ou perto do limite aparecem primeiro.
      */
-    public byte[] generateBudgetVsActualReport(Long currentUserId, YearMonth referenceMonth) {
+    public byte[] generateBudgetVsActualReport(
+            Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+        BudgetVsActualReportData data =
+                buildBudgetVsActualReportData(currentUserId, referenceMonth);
+        return format == ReportFormat.CSV
+                ? reportCsvExporterPort.exportBudgetVsActualReport(data)
+                : receiptGeneratorPort.generateBudgetVsActualReport(data);
+    }
+
+    private BudgetVsActualReportData buildBudgetVsActualReportData(
+            Long currentUserId, YearMonth referenceMonth) {
         User issuer = findUserOrThrow(currentUserId);
 
         List<Budget> budgets =
@@ -395,9 +440,8 @@ public class ReportApplicationService {
                         .map(BudgetVsActualReportData.BudgetComparison::spentValue)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return receiptGeneratorPort.generateBudgetVsActualReport(
-                new BudgetVsActualReportData(
-                        issuer, referenceMonth, comparisons, totalLimit, totalSpent));
+        return new BudgetVsActualReportData(
+                issuer, referenceMonth, comparisons, totalLimit, totalSpent);
     }
 
     private BudgetVsActualReportData.BudgetComparison budgetComparison(
@@ -432,7 +476,16 @@ public class ReportApplicationService {
      * ordenado por data — ao contrário dos relatórios agregados, inclui transferências, já que o
      * objetivo aqui é auditar o extrato completo, não somar receita/despesa.
      */
-    public byte[] generateTransactionExport(Long currentUserId, YearMonth referenceMonth) {
+    public byte[] generateTransactionExport(
+            Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+        TransactionExportData data = buildTransactionExportData(currentUserId, referenceMonth);
+        return format == ReportFormat.PDF
+                ? receiptGeneratorPort.generateTransactionExport(data)
+                : reportCsvExporterPort.exportTransactions(data);
+    }
+
+    private TransactionExportData buildTransactionExportData(
+            Long currentUserId, YearMonth referenceMonth) {
         LocalDate start = referenceMonth.atDay(1);
         LocalDate end = referenceMonth.plusMonths(1).atDay(1);
 
@@ -476,8 +529,7 @@ public class ReportApplicationService {
                                                 transaction.amount()))
                         .toList();
 
-        return transactionExportPort.exportTransactionsToCsv(
-                new TransactionExportData(referenceMonth, rows));
+        return new TransactionExportData(referenceMonth, rows);
     }
 
     private Client findOwnedClientOrThrow(Long currentUserId, Long clientId) {

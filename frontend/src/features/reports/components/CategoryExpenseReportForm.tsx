@@ -4,18 +4,20 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { getCurrentYearMonth } from '@/shared/format/date'
 import { useDownloadCategoryExpenseReport } from '../hooks/useDownloadCategoryExpenseReport'
+import type { ReportFormat } from '../types'
 
-export function CategoryExpenseReportForm() {
+export function CategoryExpenseReportForm({ format }: { format: ReportFormat }) {
   const downloadReport = useDownloadCategoryExpenseReport()
   const { showToast } = useToast()
   const [referenceMonth, setReferenceMonth] = useState(getCurrentYearMonth())
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const fileName = `despesas-por-categoria-${referenceMonth}.pdf`
+    const extension = format === 'CSV' ? 'csv' : 'pdf'
+    const fileName = `despesas-por-categoria-${referenceMonth}.${extension}`
 
     try {
-      await downloadReport.mutateAsync({ referenceMonth, fileName })
+      await downloadReport.mutateAsync({ referenceMonth, format, fileName })
       showToast('Relatório gerado com sucesso.', 'success')
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível gerar o relatório.')
@@ -38,7 +40,7 @@ export function CategoryExpenseReportForm() {
           para organizar despesas dedutíveis.
         </p>
         <Button type="submit" disabled={downloadReport.isPending} className="w-full">
-          {downloadReport.isPending ? 'Gerando...' : 'Gerar relatório em PDF'}
+          {downloadReport.isPending ? 'Gerando...' : `Gerar relatório em ${format}`}
         </Button>
       </div>
     </form>

@@ -6,6 +6,7 @@ import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.TransactionExportData;
 
 public interface ReceiptGeneratorPort {
     byte[] generateClientReceipt(ClientReceiptData data);
@@ -19,4 +20,6 @@ public interface ReceiptGeneratorPort {
     byte[] generateIncomeStatement(IncomeStatementData data);
 
     byte[] generateBudgetVsActualReport(BudgetVsActualReportData data);
+
+    byte[] generateTransactionExport(TransactionExportData data);
 }

@@ -469,6 +469,191 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(content).isEqualTo("Data;Conta;Categoria;Cliente;Descrição;Tipo;Valor\r\n");
     }
 
+    @Test
+    void generatesClientReceiptCsvWhenFormatIsCsv() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long clientId = createClient(user);
+        createIncomeTransaction(
+                user,
+                accountId,
+                clientId,
+                "Serviço de consultoria",
+                "1000.00",
+                LocalDate.of(2026, 9, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/client-receipt?clientId="
+                                + clientId
+                                + "&referenceMonth=2026-09&format=CSV",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType())
+                .isEqualTo(MediaType.parseMediaType("text/csv"));
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content)
+                .startsWith("Data;Descrição;Valor\r\n")
+                .contains("Serviço de consultoria");
+    }
+
+    @Test
+    void generatesAccountStatementCsvWhenFormatIsCsv() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        createIncomeTransaction(
+                user, accountId, null, "Receita do mês", "1000.00", LocalDate.of(2026, 9, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/account-statement?accountId="
+                                + accountId
+                                + "&referenceMonth=2026-09&format=CSV",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType())
+                .isEqualTo(MediaType.parseMediaType("text/csv"));
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).startsWith("Data;Descrição;Tipo;Valor;Saldo\r\n");
+    }
+
+    @Test
+    void generatesClientAnnualStatementCsvWhenFormatIsCsv() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long clientId = createClient(user);
+        createIncomeTransaction(
+                user,
+                accountId,
+                clientId,
+                "Serviço de janeiro",
+                "1000.00",
+                LocalDate.of(2026, 1, 10));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/client-annual-statement?clientId="
+                                + clientId
+                                + "&year=2026&format=CSV",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType())
+                .isEqualTo(MediaType.parseMediaType("text/csv"));
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).startsWith("Mês;Valor recebido\r\n");
+    }
+
+    @Test
+    void generatesCategoryExpensesCsvWhenFormatIsCsv() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long rentCategoryId = createExpenseCategory(user, "Aluguel");
+        createExpenseTransaction(
+                user,
+                accountId,
+                rentCategoryId,
+                "Aluguel escritório",
+                "1500.00",
+                LocalDate.of(2026, 9, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/category-expenses?referenceMonth=2026-09&format=CSV",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType())
+                .isEqualTo(MediaType.parseMediaType("text/csv"));
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).startsWith("Categoria;Valor gasto\r\n").contains("Aluguel");
+    }
+
+    @Test
+    void generatesIncomeStatementCsvWhenFormatIsCsv() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        createIncomeTransaction(
+                user, accountId, null, "Receita de janeiro", "1000.00", LocalDate.of(2026, 1, 10));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/income-statement?year=2026&granularity=YEARLY&format=CSV",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType())
+                .isEqualTo(MediaType.parseMediaType("text/csv"));
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).startsWith("Período;Receita;Despesa;Resultado\r\n");
+    }
+
+    @Test
+    void generatesBudgetVsActualCsvWhenFormatIsCsv() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        Long rentCategoryId = createExpenseCategory(user, "Aluguel");
+        createBudget(user, rentCategoryId, "2026-09", "1000.00");
+        createExpenseTransaction(
+                user,
+                accountId,
+                rentCategoryId,
+                "Aluguel escritório",
+                "1200.00",
+                LocalDate.of(2026, 9, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/budget-vs-actual?referenceMonth=2026-09&format=CSV",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType())
+                .isEqualTo(MediaType.parseMediaType("text/csv"));
+        byte[] body = response.getBody();
+        String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
+        assertThat(content).startsWith("Categoria;Limite;Gasto real;Diferença\r\n");
+    }
+
+    @Test
+    void generatesTransactionExportPdfWhenFormatIsPdf() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        createIncomeTransaction(
+                user, accountId, null, "Receita do mês", "1000.00", LocalDate.of(2026, 9, 5));
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/reports/transaction-export?referenceMonth=2026-09&format=PDF",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        byte[] body = response.getBody();
+        assertThat(new String(body, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
     private void createBudget(
             TestUser user, Long categoryId, String referenceMonth, String limitValue) {
         BudgetRequest request =

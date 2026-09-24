@@ -19,6 +19,7 @@ import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.User;
 import java.math.BigDecimal;
@@ -387,6 +388,36 @@ class OpenPdfReceiptGeneratorTest {
                         BigDecimal.ZERO);
 
         byte[] pdf = generator.generateBudgetVsActualReport(data);
+
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesATransactionExportPdfDocumentStartingWithThePdfMagicBytes() {
+        TransactionExportData data =
+                new TransactionExportData(
+                        YearMonth.of(2026, 9),
+                        List.of(
+                                new TransactionExportData.TransactionExportRow(
+                                        LocalDate.of(2026, 9, 5),
+                                        "Conta Corrente",
+                                        "Aluguel",
+                                        "",
+                                        "Aluguel escritório",
+                                        CategoryType.EXPENSE,
+                                        new BigDecimal("1500.00"))));
+
+        byte[] pdf = generator.generateTransactionExport(data);
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesATransactionExportPdfEvenWithNoTransactionsInThePeriod() {
+        TransactionExportData data = new TransactionExportData(YearMonth.of(2026, 9), List.of());
+
+        byte[] pdf = generator.generateTransactionExport(data);
 
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }

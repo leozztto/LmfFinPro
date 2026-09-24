@@ -3,13 +3,13 @@ import { Button, FormField, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useDownloadIncomeStatement } from '../hooks/useDownloadIncomeStatement'
-import { REPORT_GRANULARITY_LABELS, type ReportGranularity } from '../types'
+import { REPORT_GRANULARITY_LABELS, type ReportFormat, type ReportGranularity } from '../types'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - i))
 const GRANULARITY_OPTIONS: ReportGranularity[] = ['MONTHLY', 'QUARTERLY', 'YEARLY']
 
-export function IncomeStatementForm() {
+export function IncomeStatementForm({ format }: { format: ReportFormat }) {
   const downloadStatement = useDownloadIncomeStatement()
   const { showToast } = useToast()
   const [year, setYear] = useState(String(CURRENT_YEAR))
@@ -18,10 +18,11 @@ export function IncomeStatementForm() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
 
-    const fileName = `resultado-periodo-${year}-${granularity}.pdf`
+    const extension = format === 'CSV' ? 'csv' : 'pdf'
+    const fileName = `resultado-periodo-${year}-${granularity}.${extension}`
 
     try {
-      await downloadStatement.mutateAsync({ year, granularity, fileName })
+      await downloadStatement.mutateAsync({ year, granularity, format, fileName })
       showToast('Relatório gerado com sucesso.', 'success')
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível gerar o relatório.')
@@ -58,7 +59,7 @@ export function IncomeStatementForm() {
           período selecionado.
         </p>
         <Button type="submit" disabled={downloadStatement.isPending} className="w-full">
-          {downloadStatement.isPending ? 'Gerando...' : 'Gerar resultado em PDF'}
+          {downloadStatement.isPending ? 'Gerando...' : `Gerar resultado em ${format}`}
         </Button>
       </div>
     </form>

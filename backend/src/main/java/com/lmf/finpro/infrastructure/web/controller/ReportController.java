@@ -1,6 +1,7 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.report.ReportApplicationService;
+import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import java.time.Year;
@@ -23,126 +24,118 @@ public class ReportController {
 
     private final ReportApplicationService reportApplicationService;
 
-    @GetMapping(value = "/client-receipt", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/client-receipt")
     public ResponseEntity<byte[]> clientReceipt(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam Long clientId,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
-        byte[] pdf =
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateClientReceipt(
-                        currentUser.userId(), clientId, referenceMonth);
+                        currentUser.userId(), clientId, referenceMonth, format);
 
-        String filename = "recibo-cliente-" + clientId + "-" + referenceMonth + ".pdf";
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(pdf);
+        String filename = "recibo-cliente-" + clientId + "-" + referenceMonth + extension(format);
+        return respond(body, filename, format);
     }
 
-    @GetMapping(value = "/account-statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/account-statement")
     public ResponseEntity<byte[]> accountStatement(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam Long accountId,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
-        byte[] pdf =
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateAccountStatement(
-                        currentUser.userId(), accountId, referenceMonth);
+                        currentUser.userId(), accountId, referenceMonth, format);
 
-        String filename = "extrato-conta-" + accountId + "-" + referenceMonth + ".pdf";
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(pdf);
+        String filename = "extrato-conta-" + accountId + "-" + referenceMonth + extension(format);
+        return respond(body, filename, format);
     }
 
-    @GetMapping(value = "/client-annual-statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/client-annual-statement")
     public ResponseEntity<byte[]> clientAnnualStatement(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam Long clientId,
-            @RequestParam @DateTimeFormat(pattern = "yyyy") Year year) {
-        byte[] pdf =
+            @RequestParam @DateTimeFormat(pattern = "yyyy") Year year,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateClientAnnualStatement(
-                        currentUser.userId(), clientId, year);
+                        currentUser.userId(), clientId, year, format);
 
-        String filename = "demonstrativo-anual-cliente-" + clientId + "-" + year + ".pdf";
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(pdf);
+        String filename =
+                "demonstrativo-anual-cliente-" + clientId + "-" + year + extension(format);
+        return respond(body, filename, format);
     }
 
-    @GetMapping(value = "/category-expenses", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/category-expenses")
     public ResponseEntity<byte[]> categoryExpenses(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
-        byte[] pdf =
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateCategoryExpenseReport(
-                        currentUser.userId(), referenceMonth);
+                        currentUser.userId(), referenceMonth, format);
 
-        String filename = "despesas-por-categoria-" + referenceMonth + ".pdf";
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(pdf);
+        String filename = "despesas-por-categoria-" + referenceMonth + extension(format);
+        return respond(body, filename, format);
     }
 
-    @GetMapping(value = "/income-statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/income-statement")
     public ResponseEntity<byte[]> incomeStatement(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam @DateTimeFormat(pattern = "yyyy") Year year,
-            @RequestParam ReportGranularity granularity) {
-        byte[] pdf =
+            @RequestParam ReportGranularity granularity,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateIncomeStatement(
-                        currentUser.userId(), year, granularity);
+                        currentUser.userId(), year, granularity, format);
 
-        String filename = "resultado-periodo-" + year + "-" + granularity + ".pdf";
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(pdf);
+        String filename = "resultado-periodo-" + year + "-" + granularity + extension(format);
+        return respond(body, filename, format);
     }
 
-    @GetMapping(value = "/budget-vs-actual", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/budget-vs-actual")
     public ResponseEntity<byte[]> budgetVsActual(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
-        byte[] pdf =
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateBudgetVsActualReport(
-                        currentUser.userId(), referenceMonth);
+                        currentUser.userId(), referenceMonth, format);
 
-        String filename = "orcamento-vs-realizado-" + referenceMonth + ".pdf";
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(pdf);
+        String filename = "orcamento-vs-realizado-" + referenceMonth + extension(format);
+        return respond(body, filename, format);
     }
 
-    @GetMapping(value = "/transaction-export", produces = "text/csv")
+    @GetMapping(value = "/transaction-export")
     public ResponseEntity<byte[]> transactionExport(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
-        byte[] csv =
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth,
+            @RequestParam(defaultValue = "CSV") ReportFormat format) {
+        byte[] body =
                 reportApplicationService.generateTransactionExport(
-                        currentUser.userId(), referenceMonth);
+                        currentUser.userId(), referenceMonth, format);
 
-        String filename = "transacoes-" + referenceMonth + ".csv";
+        String filename = "transacoes-" + referenceMonth + extension(format);
+        return respond(body, filename, format);
+    }
+
+    private ResponseEntity<byte[]> respond(byte[] body, String filename, ReportFormat format) {
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("text/csv"))
+                .contentType(contentType(format))
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + filename + "\"")
-                .body(csv);
+                .body(body);
+    }
+
+    private MediaType contentType(ReportFormat format) {
+        return format == ReportFormat.CSV
+                ? MediaType.parseMediaType("text/csv")
+                : MediaType.APPLICATION_PDF;
+    }
+
+    private String extension(ReportFormat format) {
+        return format == ReportFormat.CSV ? ".csv" : ".pdf";
     }
 }

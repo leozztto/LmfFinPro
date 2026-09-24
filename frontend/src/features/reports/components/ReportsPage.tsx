@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FormField, Select } from '@/shared/ui'
-import { REPORT_TYPE_LABELS, type ReportType } from '../types'
+import { REPORT_FORMAT_LABELS, REPORT_TYPE_LABELS, type ReportFormat, type ReportType } from '../types'
 import { ClientReceiptForm } from './ClientReceiptForm'
 import { AccountStatementForm } from './AccountStatementForm'
 import { ClientAnnualStatementForm } from './ClientAnnualStatementForm'
@@ -11,6 +11,7 @@ import { TransactionExportForm } from './TransactionExportForm'
 
 export function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('CLIENT_RECEIPT')
+  const [format, setFormat] = useState<ReportFormat>('PDF')
 
   return (
     <div className="space-y-6">
@@ -21,7 +22,7 @@ export function ReportsPage() {
         </p>
       </div>
 
-      <div className="max-w-xs">
+      <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
         <FormField label="Tipo de relatório" htmlFor="report-type">
           <Select
             id="report-type"
@@ -35,15 +36,28 @@ export function ReportsPage() {
             ))}
           </Select>
         </FormField>
+        <FormField label="Formato do arquivo" htmlFor="report-format">
+          <Select
+            id="report-format"
+            value={format}
+            onChange={(e) => setFormat(e.target.value as ReportFormat)}
+          >
+            {Object.entries(REPORT_FORMAT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </FormField>
       </div>
 
-      {reportType === 'CLIENT_RECEIPT' && <ClientReceiptForm />}
-      {reportType === 'ACCOUNT_STATEMENT' && <AccountStatementForm />}
-      {reportType === 'CLIENT_ANNUAL_STATEMENT' && <ClientAnnualStatementForm />}
-      {reportType === 'CATEGORY_EXPENSE_REPORT' && <CategoryExpenseReportForm />}
-      {reportType === 'INCOME_STATEMENT' && <IncomeStatementForm />}
-      {reportType === 'BUDGET_VS_ACTUAL' && <BudgetVsActualReportForm />}
-      {reportType === 'TRANSACTION_EXPORT' && <TransactionExportForm />}
+      {reportType === 'CLIENT_RECEIPT' && <ClientReceiptForm format={format} />}
+      {reportType === 'ACCOUNT_STATEMENT' && <AccountStatementForm format={format} />}
+      {reportType === 'CLIENT_ANNUAL_STATEMENT' && <ClientAnnualStatementForm format={format} />}
+      {reportType === 'CATEGORY_EXPENSE_REPORT' && <CategoryExpenseReportForm format={format} />}
+      {reportType === 'INCOME_STATEMENT' && <IncomeStatementForm format={format} />}
+      {reportType === 'BUDGET_VS_ACTUAL' && <BudgetVsActualReportForm format={format} />}
+      {reportType === 'TRANSACTION_EXPORT' && <TransactionExportForm format={format} />}
     </div>
   )
 }

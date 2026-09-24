@@ -5,8 +5,9 @@ import { useToast } from '@/shared/toast/ToastContext'
 import { getCurrentYearMonth } from '@/shared/format/date'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { useDownloadClientReceipt } from '../hooks/useDownloadClientReceipt'
+import type { ReportFormat } from '../types'
 
-export function ClientReceiptForm() {
+export function ClientReceiptForm({ format }: { format: ReportFormat }) {
   const { data: clients } = useClients()
   const downloadReceipt = useDownloadClientReceipt()
   const { showToast } = useToast()
@@ -22,10 +23,16 @@ export function ClientReceiptForm() {
 
     const client = clients?.find((c) => c.id === Number(clientId))
     const clientSlug = (client?.name ?? 'cliente').toLowerCase().replace(/\s+/g, '-')
-    const fileName = `recibo-${clientSlug}-${referenceMonth}.pdf`
+    const extension = format === 'CSV' ? 'csv' : 'pdf'
+    const fileName = `recibo-${clientSlug}-${referenceMonth}.${extension}`
 
     try {
-      await downloadReceipt.mutateAsync({ clientId: Number(clientId), referenceMonth, fileName })
+      await downloadReceipt.mutateAsync({
+        clientId: Number(clientId),
+        referenceMonth,
+        format,
+        fileName,
+      })
       showToast('Recibo gerado com sucesso.', 'success')
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível gerar o recibo.')
@@ -65,7 +72,7 @@ export function ClientReceiptForm() {
           Gera um PDF com as receitas lançadas para o cliente no mês selecionado, com dados de emissor e cliente.
         </p>
         <Button type="submit" disabled={downloadReceipt.isPending} className="w-full">
-          {downloadReceipt.isPending ? 'Gerando...' : 'Gerar recibo em PDF'}
+          {downloadReceipt.isPending ? 'Gerando...' : `Gerar recibo em ${format}`}
         </Button>
       </div>
     </form>

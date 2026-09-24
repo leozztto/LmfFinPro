@@ -4,11 +4,12 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { useDownloadClientAnnualStatement } from '../hooks/useDownloadClientAnnualStatement'
+import type { ReportFormat } from '../types'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - i))
 
-export function ClientAnnualStatementForm() {
+export function ClientAnnualStatementForm({ format }: { format: ReportFormat }) {
   const { data: clients } = useClients()
   const downloadStatement = useDownloadClientAnnualStatement()
   const { showToast } = useToast()
@@ -24,10 +25,11 @@ export function ClientAnnualStatementForm() {
 
     const client = clients?.find((c) => c.id === Number(clientId))
     const clientSlug = (client?.name ?? 'cliente').toLowerCase().replace(/\s+/g, '-')
-    const fileName = `demonstrativo-anual-${clientSlug}-${year}.pdf`
+    const extension = format === 'CSV' ? 'csv' : 'pdf'
+    const fileName = `demonstrativo-anual-${clientSlug}-${year}.${extension}`
 
     try {
-      await downloadStatement.mutateAsync({ clientId: Number(clientId), year, fileName })
+      await downloadStatement.mutateAsync({ clientId: Number(clientId), year, format, fileName })
       showToast('Demonstrativo gerado com sucesso.', 'success')
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível gerar o demonstrativo.')
@@ -73,7 +75,7 @@ export function ClientAnnualStatementForm() {
           para enviar ao próprio cliente.
         </p>
         <Button type="submit" disabled={downloadStatement.isPending} className="w-full">
-          {downloadStatement.isPending ? 'Gerando...' : 'Gerar demonstrativo em PDF'}
+          {downloadStatement.isPending ? 'Gerando...' : `Gerar demonstrativo em ${format}`}
         </Button>
       </div>
     </form>

@@ -14,6 +14,7 @@ import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
 import com.lowagie.text.Chunk;
@@ -209,6 +210,27 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             document.add(footer("relatório"));
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    @Override
+    public byte[] generateTransactionExport(TransactionExportData data) {
+        Document document = new Document(PageSize.A4.rotate(), 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            String monthLabel = monthLabel(data.referenceMonth());
+
+            document.add(titleBlock("EXTRATO DE TRANSAÇÕES", monthLabel));
+            document.add(transactionExportBlock(data.rows()));
+            document.add(footer("extrato"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do extrato.", e);
         } finally {
             document.close();
         }
@@ -555,6 +577,44 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(amountCell(formatCurrency(totalLimit), TOTAL_FONT));
         table.addCell(amountCell(formatCurrency(totalSpent), TOTAL_FONT));
         table.addCell(amountCell(formatCurrency(totalLimit.subtract(totalSpent)), TOTAL_FONT));
+        return table;
+    }
+
+    /** Uma linha por transação do mês (em todas as contas, incluindo transferências), por data. */
+    private PdfPTable transactionExportBlock(
+            List<TransactionExportData.TransactionExportRow> rows) {
+        PdfPTable table = gridTable(new float[] {1f, 1.6f, 1.6f, 1.8f, 3f, 1f, 1.3f});
+
+        PdfPCell section = headerCell("TRANSAÇÕES DO PERÍODO");
+        section.setColspan(7);
+        table.addCell(section);
+
+        table.addCell(labelCell("Data"));
+        table.addCell(labelCell("Conta"));
+        table.addCell(labelCell("Categoria"));
+        table.addCell(labelCell("Cliente"));
+        table.addCell(labelCell("Descrição"));
+        table.addCell(labelCell("Tipo"));
+        PdfPCell valueHeader = labelCell("Valor");
+        valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(valueHeader);
+
+        if (rows.isEmpty()) {
+            PdfPCell empty = valueCell("Nenhuma transação registrada neste período.");
+            empty.setColspan(7);
+            table.addCell(empty);
+        } else {
+            for (TransactionExportData.TransactionExportRow row : rows) {
+                boolean isIncome = row.type() == CategoryType.INCOME;
+                table.addCell(valueCell(row.date().format(DATE_FORMAT)));
+                table.addCell(valueCell(row.accountName()));
+                table.addCell(valueCell(row.categoryName()));
+                table.addCell(valueCell(row.clientName()));
+                table.addCell(valueCell(row.description()));
+                table.addCell(valueCell(isIncome ? "Receita" : "Despesa"));
+                table.addCell(amountCell(formatCurrency(row.amount()), BODY_FONT));
+            }
+        }
         return table;
     }
 

@@ -5,8 +5,9 @@ import { useToast } from '@/shared/toast/ToastContext'
 import { getCurrentYearMonth } from '@/shared/format/date'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useDownloadAccountStatement } from '../hooks/useDownloadAccountStatement'
+import type { ReportFormat } from '../types'
 
-export function AccountStatementForm() {
+export function AccountStatementForm({ format }: { format: ReportFormat }) {
   const { data: accounts } = useAccounts()
   const downloadStatement = useDownloadAccountStatement()
   const { showToast } = useToast()
@@ -22,10 +23,16 @@ export function AccountStatementForm() {
 
     const account = accounts?.find((a) => a.id === Number(accountId))
     const accountSlug = (account?.name ?? 'conta').toLowerCase().replace(/\s+/g, '-')
-    const fileName = `extrato-${accountSlug}-${referenceMonth}.pdf`
+    const extension = format === 'CSV' ? 'csv' : 'pdf'
+    const fileName = `extrato-${accountSlug}-${referenceMonth}.${extension}`
 
     try {
-      await downloadStatement.mutateAsync({ accountId: Number(accountId), referenceMonth, fileName })
+      await downloadStatement.mutateAsync({
+        accountId: Number(accountId),
+        referenceMonth,
+        format,
+        fileName,
+      })
       showToast('Extrato gerado com sucesso.', 'success')
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível gerar o extrato.')
@@ -66,7 +73,7 @@ export function AccountStatementForm() {
           selecionado e o saldo final do período.
         </p>
         <Button type="submit" disabled={downloadStatement.isPending} className="w-full">
-          {downloadStatement.isPending ? 'Gerando...' : 'Gerar extrato em PDF'}
+          {downloadStatement.isPending ? 'Gerando...' : `Gerar extrato em ${format}`}
         </Button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +25,7 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
@@ -35,7 +37,7 @@ import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
-import com.lmf.finpro.domain.port.out.TransactionExportPort;
+import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
@@ -63,7 +65,7 @@ class ReportApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private BudgetRepositoryPort budgetRepositoryPort;
     @Mock private ReceiptGeneratorPort receiptGeneratorPort;
-    @Mock private TransactionExportPort transactionExportPort;
+    @Mock private ReportCsvExporterPort reportCsvExporterPort;
 
     @InjectMocks private ReportApplicationService service;
 
@@ -119,7 +121,10 @@ class ReportApplicationServiceTest {
     void throwsWhenClientDoesNotBelongToCurrentUser() {
         when(clientRepositoryPort.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9)))
+        assertThatThrownBy(
+                        () ->
+                                service.generateClientReceipt(
+                                        10L, 1L, YearMonth.of(2026, 9), ReportFormat.PDF))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -140,7 +145,10 @@ class ReportApplicationServiceTest {
                         true);
         when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(otherUsersClient));
 
-        assertThatThrownBy(() -> service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9)))
+        assertThatThrownBy(
+                        () ->
+                                service.generateClientReceipt(
+                                        10L, 1L, YearMonth.of(2026, 9), ReportFormat.PDF))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -185,7 +193,8 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of(t1, t2));
         when(receiptGeneratorPort.generateClientReceipt(any())).thenReturn(new byte[] {1, 2, 3});
 
-        byte[] result = service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9));
+        byte[] result =
+                service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         assertThat(result).containsExactly(1, 2, 3);
         ArgumentCaptor<ClientReceiptData> captor = ArgumentCaptor.forClass(ClientReceiptData.class);
@@ -207,7 +216,7 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of());
         when(receiptGeneratorPort.generateClientReceipt(any())).thenReturn(new byte[0]);
 
-        service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9));
+        service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         ArgumentCaptor<ClientReceiptData> captor = ArgumentCaptor.forClass(ClientReceiptData.class);
         verify(receiptGeneratorPort).generateClientReceipt(captor.capture());
@@ -218,7 +227,10 @@ class ReportApplicationServiceTest {
     void generateAccountStatementThrowsWhenAccountDoesNotBelongToCurrentUser() {
         when(accountRepositoryPort.findById(5L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9)))
+        assertThatThrownBy(
+                        () ->
+                                service.generateAccountStatement(
+                                        10L, 5L, YearMonth.of(2026, 9), ReportFormat.PDF))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -234,7 +246,10 @@ class ReportApplicationServiceTest {
                         LocalDateTime.now());
         when(accountRepositoryPort.findById(5L)).thenReturn(Optional.of(otherUsersAccount));
 
-        assertThatThrownBy(() -> service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9)))
+        assertThatThrownBy(
+                        () ->
+                                service.generateAccountStatement(
+                                        10L, 5L, YearMonth.of(2026, 9), ReportFormat.PDF))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -291,7 +306,8 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of(expenseInPeriod, beforePeriod, incomeInPeriod));
         when(receiptGeneratorPort.generateAccountStatement(any())).thenReturn(new byte[] {9});
 
-        byte[] result = service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9));
+        byte[] result =
+                service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         assertThat(result).containsExactly(9);
         ArgumentCaptor<AccountStatementData> captor =
@@ -317,7 +333,7 @@ class ReportApplicationServiceTest {
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
         when(receiptGeneratorPort.generateAccountStatement(any())).thenReturn(new byte[0]);
 
-        service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9));
+        service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         ArgumentCaptor<AccountStatementData> captor =
                 ArgumentCaptor.forClass(AccountStatementData.class);
@@ -332,7 +348,10 @@ class ReportApplicationServiceTest {
     void generateClientAnnualStatementThrowsWhenClientDoesNotBelongToCurrentUser() {
         when(clientRepositoryPort.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generateClientAnnualStatement(10L, 1L, Year.of(2026)))
+        assertThatThrownBy(
+                        () ->
+                                service.generateClientAnnualStatement(
+                                        10L, 1L, Year.of(2026), ReportFormat.PDF))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -393,7 +412,8 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of(january, anotherInJanuary, december));
         when(receiptGeneratorPort.generateClientAnnualStatement(any())).thenReturn(new byte[] {7});
 
-        byte[] result = service.generateClientAnnualStatement(10L, 1L, Year.of(2026));
+        byte[] result =
+                service.generateClientAnnualStatement(10L, 1L, Year.of(2026), ReportFormat.PDF);
 
         assertThat(result).containsExactly(7);
         ArgumentCaptor<ClientAnnualStatementData> captor =
@@ -423,7 +443,7 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of());
         when(receiptGeneratorPort.generateClientAnnualStatement(any())).thenReturn(new byte[0]);
 
-        service.generateClientAnnualStatement(10L, 1L, Year.of(2026));
+        service.generateClientAnnualStatement(10L, 1L, Year.of(2026), ReportFormat.PDF);
 
         ArgumentCaptor<ClientAnnualStatementData> captor =
                 ArgumentCaptor.forClass(ClientAnnualStatementData.class);
@@ -541,7 +561,8 @@ class ReportApplicationServiceTest {
                                 outsidePeriod));
         when(receiptGeneratorPort.generateCategoryExpenseReport(any())).thenReturn(new byte[] {4});
 
-        byte[] result = service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9));
+        byte[] result =
+                service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         assertThat(result).containsExactly(4);
         ArgumentCaptor<CategoryExpenseReportData> captor =
@@ -585,7 +606,7 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of(expenseWithDeletedCategory));
         when(receiptGeneratorPort.generateCategoryExpenseReport(any())).thenReturn(new byte[0]);
 
-        service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9));
+        service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         ArgumentCaptor<CategoryExpenseReportData> captor =
                 ArgumentCaptor.forClass(CategoryExpenseReportData.class);
@@ -603,7 +624,7 @@ class ReportApplicationServiceTest {
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
         when(receiptGeneratorPort.generateCategoryExpenseReport(any())).thenReturn(new byte[0]);
 
-        service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9));
+        service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         ArgumentCaptor<CategoryExpenseReportData> captor =
                 ArgumentCaptor.forClass(CategoryExpenseReportData.class);
@@ -681,7 +702,8 @@ class ReportApplicationServiceTest {
         when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[] {1});
 
         byte[] result =
-                service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.MONTHLY);
+                service.generateIncomeStatement(
+                        10L, Year.of(2026), ReportGranularity.MONTHLY, ReportFormat.PDF);
 
         assertThat(result).containsExactly(1);
         ArgumentCaptor<IncomeStatementData> captor =
@@ -742,7 +764,8 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of(firstQuarterIncome, secondQuarterExpense));
         when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[0]);
 
-        service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.QUARTERLY);
+        service.generateIncomeStatement(
+                10L, Year.of(2026), ReportGranularity.QUARTERLY, ReportFormat.PDF);
 
         ArgumentCaptor<IncomeStatementData> captor =
                 ArgumentCaptor.forClass(IncomeStatementData.class);
@@ -796,7 +819,8 @@ class ReportApplicationServiceTest {
                 .thenReturn(List.of(income, expense));
         when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[0]);
 
-        service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.YEARLY);
+        service.generateIncomeStatement(
+                10L, Year.of(2026), ReportGranularity.YEARLY, ReportFormat.PDF);
 
         ArgumentCaptor<IncomeStatementData> captor =
                 ArgumentCaptor.forClass(IncomeStatementData.class);
@@ -818,7 +842,8 @@ class ReportApplicationServiceTest {
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
         when(receiptGeneratorPort.generateIncomeStatement(any())).thenReturn(new byte[0]);
 
-        service.generateIncomeStatement(10L, Year.of(2026), ReportGranularity.MONTHLY);
+        service.generateIncomeStatement(
+                10L, Year.of(2026), ReportGranularity.MONTHLY, ReportFormat.PDF);
 
         ArgumentCaptor<IncomeStatementData> captor =
                 ArgumentCaptor.forClass(IncomeStatementData.class);
@@ -864,7 +889,8 @@ class ReportApplicationServiceTest {
                 .thenReturn(BigDecimal.valueOf(100));
         when(receiptGeneratorPort.generateBudgetVsActualReport(any())).thenReturn(new byte[] {5});
 
-        byte[] result = service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9));
+        byte[] result =
+                service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         assertThat(result).containsExactly(5);
         ArgumentCaptor<BudgetVsActualReportData> captor =
@@ -902,7 +928,7 @@ class ReportApplicationServiceTest {
                 .thenReturn(BigDecimal.ZERO);
         when(receiptGeneratorPort.generateBudgetVsActualReport(any())).thenReturn(new byte[0]);
 
-        service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9));
+        service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         ArgumentCaptor<BudgetVsActualReportData> captor =
                 ArgumentCaptor.forClass(BudgetVsActualReportData.class);
@@ -919,7 +945,7 @@ class ReportApplicationServiceTest {
         when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
         when(receiptGeneratorPort.generateBudgetVsActualReport(any())).thenReturn(new byte[0]);
 
-        service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9));
+        service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
 
         ArgumentCaptor<BudgetVsActualReportData> captor =
                 ArgumentCaptor.forClass(BudgetVsActualReportData.class);
@@ -1000,14 +1026,15 @@ class ReportApplicationServiceTest {
                         null);
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L, 6L)))
                 .thenReturn(List.of(later, earlier, outsidePeriod));
-        when(transactionExportPort.exportTransactionsToCsv(any())).thenReturn(new byte[] {7});
+        when(reportCsvExporterPort.exportTransactions(any())).thenReturn(new byte[] {7});
 
-        byte[] result = service.generateTransactionExport(10L, YearMonth.of(2026, 9));
+        byte[] result =
+                service.generateTransactionExport(10L, YearMonth.of(2026, 9), ReportFormat.CSV);
 
         assertThat(result).containsExactly(7);
         ArgumentCaptor<TransactionExportData> captor =
                 ArgumentCaptor.forClass(TransactionExportData.class);
-        verify(transactionExportPort).exportTransactionsToCsv(captor.capture());
+        verify(reportCsvExporterPort).exportTransactions(captor.capture());
         TransactionExportData data = captor.getValue();
 
         assertThat(data.rows()).hasSize(2);
@@ -1048,13 +1075,13 @@ class ReportApplicationServiceTest {
                         null);
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
                 .thenReturn(List.of(transaction));
-        when(transactionExportPort.exportTransactionsToCsv(any())).thenReturn(new byte[0]);
+        when(reportCsvExporterPort.exportTransactions(any())).thenReturn(new byte[0]);
 
-        service.generateTransactionExport(10L, YearMonth.of(2026, 9));
+        service.generateTransactionExport(10L, YearMonth.of(2026, 9), ReportFormat.CSV);
 
         ArgumentCaptor<TransactionExportData> captor =
                 ArgumentCaptor.forClass(TransactionExportData.class);
-        verify(transactionExportPort).exportTransactionsToCsv(captor.capture());
+        verify(reportCsvExporterPort).exportTransactions(captor.capture());
         TransactionExportData.TransactionExportRow row = captor.getValue().rows().get(0);
         assertThat(row.categoryName()).isEqualTo("Categoria removida");
         assertThat(row.clientName()).isEqualTo("Cliente removido");
@@ -1066,14 +1093,129 @@ class ReportApplicationServiceTest {
         when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
         when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
         when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
-        when(transactionExportPort.exportTransactionsToCsv(any())).thenReturn(new byte[0]);
+        when(reportCsvExporterPort.exportTransactions(any())).thenReturn(new byte[0]);
 
-        service.generateTransactionExport(10L, YearMonth.of(2026, 9));
+        service.generateTransactionExport(10L, YearMonth.of(2026, 9), ReportFormat.CSV);
 
         ArgumentCaptor<TransactionExportData> captor =
                 ArgumentCaptor.forClass(TransactionExportData.class);
-        verify(transactionExportPort).exportTransactionsToCsv(captor.capture());
+        verify(reportCsvExporterPort).exportTransactions(captor.capture());
         assertThat(captor.getValue().rows()).isEmpty();
+    }
+
+    @Test
+    void generateClientReceiptUsesCsvExporterWhenFormatIsCsv() {
+        when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedClient()));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(transactionRepositoryPort.findAllByClientIdAndTypeAndDateBetween(
+                        any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(reportCsvExporterPort.exportClientReceipt(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateClientReceipt(10L, 1L, YearMonth.of(2026, 9), ReportFormat.CSV);
+
+        assertThat(result).containsExactly(1);
+        verify(reportCsvExporterPort).exportClientReceipt(any(ClientReceiptData.class));
+        verify(receiptGeneratorPort, never()).generateClientReceipt(any());
+    }
+
+    @Test
+    void generateAccountStatementUsesCsvExporterWhenFormatIsCsv() {
+        when(accountRepositoryPort.findById(5L)).thenReturn(Optional.of(ownedAccount()));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(reportCsvExporterPort.exportAccountStatement(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateAccountStatement(10L, 5L, YearMonth.of(2026, 9), ReportFormat.CSV);
+
+        assertThat(result).containsExactly(1);
+        verify(reportCsvExporterPort).exportAccountStatement(any(AccountStatementData.class));
+        verify(receiptGeneratorPort, never()).generateAccountStatement(any());
+    }
+
+    @Test
+    void generateClientAnnualStatementUsesCsvExporterWhenFormatIsCsv() {
+        when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedClient()));
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(transactionRepositoryPort.findAllByClientIdAndTypeAndDateBetween(
+                        any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(reportCsvExporterPort.exportClientAnnualStatement(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateClientAnnualStatement(10L, 1L, Year.of(2026), ReportFormat.CSV);
+
+        assertThat(result).containsExactly(1);
+        verify(reportCsvExporterPort)
+                .exportClientAnnualStatement(any(ClientAnnualStatementData.class));
+        verify(receiptGeneratorPort, never()).generateClientAnnualStatement(any());
+    }
+
+    @Test
+    void generateCategoryExpenseReportUsesCsvExporterWhenFormatIsCsv() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(reportCsvExporterPort.exportCategoryExpenseReport(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateCategoryExpenseReport(10L, YearMonth.of(2026, 9), ReportFormat.CSV);
+
+        assertThat(result).containsExactly(1);
+        verify(reportCsvExporterPort)
+                .exportCategoryExpenseReport(any(CategoryExpenseReportData.class));
+        verify(receiptGeneratorPort, never()).generateCategoryExpenseReport(any());
+    }
+
+    @Test
+    void generateIncomeStatementUsesCsvExporterWhenFormatIsCsv() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(reportCsvExporterPort.exportIncomeStatement(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateIncomeStatement(
+                        10L, Year.of(2026), ReportGranularity.MONTHLY, ReportFormat.CSV);
+
+        assertThat(result).containsExactly(1);
+        verify(reportCsvExporterPort).exportIncomeStatement(any(IncomeStatementData.class));
+        verify(receiptGeneratorPort, never()).generateIncomeStatement(any());
+    }
+
+    @Test
+    void generateBudgetVsActualReportUsesCsvExporterWhenFormatIsCsv() {
+        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
+        when(reportCsvExporterPort.exportBudgetVsActualReport(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateBudgetVsActualReport(10L, YearMonth.of(2026, 9), ReportFormat.CSV);
+
+        assertThat(result).containsExactly(1);
+        verify(reportCsvExporterPort)
+                .exportBudgetVsActualReport(any(BudgetVsActualReportData.class));
+        verify(receiptGeneratorPort, never()).generateBudgetVsActualReport(any());
+    }
+
+    @Test
+    void generateTransactionExportUsesPdfGeneratorWhenFormatIsPdf() {
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L))).thenReturn(List.of());
+        when(receiptGeneratorPort.generateTransactionExport(any())).thenReturn(new byte[] {1});
+
+        byte[] result =
+                service.generateTransactionExport(10L, YearMonth.of(2026, 9), ReportFormat.PDF);
+
+        assertThat(result).containsExactly(1);
+        verify(receiptGeneratorPort).generateTransactionExport(any(TransactionExportData.class));
+        verify(reportCsvExporterPort, never()).exportTransactions(any());
     }
 
     private static BigDecimal monthlyTotal(ClientAnnualStatementData data, Month month) {
