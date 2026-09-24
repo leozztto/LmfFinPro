@@ -270,7 +270,7 @@ Resultado: redefinir a senha derruba **todas** as sessões abertas (outros naveg
 - **Token expira em 1h por padrão** (`JWT_EXPIRATION_MS`, configurável por variável de ambiente) — sem refresh token: expirado, o usuário loga de novo (ver seção 5).
 - **CORS explícito**: a SPA roda em origem diferente da API (`CORS_ALLOWED_ORIGINS`), então toda a configuração de CORS mora em `SecurityConfig` — sem ela, toda chamada do frontend falharia silenciosamente no navegador.
 
-**Ainda não implementado:** limite de tentativas no `forgot-password` (hoje dá para disparar vários e-mails seguidos para o mesmo endereço) e troca de senha estando logado (tela de perfil).
+**Ainda não implementado:** limite de tentativas no `forgot-password` (hoje dá para disparar vários e-mails seguidos para o mesmo endereço).
 
 ## 9. Onde cada peça vive no repositório
 
@@ -287,3 +287,13 @@ Resultado: redefinir a senha derruba **todas** as sessões abertas (outros naveg
 | Frontend — telas | `features/auth/components/{LoginPage,RegisterPage,ForgotPasswordPage,ResetPasswordPage,AuthPageShell}.tsx` |
 | Frontend — lógica | `features/auth/{schemas.ts,hooks/{useLogin,useRegister,useCepLookup,usePasswordReset}.ts,api/{cepApi,passwordResetApi}.ts}`, `shared/auth/{AuthContext,ProtectedRoute,authStorage,types}.tsx/.ts`, `shared/api/httpClient.ts` |
 | Testes | `backend/src/test/java/.../integration/auth/{AuthIntegrationTest,PasswordResetIntegrationTest}.java`, `.../application/auth/{AuthApplicationServiceTest,PasswordResetApplicationServiceTest}.java`, `../../frontend/src/features/auth/schemas.test.ts`, `../../frontend/src/shared/api/httpClient.test.ts` |
+
+## 10. Configurações: dados cadastrais e troca de senha logado
+
+Acessível pelo **menu do usuário** (ícone no canto superior direito do `AppLayout`, componente `shared/layout/UserMenu`: nome/e-mail, **Configurações** e **Sair**). `/configuracoes` (`features/profile/components/SettingsLayout`) tem um submenu — coluna à esquerda no desktop, abas no celular — com duas rotas: `/configuracoes/dados-cadastrais` (`ProfileDataPage`) e `/configuracoes/senha` (`PasswordPage`). `/perfil` redireciona para os dados cadastrais. Backend em `ProfileController` (`/api/profile`, sempre o usuário do token) → `ProfileApplicationService`.
+
+- **`GET /api/profile`** devolve os dados cadastrais; **`PUT /api/profile`** salva. O formulário reaproveita as seções do cadastro (`AccountDataFields`, com busca de CEP) e as mesmas validações (`validateAccountFields` no frontend; `@ValidDocumentNumber`/`@ValidTaxRegimeDocument` no `UpdateProfileRequest`). E-mail e documento continuam únicos (`409` se já usados por outra conta).
+- **Trocar o e-mail exige a senha atual** (`currentPassword`), porque o e-mail é o login — sem isso, quem pegasse uma sessão aberta poderia tomar a conta. O campo só aparece na tela quando o e-mail é alterado.
+- **`PUT /api/profile/password`** (senha atual + nova) troca a senha via `User#withPasswordHash` — encerra as outras sessões (seção 7) — e devolve um token novo, que o frontend grava com `AuthContext.updateSession`, mantendo a sessão de quem trocou.
+- **Senha atual errada responde `400`, não `401`** (`IncorrectCurrentPasswordException`): um `401` faria o `httpClient` tratar como sessão expirada e deslogar o usuário (seção 5).
+- Depois de salvar o perfil, `updateSession` também atualiza nome/e-mail da sessão, então o nome no topo muda na hora.

@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { useAuth } from '@/shared/auth/AuthContext'
-import { Button } from '@/shared/ui'
 import { CloseIcon, MenuIcon } from '@/shared/ui/icons'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 import { Footer } from './Footer'
 import { Sidebar } from './Sidebar'
+import { UserMenu } from './UserMenu'
 
 export function AppLayout() {
-  const { session, logout } = useAuth()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
@@ -53,11 +51,8 @@ export function AppLayout() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">{session?.name}</span>
           <ThemeToggle />
-          <Button variant="secondary" onClick={logout}>
-            Sair
-          </Button>
+          <UserMenu />
         </div>
       </header>
 

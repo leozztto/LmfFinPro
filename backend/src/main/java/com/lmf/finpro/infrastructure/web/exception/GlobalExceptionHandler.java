@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ImportFileInvalidException;
+import com.lmf.finpro.domain.exception.IncorrectCurrentPasswordException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
@@ -52,6 +53,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleInvalidCredentials(
             InvalidCredentialsException ex, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(IncorrectCurrentPasswordException.class)
+    public ResponseEntity<ApiError> handleIncorrectCurrentPassword(
+            IncorrectCurrentPasswordException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(InvalidPasswordResetTokenException.class)

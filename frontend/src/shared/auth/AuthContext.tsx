@@ -16,6 +16,8 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => void
+  /** Atualiza a sessão salva (ex: nome/e-mail após editar o perfil, token novo após trocar a senha). */
+  updateSession: (changes: Partial<AuthSession>) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -60,7 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }
 
-  const value = useMemo(() => ({ session, login, register, logout }), [session])
+  function updateSession(changes: Partial<AuthSession>) {
+    setSession((current) => {
+      if (!current) return current
+      const next = { ...current, ...changes }
+      saveSession(next)
+      return next
+    })
+  }
+
+  const value = useMemo(() => ({ session, login, register, logout, updateSession }), [session])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

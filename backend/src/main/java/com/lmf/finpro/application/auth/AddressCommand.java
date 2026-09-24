@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.auth;
 
+import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.BrazilianState;
 
 public record AddressCommand(
@@ -9,4 +10,17 @@ public record AddressCommand(
         String complement,
         String neighborhood,
         String city,
-        BrazilianState state) {}
+        BrazilianState state) {
+
+    /** CEP chega com ou sem máscara; no domínio fica só com dígitos. */
+    public Address toDomain() {
+        return new Address(
+                zipCode == null ? null : zipCode.replaceAll("\\D", ""),
+                street,
+                number,
+                complement,
+                neighborhood,
+                city,
+                state);
+    }
+}
