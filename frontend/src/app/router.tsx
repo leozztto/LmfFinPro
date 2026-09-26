@@ -18,6 +18,7 @@ import { FaqPage } from "@/features/faq/components/FaqPage";
 import { SettingsLayout } from '@/features/profile/components/SettingsLayout'
 import { ProfileDataPage } from '@/features/profile/components/ProfileDataPage'
 import { PasswordPage } from '@/features/profile/components/PasswordPage'
+import { NotificationsPage } from '@/features/profile/components/NotificationsPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute'
 
@@ -47,6 +48,7 @@ export function AppRouter() {
             <Route index element={<Navigate to="dados-cadastrais" replace />} />
             <Route path="dados-cadastrais" element={<ProfileDataPage />} />
             <Route path="senha" element={<PasswordPage />} />
+            <Route path="notificacoes" element={<NotificationsPage />} />
           </Route>
           <Route path="/perfil" element={<Navigate to="/configuracoes/dados-cadastrais" replace />} />
         </Route>

@@ -213,3 +213,15 @@ De propósito: cada gráfico busca seus próprios dados de forma independente, e
 **O que é a projeção de fluxo de caixa?**
 Uma estimativa de como seu saldo deve evoluir nos próximos 3 meses, partindo do saldo ao fim do mês atual, já contando o que está pendente até lá: pra meses em que você já tem transações futuras lançadas (ex: uma fatura já agendada), usa o resultado real desses lançamentos; pra meses sem nada lançado ainda, usa a média do resultado (receitas menos despesas) dos últimos 3 meses. Os **lançamentos recorrentes** ativos entram por cima disso, cada ocorrência no mês em que cai (inclusive as que ainda vão cair no mês atual). As transações já lançadas por uma recorrência ativa ficam fora da média, para não serem contadas duas vezes. No gráfico, o histórico real aparece em linha sólida e a projeção em linha tracejada.
 ___
+
+## Alertas por e-mail
+
+**Quais alertas o FinPro manda por e-mail?**
+Três tipos: **contas a vencer** (despesas pendentes que vencem nos próximos dias), **orçamentos** do mês que passaram de 80% e de 100% do limite (com o mesmo gasto mostrado na tela de Orçamentos, contando pagas e pendentes) e o **lembrete do DAS**, para quem tem regime MEI ou Simples Nacional no cadastro. O vencimento do DAS é sempre considerado no dia 20, sem ajuste para fim de semana ou feriado. Se você cadastrou a estimativa de imposto da competência, o valor estimado aparece no lembrete.
+
+**Quando os e-mails chegam?**
+Uma vez por dia, de manhã, e só se houver algo novo: todos os alertas do dia vêm juntos num único e-mail. Cada aviso é enviado uma vez só — a mesma conta não é avisada de novo no dia seguinte, e um orçamento que já passou de 100% não volta a mandar o aviso de 80%. Contas já vencidas não entram no e-mail.
+
+**Como escolho o que receber?**
+Em **Configurações > Notificações** você liga ou desliga cada tipo de alerta e define com quantos dias de antecedência quer ser avisado sobre contas e sobre o DAS (de 0 a 15; 0 avisa só no próprio dia). Por padrão, tudo vem ligado com 3 dias de antecedência.
+___

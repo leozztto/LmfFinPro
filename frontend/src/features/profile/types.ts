@@ -29,6 +29,14 @@ export interface ChangePasswordInput {
   newPassword: string
 }
 
+export interface NotificationPreferences {
+  billsEnabled: boolean
+  /** Antecedência, em dias, do aviso de contas a vencer e do DAS (0 = só no dia). */
+  billDaysBefore: number
+  budgetsEnabled: boolean
+  dasEnabled: boolean
+}
+
 export interface ChangePasswordResponse {
   token: string
   userId: number

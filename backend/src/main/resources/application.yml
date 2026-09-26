@@ -42,6 +42,11 @@ finpro:
     frontend-url: ${FRONTEND_URL:http://localhost:5173}
     token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
     mail-from: ${PASSWORD_RESET_MAIL_FROM:FinPro <no-reply@finpro.local>}
+  # Resumo diário de alertas (contas a vencer, orçamentos, DAS) — ver AlertScheduler.
+  alerts:
+    cron: ${FINPRO_ALERTS_CRON:0 0 8 * * *}
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    mail-from: ${ALERTS_MAIL_FROM:${PASSWORD_RESET_MAIL_FROM:FinPro <no-reply@finpro.local>}}
   viacep:
     base-url: ${VIACEP_BASE_URL:https://viacep.com.br/ws}
     timeout-ms: ${VIACEP_TIMEOUT_MS:5000}
