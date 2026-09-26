@@ -4,10 +4,11 @@ import { formatCurrency } from '@/shared/format/currency'
 import { useTheme } from '@/shared/theme/ThemeContext'
 import { ACCOUNT_TYPE_LABELS, type Account } from '@/features/accounts/types'
 
-// Paleta categórica fixa do design system (ordem estável — identidade da conta,
-// nunca reordenada pelo valor do saldo). Ver docs/plano.md e a skill de dataviz.
-const PALETTE_LIGHT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
-const PALETTE_DARK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767']
+import { CATEGORICAL_PALETTE_DARK, CATEGORICAL_PALETTE_LIGHT } from '@/shared/chart/palette'
+
+// Cores na ordem das contas — identidade da conta, nunca reordenada pelo valor do saldo.
+const PALETTE_LIGHT = CATEGORICAL_PALETTE_LIGHT
+const PALETTE_DARK = CATEGORICAL_PALETTE_DARK
 
 interface AccountBalancePoint {
   accountId: number

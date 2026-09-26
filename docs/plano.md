@@ -179,7 +179,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 - Categorias — ✅ *feito*
 - Transferências entre contas — ✅ *feito* (não previsto no plano original)
 - Importação (upload + preview + revisão de categorização) — ✅ *feito* (`ImportsPage`, `ImportBatchList`, `ImportBatchReviewTable`, `CategoryRulesPanel`)
-- Clientes (CRUD + receita por cliente no dashboard) — ✅ *feito*; histórico de receita ao longo do tempo por cliente — ⬜ *pendente*
+- Clientes (CRUD + receita por cliente no dashboard) — ✅ *feito*; histórico de receita ao longo do tempo por cliente — ✅ *feito*: aba "Clientes" do Dashboard (`/?aba=clientes`, com atalhos na tela de Clientes e no card "Receita por cliente"; aviso na Visão geral quando a concentração é alta) (`ClientAnalyticsPanel`, `GET /api/clients/analytics?months=&onlyReceived=`) com receita mensal empilhada dos 5 maiores clientes + "Outros", ranking (receita, participação, recebimentos, ticket médio, despesas, líquido, último recebimento), histórico mês a mês do cliente selecionado e **concentração de receita** (maior cliente e top 3 sobre toda a receita do período; risco alto ≥ 50%, moderado ≥ 30%). Cálculo puro em `ClientAnalytics`/`ConcentrationRisk`. Ver [`fluxo-clientes.md`](./tecnica/fluxo-clientes.md)
 - Impostos (`TaxEstimatesPage`) e projeção de fluxo de caixa (no dashboard) — ✅ *feito*
 - Orçamentos (`BudgetsPage`): meta de gasto por categoria/mês com barra de progresso — ✅ *feito*
 

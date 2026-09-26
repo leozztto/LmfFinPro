@@ -1,5 +1,11 @@
-import { StatCard } from '@/shared/ui'
+import { Link, useSearchParams } from 'react-router-dom'
+import { StatCard, Tabs } from '@/shared/ui'
+import { AlertTriangleIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
+import { ClientAnalyticsPanel } from '@/features/clients/components/ClientAnalyticsPanel'
+import { useClientAnalytics } from '@/features/clients/hooks/useClientAnalytics'
+import { formatShare } from '@/features/clients/analytics'
+import { CLIENTS_ANALYSIS_PATH } from '../routes'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
@@ -16,7 +22,47 @@ import { BreakdownChart } from './BreakdownChart'
 import { AccountBalanceChart } from './AccountBalanceChart'
 import { toBalancePoints, toCashFlowProjectionPoints, toCategoryBreakdownPoints, toClientBreakdownPoints, toMonthlyFlowPoints } from '../utils'
 
+const TAB_PARAM = 'aba'
+const CLIENTS_TAB = 'clientes'
+const OVERVIEW_TAB = 'visao-geral'
+
+/**
+ * Tudo que é leitura de dados fica aqui, em abas: a "Visão geral" (mês atual, sem filtros) e a
+ * análise de clientes (com os filtros dela). A aba vai na URL (`/?aba=clientes`) para dar para
+ * linkar, voltar pelo navegador e abrir direto — a tela de Clientes linka para cá.
+ */
 export function DashboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get(TAB_PARAM) === CLIENTS_TAB ? CLIENTS_TAB : OVERVIEW_TAB
+
+  function changeTab(tabId: string) {
+    setSearchParams(tabId === OVERVIEW_TAB ? {} : { [TAB_PARAM]: tabId })
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Dashboard</h2>
+        <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
+          {activeTab === CLIENTS_TAB
+            ? 'Quanto cada cliente representa no seu faturamento ao longo do tempo.'
+            : 'Saldo consolidado, movimento do mês e o que ainda está pendente.'}
+        </p>
+      </div>
+
+      <Tabs
+        activeTabId={activeTab}
+        onTabChange={changeTab}
+        tabs={[
+          { id: OVERVIEW_TAB, label: 'Visão geral', content: <OverviewTab /> },
+          { id: CLIENTS_TAB, label: 'Clientes', content: <ClientAnalyticsPanel /> },
+        ]}
+      />
+    </div>
+  )
+}
+
+function OverviewTab() {
   const overview = useDashboardOverview()
   const monthlyFlow = useMonthlyFlow()
   const balanceEvolution = useBalanceEvolution()
@@ -30,10 +76,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Visão geral</h2>
-        <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">Saldo consolidado, movimento do mês e o que ainda está pendente.</p>
-      </div>
+      <ConcentrationNotice />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
@@ -123,15 +166,53 @@ export function DashboardPage() {
         )}
       </div>
 
-      {incomeByClient.data && clients ? (
-        <BreakdownChart
-          title="Receita por cliente"
-          emptyMessage="Nenhuma receita associada a um cliente neste mês ainda."
-          data={toClientBreakdownPoints(incomeByClient.data, clients)}
-        />
-      ) : (
-        <ChartPlaceholder />
-      )}
+      <div className="space-y-2">
+        {incomeByClient.data && clients ? (
+          <BreakdownChart
+            title="Receita por cliente"
+            emptyMessage="Nenhuma receita associada a um cliente neste mês ainda."
+            data={toClientBreakdownPoints(incomeByClient.data, clients)}
+          />
+        ) : (
+          <ChartPlaceholder />
+        )}
+        <div className="flex justify-end">
+          <Link
+            to={CLIENTS_ANALYSIS_PATH}
+            className="text-sm font-medium text-[#1ea883] hover:underline dark:text-[#2ad6a5]"
+          >
+            Ver análise completa de clientes →
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Só aparece com concentração alta (um cliente com 50% ou mais da receita dos últimos 12 meses):
+ * o risco é importante o bastante para ser visto sem precisar abrir a aba de clientes.
+ */
+function ConcentrationNotice() {
+  const { data } = useClientAnalytics(12, false)
+  if (!data || data.risk !== 'HIGH') return null
+  const topClient = data.ranking.find((row) => row.income > 0)
+
+  return (
+    <div
+      role="status"
+      className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p className="flex items-start gap-2">
+        <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          <strong>Concentração alta:</strong> {formatShare(data.topClientShare)} da sua receita dos últimos 12 meses
+          vem de {topClient?.name ?? 'um único cliente'}.
+        </span>
+      </p>
+      <Link to={CLIENTS_ANALYSIS_PATH} className="shrink-0 font-medium underline">
+        Ver análise
+      </Link>
     </div>
   )
 }

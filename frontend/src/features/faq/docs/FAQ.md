@@ -127,7 +127,7 @@ ___
 ## Clientes
 
 **Pra que serve cadastrar clientes?**
-Pra organizar sua receita por cliente/projeto — o Dashboard mostra um gráfico de "receita por cliente" no mês, e a tela de Relatórios gera recibos e demonstrativos anuais por cliente.
+Pra organizar sua receita por cliente/projeto — o Dashboard mostra um gráfico de "receita por cliente" no mês e, na aba **Clientes**, o histórico, o ranking e a concentração da sua receita por cliente; a tela de Relatórios gera recibos e demonstrativos anuais por cliente.
 
 **Quais dados preciso informar para cadastrar um cliente?**
 Nome, e-mail, telefone (com DDD), tipo de trabalho (PJ ou Autônomo/Freelancer), tipo de documento (CPF ou CNPJ) e o número do documento, que é validado. Cor e observações (até 1000 caracteres) são opcionais. Você também pode marcar o cliente como ativo ou inativo — isso serve só para organizar e filtrar a lista; clientes inativos continuam disponíveis nos lançamentos.
@@ -137,6 +137,15 @@ Não, o campo cliente é opcional em qualquer transação. Receitas sem cliente 
 
 **Por que não consigo excluir um cliente?**
 Cliente com transações vinculadas não pode ser excluído, para não perder o histórico de receitas dele. Exclua as transações vinculadas antes — ou, se só quiser tirá-lo da lista do dia a dia, marque-o como inativo.
+
+**Onde vejo a análise de clientes e o que ela mostra?**
+Na aba **Clientes** do Dashboard (também há atalhos na tela de Clientes e no card "Receita por cliente"). Ela mostra o desempenho de cada cliente nos últimos 3, 6, 12 ou 24 meses: um gráfico com a receita mês a mês dos 5 maiores clientes (os demais somados em "Outros"), o ranking de clientes com receita, participação na receita, número de recebimentos, ticket médio, despesas vinculadas ao cliente, resultado líquido e data do último recebimento, e o histórico mês a mês do cliente que você escolher no ranking. Por padrão entram as receitas recebidas e a receber; dá pra ver só as já recebidas. Transferências entre suas contas não entram.
+
+**O que é o alerta de concentração de receita?**
+Ele mostra quanto da sua receita do período vem do maior cliente. A partir de **50%** a concentração é **alta** — se esse cliente parar de contratar, a maior parte do faturamento vai junto; entre 30% e 50% é **moderada**; abaixo de 30%, a receita está diversificada. A conta usa toda a receita do período, inclusive a lançada sem cliente, então vincular o cliente nos lançamentos deixa a análise mais fiel.
+
+**Como é calculado o ticket médio?**
+É a receita dividida pelo número de recebimentos (lançamentos de receita) no período. O ticket médio geral considera só as receitas com cliente vinculado.
 ___
 
 ## Importação de extrato
@@ -214,6 +223,9 @@ Se não sobrar nada, o valor fica em zero. A tela mostra cada parcela da conta.
 **O que dá pra configurar?**
 A base do cálculo; o **imposto**, automático (a alíquota da sua caixinha do imposto ou, sem ela, a de referência do seu regime) ou um percentual definido por você; a **reserva da empresa**, em % das receitas (padrão 10%, usada na base "receitas do mês"); o **colchão de caixa**, em meses da despesa média PJ dos 3 meses anteriores (de 0 a 12, usado na base "saldo atual"); e um **pró-labore fixo** opcional.
 
+**Posso usar a minha própria alíquota de imposto no cálculo do pró-labore?**
+Sim. Por padrão o imposto da empresa é **automático**: usa o percentual da sua caixinha do imposto ou, se você não tiver uma, a alíquota de referência do seu regime — que pode ser diferente da sua alíquota real (no Simples, por exemplo, a alíquota efetiva varia com o faturamento dos últimos 12 meses). Para usar a sua, no card **Configuração do cálculo** na seção **Imposto da empresa** mude o campo **Alíquota** para **"Definir alíquota"**: aparece o campo **Alíquota do imposto (%)**, onde você informa o valor (ex.: 8,5) e salva. O detalhamento passa a indicar "alíquota definida por você". Essa alíquota vale só para o pró-labore: a tela de Impostos e a caixinha do imposto continuam com as próprias alíquotas. Se voltar para o modo automático, o percentual que você informou fica guardado para a próxima vez.
+
 **Como funciona o pró-labore fixo?**
 Com um valor fixo mensal (bruto) configurado, a tela mostra quanto falta transferir dele no mês (descontando o que você já retirou) e se o orçamento do mês cobre esse valor. O botão de pagamento vem preenchido com o que falta do fixo — ou só com o disponível, se ele não cobrir.
 
@@ -257,7 +269,7 @@ ___
 ## Dashboard
 
 **O que o Dashboard mostra?**
-Cards com o saldo atual (somando todas as contas, só com transações pagas), a receita e a despesa do mês corrente, o total a receber e a pagar (transações pendentes) e o saldo previsto (saldo atual + a receber − a pagar); gráficos de fluxo mensal (pagas e pendentes, pelo mês da transação) e de evolução do saldo nos últimos 6 meses (só transações pagas, então o último ponto bate com o saldo atual); saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses.
+Ele tem duas abas. A **Clientes** traz a análise de clientes (veja a seção Clientes). A **Visão geral** mostra cards com o saldo atual (somando todas as contas, só com transações pagas), a receita e a despesa do mês corrente, o total a receber e a pagar (transações pendentes) e o saldo previsto (saldo atual + a receber − a pagar); gráficos de fluxo mensal (pagas e pendentes, pelo mês da transação) e de evolução do saldo nos últimos 6 meses (só transações pagas, então o último ponto bate com o saldo atual); saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses. Quando um único cliente responde por 50% ou mais da sua receita dos últimos 12 meses, aparece um aviso de concentração no topo da Visão geral.
 
 **Os gráficos do Dashboard atualizam em tempo real?**
 Eles refletem os dados quando você entra ou volta pra tela, e também quando você volta para a aba do navegador depois de usar outra janela — mas não há atualização contínua em segundo plano enquanto você está com a tela aberta. Criar ou excluir uma transação em outra tela atualiza o Dashboard na próxima vez que você o visitar.
