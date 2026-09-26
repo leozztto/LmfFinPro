@@ -62,16 +62,17 @@ public class AccountApplicationService {
     }
 
     /**
-     * Saldo atual = saldo inicial + receitas - despesas lançadas naquela conta. Não há saldo
-     * persistido: é recalculado a cada leitura para nunca ficar dessincronizado das transações (que
-     * podem ser editadas ou excluídas depois de lançadas).
+     * Saldo atual = saldo inicial + receitas - despesas já pagas naquela conta (pendentes ficam de
+     * fora até serem confirmadas). Não há saldo persistido: é recalculado a cada leitura para nunca
+     * ficar dessincronizado das transações (que podem ser editadas ou excluídas depois de
+     * lançadas).
      */
     public BigDecimal calculateCurrentBalance(Account account) {
         BigDecimal income =
-                transactionRepositoryPort.sumAmountByAccountIdAndType(
+                transactionRepositoryPort.sumPaidAmountByAccountIdAndType(
                         account.id(), CategoryType.INCOME);
         BigDecimal expense =
-                transactionRepositoryPort.sumAmountByAccountIdAndType(
+                transactionRepositoryPort.sumPaidAmountByAccountIdAndType(
                         account.id(), CategoryType.EXPENSE);
         return account.initialBalance().add(income).subtract(expense);
     }

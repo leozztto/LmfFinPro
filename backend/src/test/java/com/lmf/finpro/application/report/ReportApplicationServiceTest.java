@@ -31,6 +31,7 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
@@ -1102,6 +1103,35 @@ class ReportApplicationServiceTest {
                 ArgumentCaptor.forClass(TransactionExportData.class);
         verify(reportCsvExporterPort).exportTransactions(captor.capture());
         assertThat(captor.getValue().rows()).isEmpty();
+    }
+
+    @Test
+    void generateTransactionExportCarriesTheStatusOfEachTransaction() {
+        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
+        when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
+        when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of());
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(
+                        List.of(
+                                Transaction.create(
+                                        5L,
+                                        null,
+                                        null,
+                                        "Mensalidade",
+                                        new BigDecimal("3000.00"),
+                                        LocalDate.of(2026, 9, 20),
+                                        CategoryType.INCOME,
+                                        TransactionStatus.PENDING)));
+        when(reportCsvExporterPort.exportTransactions(any())).thenReturn(new byte[0]);
+
+        service.generateTransactionExport(10L, YearMonth.of(2026, 9), ReportFormat.CSV);
+
+        ArgumentCaptor<TransactionExportData> captor =
+                ArgumentCaptor.forClass(TransactionExportData.class);
+        verify(reportCsvExporterPort).exportTransactions(captor.capture());
+        assertThat(captor.getValue().rows())
+                .extracting(TransactionExportData.TransactionExportRow::status)
+                .containsExactly(TransactionStatus.PENDING);
     }
 
     @Test

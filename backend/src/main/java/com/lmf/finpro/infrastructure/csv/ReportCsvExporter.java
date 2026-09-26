@@ -9,6 +9,7 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import java.math.BigDecimal;
 import java.time.Month;
@@ -159,7 +160,14 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
         List<String[]> rows = new ArrayList<>();
         rows.add(
                 new String[] {
-                    "Data", "Conta", "Categoria", "Cliente", "Descrição", "Tipo", "Valor"
+                    "Data",
+                    "Conta",
+                    "Categoria",
+                    "Cliente",
+                    "Descrição",
+                    "Tipo",
+                    "Situação",
+                    "Valor"
                 });
         for (TransactionExportData.TransactionExportRow row : data.rows()) {
             rows.add(
@@ -170,6 +178,7 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                         row.clientName(),
                         row.description(),
                         row.type() == CategoryType.INCOME ? "Receita" : "Despesa",
+                        row.status() == TransactionStatus.PAID ? "Paga" : "Pendente",
                         row.amount().toPlainString()
                     });
         }

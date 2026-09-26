@@ -5,6 +5,7 @@ import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionStatusRequest;
 import com.lmf.finpro.infrastructure.web.mapper.TransactionWebMapper;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -48,7 +49,8 @@ public class TransactionController {
                         request.description(),
                         request.amount(),
                         request.transactionDate(),
-                        request.type());
+                        request.type(),
+                        request.status());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
     }
 
@@ -66,8 +68,19 @@ public class TransactionController {
                         request.description(),
                         request.amount(),
                         request.transactionDate(),
-                        request.type());
+                        request.type(),
+                        request.status());
         return mapper.toResponse(updated);
+    }
+
+    @PatchMapping("/{id}/status")
+    public TransactionResponse updateStatus(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody TransactionStatusRequest request) {
+        return mapper.toResponse(
+                transactionApplicationService.updateStatus(
+                        currentUser.userId(), id, request.status()));
     }
 
     @DeleteMapping("/{id}")

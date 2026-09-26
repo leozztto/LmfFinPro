@@ -94,6 +94,8 @@ export const httpClient = {
     request<TResponse>(path, { method: 'POST', body: JSON.stringify(body) }),
   put: <TResponse, TBody = unknown>(path: string, body: TBody) =>
     request<TResponse>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  patch: <TResponse, TBody = unknown>(path: string, body: TBody) =>
+    request<TResponse>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
   postForm: <TResponse>(path: string, formData: FormData) => request<TResponse>(path, { method: 'POST', body: formData }),
   getBlob: (path: string) => requestBlob(path),

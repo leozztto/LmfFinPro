@@ -141,7 +141,8 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
       </FormField>
       <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-2">
         Ocorrências com data até hoje são lançadas assim que a recorrência é criada; as próximas entram
-        automaticamente como transações no dia de cada uma.
+        automaticamente como transações no dia de cada uma. Cada ocorrência entra como pendente até você
+        marcá-la como paga na tela de Transações.
       </p>
       <div className="sm:col-span-2">
         <Button type="submit" disabled={createRecurringTransaction.isPending} className="w-full">

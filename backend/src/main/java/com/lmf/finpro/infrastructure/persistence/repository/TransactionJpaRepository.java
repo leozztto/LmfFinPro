@@ -32,8 +32,8 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
     boolean existsByClientId(Long clientId);
 
     @Query(
-            "SELECT COALESCE(SUM(t.amount), 0) FROM TransactionJpaEntity t WHERE t.account.id = :accountId AND t.type = :type")
-    BigDecimal sumAmountByAccountIdAndType(
+            "SELECT COALESCE(SUM(t.amount), 0) FROM TransactionJpaEntity t WHERE t.account.id = :accountId AND t.type = :type AND t.status = com.lmf.finpro.domain.model.TransactionStatus.PAID")
+    BigDecimal sumPaidAmountByAccountIdAndType(
             @Param("accountId") Long accountId, @Param("type") CategoryType type);
 
     @Query(

@@ -22,7 +22,10 @@ public class DashboardWebMapper {
                 overview.currentMonthExpense(),
                 overview.balanceDeltaPercent(),
                 overview.incomeDeltaPercent(),
-                overview.expenseDeltaPercent());
+                overview.expenseDeltaPercent(),
+                overview.pendingIncome(),
+                overview.pendingExpense(),
+                overview.projectedBalance());
     }
 
     public MonthlyFlowPointResponse toResponse(MonthlyFlowPoint point) {

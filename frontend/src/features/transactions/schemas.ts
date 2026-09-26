@@ -15,6 +15,8 @@ export const transactionSchema = z.object({
     .positive('informe um valor maior que zero'),
   transactionDate: z.string().min(1, 'data é obrigatória'),
   type: z.enum(['INCOME', 'EXPENSE']),
+  // '' = automática: o backend decide pela data (futura = pendente).
+  status: z.preprocess((value) => (value === '' ? undefined : value), z.enum(['PAID', 'PENDING']).optional()),
 })
 
 export type TransactionFormValues = z.infer<typeof transactionSchema>

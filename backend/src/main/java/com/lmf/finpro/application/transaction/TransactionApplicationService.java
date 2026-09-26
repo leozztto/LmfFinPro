@@ -7,11 +7,13 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +27,11 @@ public class TransactionApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
+    private final Clock clock;
 
+    /**
+     * {@code status} nulo usa o padrão pela data: data futura fica pendente, o resto já nasce pago.
+     */
     public Transaction create(
             Long currentUserId,
             Long accountId,
@@ -34,10 +40,15 @@ public class TransactionApplicationService {
             String description,
             BigDecimal amount,
             LocalDate transactionDate,
-            CategoryType type) {
+            CategoryType type,
+            TransactionStatus status) {
         requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
+        TransactionStatus resolvedStatus =
+                status != null
+                        ? status
+                        : TransactionStatus.defaultFor(transactionDate, LocalDate.now(clock));
         return transactionRepositoryPort.save(
                 Transaction.create(
                         accountId,
@@ -46,7 +57,8 @@ public class TransactionApplicationService {
                         description,
                         amount,
                         transactionDate,
-                        type));
+                        type,
+                        resolvedStatus));
     }
 
     public List<Transaction> list(Long currentUserId) {
@@ -69,13 +81,37 @@ public class TransactionApplicationService {
             String description,
             BigDecimal amount,
             LocalDate transactionDate,
-            CategoryType type) {
+            CategoryType type,
+            TransactionStatus status) {
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
-        return transactionRepositoryPort.save(
+        Transaction updated =
                 existing.withDetails(
-                        categoryId, clientId, description, amount, transactionDate, type));
+                        categoryId, clientId, description, amount, transactionDate, type);
+        if (status != null) {
+            requireStatusChangeAllowed(existing, status);
+            updated = updated.withStatus(status);
+        }
+        return transactionRepositoryPort.save(updated);
+    }
+
+    /** Marca como paga ou pendente — a ação rápida da lista de transações. */
+    public Transaction updateStatus(
+            Long currentUserId, Long transactionId, TransactionStatus status) {
+        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
+        requireStatusChangeAllowed(existing, status);
+        return transactionRepositoryPort.save(existing.withStatus(status));
+    }
+
+    /**
+     * Transferência já movimentou o dinheiro nas duas contas: não existe transferência pendente.
+     */
+    private void requireStatusChangeAllowed(Transaction transaction, TransactionStatus status) {
+        if (transaction.transferId() != null && status != TransactionStatus.PAID) {
+            throw new TransactionLinkedToTransferException(
+                    "Transações de transferência são sempre pagas e não podem ficar pendentes.");
+        }
     }
 
     public void delete(Long currentUserId, Long transactionId) {

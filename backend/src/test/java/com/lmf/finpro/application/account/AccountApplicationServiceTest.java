@@ -158,9 +158,9 @@ class AccountApplicationServiceTest {
 
     @Test
     void calculateCurrentBalanceAddsIncomeAndSubtractsExpenseFromInitialBalance() {
-        when(transactionRepositoryPort.sumAmountByAccountIdAndType(1L, CategoryType.INCOME))
+        when(transactionRepositoryPort.sumPaidAmountByAccountIdAndType(1L, CategoryType.INCOME))
                 .thenReturn(BigDecimal.valueOf(500));
-        when(transactionRepositoryPort.sumAmountByAccountIdAndType(1L, CategoryType.EXPENSE))
+        when(transactionRepositoryPort.sumPaidAmountByAccountIdAndType(1L, CategoryType.EXPENSE))
                 .thenReturn(BigDecimal.valueOf(200));
 
         BigDecimal balance = service.calculateCurrentBalance(existingAccount);

@@ -21,6 +21,7 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -275,14 +276,25 @@ class ReportCsvExporterTest {
                                         "",
                                         "Aluguel escritório",
                                         CategoryType.EXPENSE,
-                                        new BigDecimal("1500.00"))));
+                                        TransactionStatus.PAID,
+                                        new BigDecimal("1500.00")),
+                                new TransactionExportData.TransactionExportRow(
+                                        LocalDate.of(2026, 9, 20),
+                                        "Conta Corrente",
+                                        "Serviços",
+                                        "Cliente X",
+                                        "Mensalidade",
+                                        CategoryType.INCOME,
+                                        TransactionStatus.PENDING,
+                                        new BigDecimal("3000.00"))));
 
         String content = bodyOf(exporter.exportTransactions(data));
 
         assertThat(content)
                 .isEqualTo(
-                        "Data;Conta;Categoria;Cliente;Descrição;Tipo;Valor\r\n"
-                                + "2026-09-05;Conta Corrente;Aluguel;;Aluguel escritório;Despesa;1500.00\r\n");
+                        "Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor\r\n"
+                                + "2026-09-05;Conta Corrente;Aluguel;;Aluguel escritório;Despesa;Paga;1500.00\r\n"
+                                + "2026-09-20;Conta Corrente;Serviços;Cliente X;Mensalidade;Receita;Pendente;3000.00\r\n");
     }
 
     @Test
