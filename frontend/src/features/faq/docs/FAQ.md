@@ -46,10 +46,13 @@ ___
 São só categorias pra você organizar: **Conta corrente**, **Poupança** e **Carteira** (dinheiro físico/uso avulso). Não há diferença de comportamento entre elas — todas funcionam igual, é só pra você identificar visualmente.
 
 **Posso mudar o saldo inicial de uma conta depois de criada?**
-Não. O saldo inicial é fixado na criação e não pode ser editado depois — na edição, só dá pra mudar nome e tipo (o saldo inicial e o saldo atual aparecem apenas para consulta). Isso é de propósito: o saldo *atual* é sempre calculado a partir do saldo inicial mais todas as transações já pagas, nunca é um número editável à parte, então deixar o saldo inicial mutável abriria brecha pra ele ficar inconsistente com o histórico.
+Não. O saldo inicial é fixado na criação e não pode ser editado depois — na edição, só dá pra mudar nome, tipo e uso (o saldo inicial e o saldo atual aparecem apenas para consulta). Isso é de propósito: o saldo *atual* é sempre calculado a partir do saldo inicial mais todas as transações já pagas, nunca é um número editável à parte, então deixar o saldo inicial mutável abriria brecha pra ele ficar inconsistente com o histórico.
 
 **Por que não consigo excluir uma conta?**
 Uma conta com transações ou transferências vinculadas não pode ser excluída — o sistema bloqueia pra evitar perder histórico financeiro sem querer. Remova as transações (e as transferências, na tela de Transferências) primeiro.
+
+**Para que serve o campo "Uso" (Pessoal ou Empresa)?**
+Ele separa as contas pessoais (PF) das contas da empresa (PJ). Hoje isso é usado no cálculo do pró-labore, que considera só as contas marcadas como **Empresa (PJ)**. Toda conta começa como Pessoal, e dá pra mudar o uso a qualquer momento na edição.
 ___
 
 ## Categorias
@@ -199,16 +202,50 @@ Ao escolher o mês de referência, o sistema preenche a receita bruta com a soma
 Depende do regime escolhido no formulário: MEI e Simples Nacional usam uma alíquota fixa de referência (6%), Lucro Presumido uma alíquota efetiva aproximada pra serviços (11,33%), Autônomo segue as faixas da tabela progressiva mensal do IRPF/carnê-leão (quanto maior a receita do mês, maior a faixa — de isento a 27,5%, aplicada sobre o total, sem a parcela a deduzir), e "Outro" não sugere nada — você preenche a alíquota manualmente. A sugestão é só um ponto de partida — você pode ajustar o valor antes de salvar, e o valor estimado é recalculado na hora.
 ___
 
+## Pró-labore
+
+**Como é calculado o "quanto posso me pagar este mês"?**
+Depende da **base do cálculo** que você escolher na própria tela, em "Configuração do cálculo":
+- **Receitas do mês** (padrão): as receitas PJ já recebidas no mês, menos as despesas PJ do mês (pagas e pendentes), o imposto, a reserva da empresa e o que você já retirou no mês. O valor nunca passa do que as contas PJ comportam hoje (saldo menos contas a pagar e imposto) — se passar, a tela avisa que foi limitado.
+- **Saldo atual**: o saldo das contas PJ menos as contas a pagar até o fim do mês, o imposto a reservar e um colchão de caixa.
+
+Se não sobrar nada, o valor fica em zero. A tela mostra cada parcela da conta.
+
+**O que dá pra configurar?**
+A base do cálculo; o **imposto**, automático (a alíquota da sua caixinha do imposto ou, sem ela, a de referência do seu regime) ou um percentual definido por você; a **reserva da empresa**, em % das receitas (padrão 10%, usada na base "receitas do mês"); o **colchão de caixa**, em meses da despesa média PJ dos 3 meses anteriores (de 0 a 12, usado na base "saldo atual"); e um **pró-labore fixo** opcional.
+
+**Como funciona o pró-labore fixo?**
+Com um valor fixo mensal (bruto) configurado, a tela mostra quanto falta transferir dele no mês (descontando o que você já retirou) e se o orçamento do mês cobre esse valor. O botão de pagamento vem preenchido com o que falta do fixo — ou só com o disponível, se ele não cobrir.
+
+**O cálculo desconta INSS e IRRF do pró-labore?**
+Sim, quando se aplica. No modo automático, o INSS e o IRRF são calculados para **Simples Nacional** e **Lucro Presumido**; MEI e autônomo não têm retenção sobre pró-labore. Também dá para ligar ou desligar manualmente. A conta tem duas etapas: primeiro o **orçamento do mês** (o que a empresa pode gastar com o pró-labore); depois, dele sai o **bruto** (descontado o INSS patronal, se houver), e do bruto saem o **INSS do sócio** (11%, limitado ao teto de R$ 8.475,55) e o **IRRF** (tabela de 2026, com a isenção até R$ 5.000 e a redução parcial até R$ 7.350). O que sobra é o **líquido**, que é o valor a transferir para a sua conta PF. O INSS e o IRRF ficam na conta PJ para pagar as guias — a tela mostra quanto deixar lá.
+
+**E o INSS patronal?**
+É a contribuição que a empresa paga sobre o pró-labore, além do bruto. No automático, é 20% no Lucro Presumido e 0% nos demais regimes (no Simples, na maioria dos anexos, ela já vai no DAS). Se o seu caso for diferente (por exemplo, Simples Anexo IV), informe o percentual na configuração. Os valores são estimativas de referência de 2026 — confira com seu contador.
+
+**Na base "saldo atual", por que o imposto pode ser maior que o do mês?**
+Porque o que você já guardou nas caixinhas do imposto continua no saldo das contas (as caixinhas são virtuais) e não pode ir para o pró-labore. Então vale o maior valor entre o imposto do mês e o que já está guardado.
+
+**Como registro o pagamento do pró-labore?**
+Pelo botão **Pagar**, que abre uma transferência já preenchida da conta PJ com mais saldo para uma conta PF (dá pra ajustar tudo antes de confirmar). Qualquer transferência de conta PJ para conta PF no mês conta como retirada.
+
+**O valor já retirado é descontado do disponível?**
+Sim: o disponível é o líquido do pró-labore do mês menos o que você já transferiu de contas PJ para contas PF no mês. Na base **saldo atual**, essas transferências já tinham saído do saldo, então elas voltam para compor o orçamento do mês antes de serem descontadas — assim a mesma retirada não é contada duas vezes.
+___
+
 ## Relatórios
 
 **Quais relatórios o sistema gera?**
-Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real) e **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente).
+Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real), **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente) e **Receitas (com filtros)** / **Despesas (com filtros)**.
+
+**Como funcionam os relatórios de receitas e de despesas com filtros?**
+Você pode filtrar por período (de/até), situação (paga ou pendente), conta, uso da conta (pessoal ou empresa), categoria, cliente, valor mínimo e máximo e por um trecho da descrição (sem diferenciar maiúsculas de minúsculas). Todos os filtros são opcionais: o que ficar em branco simplesmente não é aplicado — sem nenhum filtro, o relatório traz todas as receitas (ou despesas). O documento lista os filtros usados, cada lançamento, os totais pago, pendente e geral e o subtotal por categoria.
 
 **Em quais formatos posso baixar os relatórios?**
 Todos os relatórios podem ser baixados em **PDF** ou **CSV**. O CSV usa ponto e vírgula como separador e codificação compatível com o Excel em português, então abre direto no Excel ou no Google Sheets sem precisar configurar nada.
 
 **Os relatórios incluem transferências entre contas?**
-Os relatórios consolidados (Despesas por categoria, DRE e Orçamento vs. realizado) não incluem transferências, pelo mesmo motivo do Dashboard. Já a **Exportação de transações** inclui, porque o objetivo dela é auditar o extrato completo. O **Extrato de conta** mostra todas as movimentações da conta, incluindo as transferências de entrada e saída, para que o saldo final bata com o saldo real.
+Os relatórios consolidados (Despesas por categoria, DRE, Orçamento vs. realizado e os relatórios de receitas e de despesas com filtros) não incluem transferências, pelo mesmo motivo do Dashboard. Já a **Exportação de transações** inclui, porque o objetivo dela é auditar o extrato completo. O **Extrato de conta** mostra todas as movimentações da conta, incluindo as transferências de entrada e saída, para que o saldo final bata com o saldo real.
 
 **Por que meu recibo ou demonstrativo saiu sem valores?**
 Recibo e demonstrativo anual consideram só as **receitas vinculadas àquele cliente** no período. Receitas lançadas sem cliente (ou despesas) não entram — vincule o cliente no lançamento (ou na revisão da importação) para que elas apareçam.

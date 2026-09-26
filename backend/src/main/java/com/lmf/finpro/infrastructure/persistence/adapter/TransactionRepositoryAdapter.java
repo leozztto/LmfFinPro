@@ -2,14 +2,17 @@ package com.lmf.finpro.infrastructure.persistence.adapter;
 
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionSearchCriteria;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.TransactionPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.TransactionJpaRepository;
+import com.lmf.finpro.infrastructure.persistence.specification.TransactionSpecifications;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,6 +35,17 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     @Override
     public List<Transaction> findAllByAccountIds(List<Long> accountIds) {
         return transactionJpaRepository.findByAccountIdIn(accountIds).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Transaction> search(TransactionSearchCriteria criteria) {
+        return transactionJpaRepository
+                .findAll(
+                        TransactionSpecifications.matching(criteria),
+                        Sort.by("transactionDate", "id"))
+                .stream()
                 .map(mapper::toDomain)
                 .toList();
     }

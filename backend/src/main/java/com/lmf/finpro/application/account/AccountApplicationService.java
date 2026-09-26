@@ -3,6 +3,7 @@ package com.lmf.finpro.application.account;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -23,10 +24,20 @@ public class AccountApplicationService {
     private final TransferRepositoryPort transferRepositoryPort;
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
 
+    /** Sem uso informado, a conta é pessoal (PF). */
     public Account create(
-            Long currentUserId, String name, AccountType type, BigDecimal initialBalance) {
+            Long currentUserId,
+            String name,
+            AccountType type,
+            BigDecimal initialBalance,
+            AccountScope scope) {
         return accountRepositoryPort.save(
-                Account.create(currentUserId, name, type, initialBalance));
+                Account.create(
+                        currentUserId,
+                        name,
+                        type,
+                        initialBalance,
+                        scope == null ? AccountScope.PERSONAL : scope));
     }
 
     public List<Account> list(Long currentUserId) {
@@ -39,12 +50,17 @@ public class AccountApplicationService {
 
     /**
      * Saldo inicial só é definido na criação da conta: a edição não pode alterá-lo, para não
-     * distorcer o histórico de saldo.
+     * distorcer o histórico de saldo. Sem uso informado, mantém o atual.
      */
-    public Account update(Long currentUserId, Long accountId, String name, AccountType type) {
+    public Account update(
+            Long currentUserId, Long accountId, String name, AccountType type, AccountScope scope) {
         Account existing = findOwnedOrThrow(currentUserId, accountId);
         return accountRepositoryPort.save(
-                existing.withDetails(name, type, existing.initialBalance()));
+                existing.withDetails(
+                        name,
+                        type,
+                        existing.initialBalance(),
+                        scope == null ? existing.scope() : scope));
     }
 
     public void delete(Long currentUserId, Long accountId) {

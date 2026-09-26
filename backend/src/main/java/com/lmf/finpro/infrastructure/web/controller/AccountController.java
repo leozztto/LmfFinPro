@@ -44,7 +44,8 @@ public class AccountController {
                         currentUser.userId(),
                         request.name(),
                         request.type(),
-                        request.initialBalance());
+                        request.initialBalance(),
+                        request.scope());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
@@ -55,7 +56,7 @@ public class AccountController {
             @Valid @RequestBody AccountRequest request) {
         Account updated =
                 accountApplicationService.update(
-                        currentUser.userId(), id, request.name(), request.type());
+                        currentUser.userId(), id, request.name(), request.type(), request.scope());
         return toResponse(updated);
     }
 

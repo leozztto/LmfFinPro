@@ -6,8 +6,12 @@ import type {
   ClientAnnualStatementInput,
   ClientReceiptInput,
   IncomeStatementInput,
+  ReportFormat,
   TransactionExportInput,
+  TransactionReportFilters,
+  TransactionReportKind,
 } from '../types'
+import { buildTransactionReportQuery } from '../utils'
 
 export const reportsApi = {
   downloadClientReceipt: (input: ClientReceiptInput) =>
@@ -37,5 +41,9 @@ export const reportsApi = {
   downloadTransactionExport: (input: TransactionExportInput) =>
     httpClient.getBlob(
       `/reports/transaction-export?referenceMonth=${input.referenceMonth}&format=${input.format}`,
+    ),
+  downloadTransactionReport: (kind: TransactionReportKind, filters: TransactionReportFilters, format: ReportFormat) =>
+    httpClient.getBlob(
+      `/reports/${kind === 'INCOME' ? 'incomes' : 'expenses'}?${buildTransactionReportQuery(filters, format)}`,
     ),
 }

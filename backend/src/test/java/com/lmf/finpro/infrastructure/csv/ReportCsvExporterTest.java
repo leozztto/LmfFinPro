@@ -21,6 +21,7 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionReportData;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
 import java.math.BigDecimal;
@@ -311,5 +312,46 @@ class ReportCsvExporterTest {
         String content = bodyOf(exporter.exportCategoryExpenseReport(data));
 
         assertThat(content).contains("\"Categoria; com \"\"aspas\"\"\"");
+    }
+
+    @Test
+    void exportsTransactionReportWithTotals() {
+        TransactionReportData data =
+                new TransactionReportData(
+                        CategoryType.EXPENSE,
+                        "01/09/2026 a 30/09/2026",
+                        List.of(),
+                        List.of(
+                                new TransactionReportData.Row(
+                                        LocalDate.of(2026, 9, 5),
+                                        "Aluguel",
+                                        "Conta PJ",
+                                        "Moradia",
+                                        "",
+                                        TransactionStatus.PAID,
+                                        new BigDecimal("1500.00")),
+                                new TransactionReportData.Row(
+                                        LocalDate.of(2026, 9, 28),
+                                        "Internet",
+                                        "Conta PJ",
+                                        "Serviços",
+                                        "",
+                                        TransactionStatus.PENDING,
+                                        new BigDecimal("120.00"))),
+                        new BigDecimal("1620.00"),
+                        new BigDecimal("1500.00"),
+                        new BigDecimal("120.00"),
+                        List.of());
+
+        String content = bodyOf(exporter.exportTransactionReport(data));
+
+        assertThat(content)
+                .isEqualTo(
+                        "Data;Descrição;Conta;Categoria;Cliente;Situação;Valor\r\n"
+                                + "2026-09-05;Aluguel;Conta PJ;Moradia;;Paga;1500.00\r\n"
+                                + "2026-09-28;Internet;Conta PJ;Serviços;;Pendente;120.00\r\n"
+                                + ";TOTAL;;;;;1620.00\r\n"
+                                + ";Total pago;;;;;1500.00\r\n"
+                                + ";Total pendente;;;;;120.00\r\n");
     }
 }

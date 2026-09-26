@@ -7,7 +7,7 @@ import { formatCurrency } from '@/shared/format/currency'
 import { useCreateAccount } from '../hooks/useCreateAccount'
 import { useUpdateAccount } from '../hooks/useUpdateAccount'
 import { accountSchema, type AccountFormValues } from '../schemas'
-import { ACCOUNT_TYPE_LABELS, type Account } from '../types'
+import { ACCOUNT_SCOPE_LABELS, ACCOUNT_TYPE_LABELS, type Account } from '../types'
 
 interface AccountFormProps {
   account?: Account
@@ -30,8 +30,8 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: isEditing
-      ? { name: account.name, type: account.type, initialBalance: account.initialBalance }
-      : { type: 'CHECKING', initialBalance: 0 },
+      ? { name: account.name, type: account.type, initialBalance: account.initialBalance, scope: account.scope }
+      : { type: 'CHECKING', initialBalance: 0, scope: 'PERSONAL' },
   })
 
   async function onSubmit(values: AccountFormValues) {
@@ -39,12 +39,12 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
       if (isEditing) {
         await updateAccount.mutateAsync({
           id: account.id,
-          input: { name: values.name, type: values.type, initialBalance: values.initialBalance },
+          input: { name: values.name, type: values.type, initialBalance: values.initialBalance, scope: values.scope },
         })
         showToast('Conta atualizada com sucesso.', 'success')
       } else {
         await createAccount.mutateAsync(values)
-        reset({ name: '', type: 'CHECKING', initialBalance: 0 })
+        reset({ name: '', type: 'CHECKING', initialBalance: 0, scope: 'PERSONAL' })
         showToast('Conta criada com sucesso.', 'success')
       }
       onSuccess?.()
@@ -63,6 +63,15 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
       <FormField label="Tipo" htmlFor="account-type" error={errors.type?.message}>
         <Select id="account-type" {...register('type')}>
           {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+      <FormField label="Uso" htmlFor="account-scope" error={errors.scope?.message}>
+        <Select id="account-scope" {...register('scope')}>
+          {Object.entries(ACCOUNT_SCOPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>

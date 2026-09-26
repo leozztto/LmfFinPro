@@ -15,6 +15,7 @@ import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
+import com.lmf.finpro.domain.model.TransactionReportData;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
@@ -236,6 +237,121 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             document.close();
         }
         return output.toByteArray();
+    }
+
+    @Override
+    public byte[] generateTransactionReport(TransactionReportData data) {
+        boolean isIncome = data.type() == CategoryType.INCOME;
+        Document document = new Document(PageSize.A4.rotate(), 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            document.add(
+                    titleBlock(
+                            isIncome ? "RELATÓRIO DE RECEITAS" : "RELATÓRIO DE DESPESAS",
+                            data.periodLabel()));
+            document.add(appliedFiltersBlock(data.appliedFilters()));
+            document.add(transactionReportRowsBlock(data, isIncome));
+            document.add(transactionReportTotalsBlock(data, isIncome));
+            document.add(transactionReportCategoryBlock(data));
+            document.add(footer("relatório"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    private PdfPTable appliedFiltersBlock(List<String> appliedFilters) {
+        PdfPTable table = gridTable(new float[] {1f});
+        table.addCell(headerCell("FILTROS APLICADOS"));
+        table.addCell(
+                valueCell(
+                        appliedFilters.isEmpty()
+                                ? "Nenhum filtro além do período."
+                                : String.join("  ·  ", appliedFilters)));
+        return table;
+    }
+
+    private PdfPTable transactionReportRowsBlock(TransactionReportData data, boolean isIncome) {
+        PdfPTable table = gridTable(new float[] {1f, 3f, 1.6f, 1.6f, 1.6f, 1f, 1.3f});
+
+        PdfPCell section = headerCell(isIncome ? "RECEITAS" : "DESPESAS");
+        section.setColspan(7);
+        table.addCell(section);
+
+        table.addCell(labelCell("Data"));
+        table.addCell(labelCell("Descrição"));
+        table.addCell(labelCell("Conta"));
+        table.addCell(labelCell("Categoria"));
+        table.addCell(labelCell("Cliente"));
+        table.addCell(labelCell("Situação"));
+        PdfPCell valueHeader = labelCell("Valor");
+        valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(valueHeader);
+
+        if (data.rows().isEmpty()) {
+            PdfPCell empty =
+                    valueCell(
+                            isIncome
+                                    ? "Nenhuma receita encontrada com esses filtros."
+                                    : "Nenhuma despesa encontrada com esses filtros.");
+            empty.setColspan(7);
+            table.addCell(empty);
+        } else {
+            for (TransactionReportData.Row row : data.rows()) {
+                table.addCell(valueCell(row.date().format(DATE_FORMAT)));
+                table.addCell(valueCell(row.description()));
+                table.addCell(valueCell(row.accountName()));
+                table.addCell(valueCell(row.categoryName()));
+                table.addCell(valueCell(row.clientName()));
+                table.addCell(
+                        valueCell(row.status() == TransactionStatus.PAID ? "Paga" : "Pendente"));
+                table.addCell(amountCell(formatCurrency(row.amount()), BODY_FONT));
+            }
+        }
+        return table;
+    }
+
+    private PdfPTable transactionReportTotalsBlock(TransactionReportData data, boolean isIncome) {
+        PdfPTable table = gridTable(new float[] {5f, 1.3f});
+        table.addCell(labelCell("Total pago"));
+        table.addCell(amountCell(formatCurrency(data.paidTotal()), BODY_FONT));
+        table.addCell(labelCell("Total pendente"));
+        table.addCell(amountCell(formatCurrency(data.pendingTotal()), BODY_FONT));
+        table.addCell(headerCell(isIncome ? "TOTAL DE RECEITAS" : "TOTAL DE DESPESAS"));
+        table.addCell(amountCell(formatCurrency(data.total()), TOTAL_FONT));
+        return table;
+    }
+
+    private PdfPTable transactionReportCategoryBlock(TransactionReportData data) {
+        PdfPTable table = gridTable(new float[] {3f, 1f, 1.3f});
+
+        PdfPCell section = headerCell("SUBTOTAL POR CATEGORIA");
+        section.setColspan(3);
+        table.addCell(section);
+
+        table.addCell(labelCell("Categoria"));
+        table.addCell(labelCell("Lançamentos"));
+        PdfPCell valueHeader = labelCell("Total");
+        valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(valueHeader);
+
+        if (data.categoryTotals().isEmpty()) {
+            PdfPCell empty = valueCell("—");
+            empty.setColspan(3);
+            table.addCell(empty);
+        } else {
+            for (TransactionReportData.CategoryTotal categoryTotal : data.categoryTotals()) {
+                table.addCell(valueCell(categoryTotal.categoryName()));
+                table.addCell(centeredValueCell(String.valueOf(categoryTotal.count())));
+                table.addCell(amountCell(formatCurrency(categoryTotal.total()), BODY_FONT));
+            }
+        }
+        return table;
     }
 
     private String monthLabel(YearMonth referenceMonth) {
