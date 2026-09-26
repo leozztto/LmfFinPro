@@ -21,6 +21,7 @@ public class TransactionWebMapper {
                 transaction.createdAt(),
                 transaction.transferId(),
                 transaction.importBatchId(),
-                transaction.recurringTransactionId());
+                transaction.recurringTransactionId(),
+                transaction.status());
     }
 }

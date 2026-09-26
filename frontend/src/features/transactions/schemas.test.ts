@@ -89,4 +89,31 @@ describe('transactionSchema', () => {
 
     expect(result.success).toBe(false)
   })
+
+  const baseInput = {
+    accountId: '1',
+    description: 'Pagamento',
+    amount: '100',
+    transactionDate: '2026-09-20',
+    type: 'EXPENSE',
+  }
+
+  it('treats an empty status as automatic (undefined)', () => {
+    const result = transactionSchema.safeParse({ ...baseInput, status: '' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.status).toBeUndefined()
+  })
+
+  it('accepts an explicit pending status', () => {
+    const result = transactionSchema.safeParse({ ...baseInput, status: 'PENDING' })
+
+    expect(result.data?.status).toBe('PENDING')
+  })
+
+  it('rejects an unknown status', () => {
+    const result = transactionSchema.safeParse({ ...baseInput, status: 'LATE' })
+
+    expect(result.success).toBe(false)
+  })
 })

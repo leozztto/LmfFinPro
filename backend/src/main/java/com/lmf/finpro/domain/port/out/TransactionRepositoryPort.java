@@ -24,7 +24,8 @@ public interface TransactionRepositoryPort {
     List<Transaction> findAllByClientIdAndTypeAndDateBetween(
             Long clientId, CategoryType type, LocalDate start, LocalDate end);
 
-    BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type);
+    /** Soma das transações já pagas (status PAID) de uma conta, de um tipo. */
+    BigDecimal sumPaidAmountByAccountIdAndType(Long accountId, CategoryType type);
 
     /**
      * Soma de transações (sem transferências) do usuário numa categoria, dentro de um intervalo de

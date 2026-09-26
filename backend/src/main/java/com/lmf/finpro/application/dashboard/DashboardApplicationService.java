@@ -31,18 +31,25 @@ public class DashboardApplicationService {
         List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal initialBalanceTotal = sumInitialBalance(accounts);
 
-        BigDecimal totalIncome = sumByType(transactions, CategoryType.INCOME);
-        BigDecimal totalExpense = sumByType(transactions, CategoryType.EXPENSE);
-        BigDecimal currentBalance = initialBalanceTotal.add(totalIncome).subtract(totalExpense);
+        // Saldo atual só com o que já foi pago; pendentes (a receber/a pagar) formam o previsto.
+        List<Transaction> paid = transactions.stream().filter(Transaction::isPaid).toList();
+        List<Transaction> pending =
+                transactions.stream().filter(transaction -> !transaction.isPaid()).toList();
 
+        BigDecimal currentBalance =
+                initialBalanceTotal
+                        .add(sumByType(paid, CategoryType.INCOME))
+                        .subtract(sumByType(paid, CategoryType.EXPENSE));
+        BigDecimal pendingIncome = sumByType(pending, CategoryType.INCOME);
+        BigDecimal pendingExpense = sumByType(pending, CategoryType.EXPENSE);
+
+        // Receita/despesa do mês seguem por competência (pagas e pendentes).
         List<MonthlyFlowPoint> flow = DashboardAggregator.monthlyFlow(transactions, 2);
         MonthlyFlowPoint previousMonth = flow.get(0);
         MonthlyFlowPoint currentMonth = flow.get(1);
 
         BigDecimal previousBalance =
-                DashboardAggregator.balanceOverTime(transactions, initialBalanceTotal, 2)
-                        .get(0)
-                        .balance();
+                DashboardAggregator.balanceOverTime(paid, initialBalanceTotal, 2).get(0).balance();
 
         return new DashboardOverview(
                 currentBalance,
@@ -50,7 +57,10 @@ public class DashboardApplicationService {
                 currentMonth.expense(),
                 DashboardAggregator.deltaPercent(currentBalance, previousBalance),
                 DashboardAggregator.deltaPercent(currentMonth.income(), previousMonth.income()),
-                DashboardAggregator.deltaPercent(currentMonth.expense(), previousMonth.expense()));
+                DashboardAggregator.deltaPercent(currentMonth.expense(), previousMonth.expense()),
+                pendingIncome,
+                pendingExpense,
+                currentBalance.add(pendingIncome).subtract(pendingExpense));
     }
 
     public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount) {

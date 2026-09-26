@@ -32,7 +32,7 @@ export function DashboardPage() {
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Visão geral</h2>
-        <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">Saldo consolidado e movimento do mês.</p>
+        <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">Saldo consolidado, movimento do mês e o que ainda está pendente.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -52,6 +52,26 @@ export function DashboardPage() {
           delta={
             overview.data?.expenseDeltaPercent != null ? { percent: overview.data.expenseDeltaPercent, invert: true } : null
           }
+        />
+      </div>
+
+      {/* Duas colunas já no celular (valores curtos); o saldo previsto ocupa a linha inteira. */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="A receber"
+          value={overview.data ? formatCurrency(overview.data.pendingIncome) : '…'}
+          hint="Receitas pendentes"
+        />
+        <StatCard
+          label="A pagar"
+          value={overview.data ? formatCurrency(overview.data.pendingExpense) : '…'}
+          hint="Despesas pendentes"
+        />
+        <StatCard
+          label="Saldo previsto"
+          value={overview.data ? formatCurrency(overview.data.projectedBalance) : '…'}
+          hint="Saldo atual + a receber − a pagar"
+          className="col-span-2 sm:col-span-1"
         />
       </div>
 

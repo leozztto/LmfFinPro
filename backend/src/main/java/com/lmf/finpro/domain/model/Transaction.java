@@ -17,9 +17,10 @@ public record Transaction(
         LocalDateTime createdAt,
         Long transferId,
         Long importBatchId,
-        Long recurringTransactionId) {
+        Long recurringTransactionId,
+        TransactionStatus status) {
 
-    /** Transação sem vínculo com recorrência (manual, importada ou de transferência). */
+    /** Transação paga e sem vínculo com recorrência (manual, importada ou de transferência). */
     public Transaction(
             Long id,
             Long accountId,
@@ -46,7 +47,28 @@ public record Transaction(
                 createdAt,
                 transferId,
                 importBatchId,
-                null);
+                null,
+                TransactionStatus.PAID);
+    }
+
+    /** Lançamento manual já pago. */
+    public static Transaction create(
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type) {
+        return create(
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                TransactionStatus.PAID);
     }
 
     public static Transaction create(
@@ -56,7 +78,8 @@ public record Transaction(
             String description,
             BigDecimal amount,
             LocalDate transactionDate,
-            CategoryType type) {
+            CategoryType type,
+            TransactionStatus status) {
         return new Transaction(
                 null,
                 accountId,
@@ -69,9 +92,12 @@ public record Transaction(
                 TransactionOrigin.MANUAL,
                 LocalDateTime.now(),
                 null,
-                null);
+                null,
+                null,
+                status);
     }
 
+    /** Transferência movimenta dinheiro na hora: as duas pontas são sempre pagas. */
     public static Transaction createForTransfer(
             Long accountId,
             String description,
@@ -94,6 +120,7 @@ public record Transaction(
                 null);
     }
 
+    /** Linha de extrato bancário: se está no extrato, já aconteceu — sempre paga. */
     public static Transaction createImported(
             Long accountId,
             Long categoryId,
@@ -137,10 +164,36 @@ public record Transaction(
                 createdAt,
                 transferId,
                 importBatchId,
-                recurringTransactionId);
+                recurringTransactionId,
+                status);
     }
 
-    /** Ocorrência de um {@link RecurringTransaction} lançada na data {@code occurrenceDate}. */
+    public Transaction withStatus(TransactionStatus newStatus) {
+        return new Transaction(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                recurringTransactionId,
+                newStatus);
+    }
+
+    public boolean isPaid() {
+        return status == TransactionStatus.PAID;
+    }
+
+    /**
+     * Ocorrência de um {@link RecurringTransaction} lançada na data {@code occurrenceDate}. Nasce
+     * pendente: o sistema lança no dia, mas quem confirma que o dinheiro entrou/saiu é o usuário.
+     */
     public static Transaction createFromRecurrence(
             RecurringTransaction recurrence, LocalDate occurrenceDate) {
         return new Transaction(
@@ -156,6 +209,7 @@ public record Transaction(
                 LocalDateTime.now(),
                 null,
                 null,
-                recurrence.id());
+                recurrence.id(),
+                TransactionStatus.PENDING);
     }
 }

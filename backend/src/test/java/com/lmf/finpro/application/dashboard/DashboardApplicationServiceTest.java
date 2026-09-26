@@ -11,6 +11,7 @@ import com.lmf.finpro.domain.model.DashboardOverview;
 import com.lmf.finpro.domain.model.RecurrenceFrequency;
 import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
@@ -81,6 +82,52 @@ class DashboardApplicationServiceTest {
 
         assertThat(overview.currentBalance()).isEqualByComparingTo("1500");
         assertThat(overview.currentMonthIncome()).isEqualByComparingTo("500");
+    }
+
+    @Test
+    void getOverviewLeavesPendingOutOfCurrentBalanceButInProjectedBalance() {
+        YearMonth currentMonth = YearMonth.now();
+        when(accountRepositoryPort.findAllByUserId(10L))
+                .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                Transaction.create(
+                                        1L,
+                                        null,
+                                        null,
+                                        "pago",
+                                        BigDecimal.valueOf(200),
+                                        currentMonth.atDay(1),
+                                        CategoryType.INCOME,
+                                        TransactionStatus.PAID),
+                                Transaction.create(
+                                        1L,
+                                        null,
+                                        null,
+                                        "a receber",
+                                        BigDecimal.valueOf(500),
+                                        currentMonth.atDay(1),
+                                        CategoryType.INCOME,
+                                        TransactionStatus.PENDING),
+                                Transaction.create(
+                                        1L,
+                                        null,
+                                        null,
+                                        "a pagar",
+                                        BigDecimal.valueOf(150),
+                                        currentMonth.atDay(1),
+                                        CategoryType.EXPENSE,
+                                        TransactionStatus.PENDING)));
+
+        DashboardOverview overview = service.getOverview(10L);
+
+        assertThat(overview.currentBalance()).isEqualByComparingTo("1200");
+        assertThat(overview.pendingIncome()).isEqualByComparingTo("500");
+        assertThat(overview.pendingExpense()).isEqualByComparingTo("150");
+        assertThat(overview.projectedBalance()).isEqualByComparingTo("1550");
+        // receita do mês segue por competência: paga + pendente
+        assertThat(overview.currentMonthIncome()).isEqualByComparingTo("700");
     }
 
     @Test

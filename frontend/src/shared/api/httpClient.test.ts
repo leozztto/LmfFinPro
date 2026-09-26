@@ -77,6 +77,17 @@ describe('httpClient', () => {
     expect(options?.method).toBe('PUT')
   })
 
+  it('sends PATCH requests with a JSON-serialized body', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ id: 7, status: 'PAID' }))
+
+    await httpClient.patch('/transactions/7/status', { status: 'PAID' })
+
+    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('http://localhost:8080/api/transactions/7/status')
+    expect(options?.method).toBe('PATCH')
+    expect(options?.body).toBe(JSON.stringify({ status: 'PAID' }))
+  })
+
   it('sends DELETE requests and returns undefined for a 204 response', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 204 }))
 
