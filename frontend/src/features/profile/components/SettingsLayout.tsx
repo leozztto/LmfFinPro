@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LockIcon, UserIcon } from '@/shared/ui/icons'
+import { BellIcon, LockIcon, UserIcon } from '@/shared/ui/icons'
 
 const SETTINGS_ITEMS = [
   { to: 'dados-cadastrais', label: 'Dados cadastrais', icon: UserIcon },
   { to: 'senha', label: 'Alterar senha', icon: LockIcon },
+  { to: 'notificacoes', label: 'Notificações', icon: BellIcon },
 ]
 
 /** No desktop o submenu fica numa coluna à esquerda; no celular vira abas horizontais no topo. */
@@ -19,7 +20,7 @@ export function SettingsLayout() {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Configurações</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Seus dados cadastrais e a senha de acesso.</p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Seus dados cadastrais, a senha de acesso e os alertas por e-mail.</p>
       </div>
 
       <div className="flex flex-col gap-6 md:flex-row md:gap-8">
