@@ -15,8 +15,8 @@ Toda a agregação (somar transações, calcular saldo mês a mês, projetar flu
 A tela é composta por blocos empilhados verticalmente, cada um alimentado por um hook do React Query independente:
 
 1. **Cards de resumo** (`StatCard` × 3): Saldo atual, Receita do mês, Despesa do mês — cada um com a variação percentual vs. o mês anterior (seta/cor indicando alta ou queda; para despesa a lógica de cor é invertida, já que despesa subir é "ruim").
-2. **Receita x despesa por mês** (`MonthlyFlowChart`) + **Evolução do saldo** (`BalanceEvolutionChart`) lado a lado.
-3. **Projeção de fluxo de caixa** (`CashFlowProjectionChart` — combina o histórico real de `BalanceEvolutionChart` com os meses futuros projetados, histórico em linha sólida e projeção em linha tracejada) + **Saldo por conta** (`AccountBalanceChart`, gráfico de barras horizontais, uma barra por conta cadastrada, cores fixas por posição — nunca reordenadas pelo valor do saldo).
+2. **Receita x despesa por mês** (`MonthlyFlowChart`, por competência: pagas + pendentes) + **Evolução do saldo** (`BalanceEvolutionChart`, só transações pagas, assim o último ponto bate com o card "Saldo atual") lado a lado.
+3. **Projeção de fluxo de caixa** (`CashFlowProjectionChart` — combina o histórico real de `BalanceEvolutionChart` com os meses futuros projetados, histórico em linha sólida e projeção em linha tracejada; a projeção parte do saldo com pagas + pendentes até o fim do mês atual, então os pendentes do mês aparecem no primeiro trecho tracejado) + **Saldo por conta** (`AccountBalanceChart`, gráfico de barras horizontais, uma barra por conta cadastrada, cores fixas por posição — nunca reordenadas pelo valor do saldo).
 4. **Despesas por categoria** e **Receita por categoria** (`BreakdownChart` × 2) lado a lado, mês atual.
 5. **Receita por cliente** (`BreakdownChart`), mês atual — inclui uma fatia "Sem cliente" para receitas não vinculadas a nenhum cliente.
 
