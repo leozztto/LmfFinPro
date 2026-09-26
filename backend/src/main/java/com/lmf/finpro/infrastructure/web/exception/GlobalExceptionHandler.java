@@ -11,6 +11,7 @@ import com.lmf.finpro.domain.exception.IncorrectCurrentPasswordException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
+import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
@@ -100,6 +101,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CategoryTypeMismatchException.class)
     public ResponseEntity<ApiError> handleCategoryTypeMismatch(
             CategoryTypeMismatchException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidRecurrencePeriodException.class)
+    public ResponseEntity<ApiError> handleInvalidRecurrencePeriod(
+            InvalidRecurrencePeriodException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 

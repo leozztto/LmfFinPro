@@ -20,6 +20,7 @@ public class TransactionWebMapper {
                 transaction.origin(),
                 transaction.createdAt(),
                 transaction.transferId(),
-                transaction.importBatchId());
+                transaction.importBatchId(),
+                transaction.recurringTransactionId());
     }
 }

@@ -94,6 +94,24 @@ Porque, financeiramente, uma transferência é uma saída de uma conta e uma ent
 Não. Elas são excluídas de todo cálculo de receita/despesa (nos cards, gráficos, orçamentos, estimativa de imposto e relatórios consolidados) — afinal, transferir dinheiro entre suas próprias contas não é ganhar nem gastar, só reorganizar onde o dinheiro está. A única exceção é a **Exportação de transações** (em Relatórios), que traz o extrato bruto completo, incluindo transferências.
 ___
 
+## Lançamentos recorrentes
+
+**O que é um lançamento recorrente?**
+É um modelo para receitas ou despesas que se repetem (aluguel, assinaturas, mensalidade fixa de um cliente) com frequência semanal, mensal ou anual. Em cada data, o sistema lança sozinho uma transação real na conta escolhida, com a etiqueta "Recorrente" na tela de Transações. Opcionalmente, você define uma data final.
+
+**Criei uma recorrência com data inicial no passado. O que acontece?**
+Todas as ocorrências com data até hoje são lançadas na hora. Por exemplo, um aluguel mensal com início em janeiro, cadastrado em setembro, gera de uma vez as transações de janeiro a setembro. As próximas entram automaticamente no dia de cada uma.
+
+**E se a data inicial for dia 31?**
+Nos meses mais curtos, a ocorrência cai no último dia do mês (28 ou 29 de fevereiro, 30 de abril etc.) e volta para o dia 31 nos meses que têm 31 dias.
+
+**O que muda quando edito ou pauso uma recorrência?**
+Descrição, valor, categoria, cliente e data final podem ser alterados, e a mudança vale só para as próximas ocorrências; as transações já lançadas não mudam. Conta, tipo, frequência e data inicial ficam fixos. Enquanto a recorrência estiver pausada, nada é lançado. Ao reativar, as datas que caíram durante a pausa são puladas, em vez de lançadas todas de uma vez.
+
+**Excluir uma recorrência apaga as transações que ela já lançou?**
+Não. Só o modelo é removido; as transações já lançadas continuam no extrato e podem ser excluídas individualmente na tela de Transações. Uma conta com recorrência vinculada não pode ser excluída: remova a recorrência antes.
+___
+
 ## Clientes
 
 **Pra que serve cadastrar clientes?**

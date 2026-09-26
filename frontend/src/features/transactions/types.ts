@@ -1,5 +1,5 @@
 export type TransactionType = 'INCOME' | 'EXPENSE'
-export type TransactionOrigin = 'MANUAL' | 'IMPORTED'
+export type TransactionOrigin = 'MANUAL' | 'IMPORTED' | 'RECURRING'
 
 export interface Transaction {
   id: number
@@ -14,6 +14,7 @@ export interface Transaction {
   createdAt: string
   transferId: number | null
   importBatchId: number | null
+  recurringTransactionId: number | null
 }
 
 export interface TransactionInput {
