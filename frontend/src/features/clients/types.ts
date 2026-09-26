@@ -31,3 +31,41 @@ export const CLIENT_WORK_TYPE_LABELS: Record<ClientWorkType, string> = {
   PJ: 'PJ',
   AUTONOMO: 'Autônomo/Freelancer',
 }
+
+export type ConcentrationRisk = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH'
+
+export interface ClientMonthValues {
+  month: string
+  income: number
+  expense: number
+}
+
+/** Um cliente no ranking do período; os valores vêm prontos do backend. */
+export interface ClientRankingRow {
+  clientId: number
+  name: string
+  color: string | null
+  income: number
+  expense: number
+  net: number
+  incomeCount: number
+  averageTicket: number
+  /** Fração (0 a 1) da receita total do período. */
+  share: number
+  activeMonths: number
+  lastIncomeDate: string | null
+  monthly: ClientMonthValues[]
+}
+
+export interface ClientAnalytics {
+  months: string[]
+  totalIncome: number
+  /** Receitas sem cliente: entram no total (e na concentração), mas não no ranking. */
+  unassignedIncome: number
+  activeClients: number
+  averageTicket: number
+  topClientShare: number
+  topThreeShare: number
+  risk: ConcentrationRisk
+  ranking: ClientRankingRow[]
+}

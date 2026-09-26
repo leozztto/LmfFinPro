@@ -12,17 +12,24 @@ Toda a agregação (somar transações, calcular saldo mês a mês, projetar flu
 
 **Rota:** `/` (`DashboardPage`, dentro da área autenticada).
 
-A tela é composta por blocos empilhados verticalmente, cada um alimentado por um hook do React Query independente:
+**Abas.** O Dashboard reúne tudo que é leitura de dados, em duas abas (componente `Tabs` no modo controlado):
+- **Visão geral** (padrão, `/`): mês atual, sem filtros. É o conteúdo descrito abaixo.
+- **Clientes** (`/?aba=clientes`): a análise de clientes (`ClientAnalyticsPanel`, com filtros próprios de período e de receitas recebidas). Ver [`fluxo-clientes.md`](./fluxo-clientes.md#51-análise-de-clientes-aba-clientes-do-dashboard).
 
+A aba ativa fica na URL (parâmetro `aba`), então dá para linkar, voltar pelo navegador e abrir direto. Os atalhos para a aba Clientes usam `CLIENTS_ANALYSIS_PATH` (`features/dashboard/routes.ts`). Cada aba só é montada quando está ativa, então a análise de clientes não é buscada enquanto a Visão geral está aberta.
+
+A **Visão geral** é composta por blocos empilhados verticalmente, cada um alimentado por um hook do React Query independente:
+
+0. **Aviso de concentração** (`ConcentrationNotice`): só aparece quando um cliente responde por 50% ou mais da receita dos últimos 12 meses, com link para a aba Clientes. Usa o mesmo `useClientAnalytics(12, false)` da análise.
 1. **Cards de resumo** (`StatCard` × 3): Saldo atual, Receita do mês, Despesa do mês — cada um com a variação percentual vs. o mês anterior (seta/cor indicando alta ou queda; para despesa a lógica de cor é invertida, já que despesa subir é "ruim").
 2. **Receita x despesa por mês** (`MonthlyFlowChart`, por competência: pagas + pendentes) + **Evolução do saldo** (`BalanceEvolutionChart`, só transações pagas, assim o último ponto bate com o card "Saldo atual") lado a lado.
 3. **Projeção de fluxo de caixa** (`CashFlowProjectionChart` — combina o histórico real de `BalanceEvolutionChart` com os meses futuros projetados, histórico em linha sólida e projeção em linha tracejada; a projeção parte do saldo com pagas + pendentes até o fim do mês atual, então os pendentes do mês aparecem no primeiro trecho tracejado) + **Saldo por conta** (`AccountBalanceChart`, gráfico de barras horizontais, uma barra por conta cadastrada, cores fixas por posição — nunca reordenadas pelo valor do saldo).
 4. **Despesas por categoria** e **Receita por categoria** (`BreakdownChart` × 2) lado a lado, mês atual.
-5. **Receita por cliente** (`BreakdownChart`), mês atual — inclui uma fatia "Sem cliente" para receitas não vinculadas a nenhum cliente.
+5. **Receita por cliente** (`BreakdownChart`), mês atual — inclui uma fatia "Sem cliente" para receitas não vinculadas a nenhum cliente. Logo abaixo, o link "Ver análise completa de clientes →" leva à aba Clientes.
 
 **Estados:** cada bloco de gráfico mostra um placeholder próprio (`Carregando...`, num box tracejado) enquanto seus dados ainda não chegaram — não existe um "loading" de tela inteira. Os `BreakdownChart` também tratam o caso de mês sem nenhuma transação daquele tipo com uma mensagem vazia específica (ex: "Nenhuma despesa registrada neste mês ainda"). `AccountBalanceChart` trata separadamente o caso de nenhuma conta cadastrada.
 
-**Interações:** a tela é somente leitura — não há filtros, seletor de mês ou edição nela; os dados refletem sempre o mês corrente (breakdown por categoria/cliente) ou os últimos 6 meses + próximos 3 (séries temporais). Para editar dados, o usuário navega para as telas de Transações, Contas, etc.
+**Interações:** a tela é somente leitura. Na Visão geral não há filtros, seletor de mês ou edição; os dados refletem sempre o mês corrente (breakdown por categoria/cliente) ou os últimos 6 meses + próximos 3 (séries temporais). Para editar dados, o usuário navega para as telas de Transações, Contas, etc.
 
 ## 3. Arquitetura (hexagonal)
 

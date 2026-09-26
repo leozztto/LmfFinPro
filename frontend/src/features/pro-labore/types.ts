@@ -83,8 +83,8 @@ export const CALCULATION_BASE_LABELS: Record<ProLaboreCalculationBase, string> =
 }
 
 export const TAX_MODE_LABELS: Record<ProLaboreTaxMode, string> = {
-  AUTOMATIC: 'Automático (caixinha do imposto ou regime)',
-  MANUAL: 'Percentual definido por mim',
+  AUTOMATIC: 'Automático',
+  MANUAL: 'Definir alíquota',
 }
 
 export const WITHHOLDING_MODE_LABELS: Record<ProLaboreWithholdingMode, string> = {
