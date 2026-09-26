@@ -2,6 +2,7 @@ package com.lmf.finpro.domain.port.out;
 
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionSearchCriteria;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -39,6 +40,12 @@ public interface TransactionRepositoryPort {
     boolean existsByCategoryId(Long categoryId);
 
     boolean existsByClientId(Long clientId);
+
+    /**
+     * Transações do usuário que atendem aos filtros informados, ordenadas por data. Filtros nulos
+     * não entram na consulta.
+     */
+    List<Transaction> search(TransactionSearchCriteria criteria);
 
     void deleteById(Long id);
 }

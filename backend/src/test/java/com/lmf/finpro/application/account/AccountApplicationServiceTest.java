@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -55,11 +56,28 @@ class AccountApplicationServiceTest {
     void createSavesAccountBuiltFromInput() {
         when(accountRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Account created = service.create(10L, "Carteira", AccountType.WALLET, BigDecimal.ZERO);
+        Account created =
+                service.create(
+                        10L,
+                        "Carteira",
+                        AccountType.WALLET,
+                        BigDecimal.ZERO,
+                        AccountScope.BUSINESS);
 
         assertThat(created.userId()).isEqualTo(10L);
         assertThat(created.name()).isEqualTo("Carteira");
         assertThat(created.type()).isEqualTo(AccountType.WALLET);
+        assertThat(created.scope()).isEqualTo(AccountScope.BUSINESS);
+    }
+
+    @Test
+    void createWithoutScopeIsPersonal() {
+        when(accountRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account created =
+                service.create(10L, "Carteira", AccountType.WALLET, BigDecimal.ZERO, null);
+
+        assertThat(created.scope()).isEqualTo(AccountScope.PERSONAL);
     }
 
     @Test
@@ -97,18 +115,36 @@ class AccountApplicationServiceTest {
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(existingAccount));
         when(accountRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Account updated = service.update(10L, 1L, "Renomeada", AccountType.SAVINGS);
+        Account updated =
+                service.update(10L, 1L, "Renomeada", AccountType.SAVINGS, AccountScope.BUSINESS);
 
         assertThat(updated.name()).isEqualTo("Renomeada");
         assertThat(updated.type()).isEqualTo(AccountType.SAVINGS);
         assertThat(updated.initialBalance()).isEqualByComparingTo("1000");
+        assertThat(updated.scope()).isEqualTo(AccountScope.BUSINESS);
+    }
+
+    @Test
+    void updateWithoutScopeKeepsTheCurrentOne() {
+        Account business =
+                existingAccount.withDetails(
+                        existingAccount.name(),
+                        existingAccount.type(),
+                        existingAccount.initialBalance(),
+                        AccountScope.BUSINESS);
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(business));
+        when(accountRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account updated = service.update(10L, 1L, "Renomeada", AccountType.SAVINGS, null);
+
+        assertThat(updated.scope()).isEqualTo(AccountScope.BUSINESS);
     }
 
     @Test
     void updateThrowsWhenAccountNotOwned() {
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(10L, 1L, "X", AccountType.CHECKING))
+        assertThatThrownBy(() -> service.update(10L, 1L, "X", AccountType.CHECKING, null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

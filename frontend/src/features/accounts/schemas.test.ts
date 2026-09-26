@@ -14,6 +14,14 @@ describe('accountSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('defaults the scope to personal and accepts business', () => {
+    const personal = accountSchema.parse({ name: 'Carteira', type: 'WALLET', initialBalance: '0' })
+    const business = accountSchema.parse({ name: 'PJ', type: 'CHECKING', initialBalance: '0', scope: 'BUSINESS' })
+
+    expect(personal.scope).toBe('PERSONAL')
+    expect(business.scope).toBe('BUSINESS')
+  })
+
   it('rejects an empty name', () => {
     const result = accountSchema.safeParse({ name: '', type: 'WALLET', initialBalance: '0' })
 
