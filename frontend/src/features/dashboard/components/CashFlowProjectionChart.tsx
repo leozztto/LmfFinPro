@@ -42,7 +42,7 @@ export function CashFlowProjectionChart({ data }: CashFlowProjectionChartProps) 
     <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Projeção de fluxo de caixa</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        Histórico recente e estimativa para os próximos meses (média móvel + lançamentos futuros já cadastrados).
+        Histórico recente e estimativa para os próximos meses (média móvel + lançamentos recorrentes e futuros já cadastrados).
       </p>
       <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
