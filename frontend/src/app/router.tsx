@@ -8,6 +8,7 @@ import { AccountsPage } from '@/features/accounts/components/AccountsPage'
 import { CategoriesPage } from '@/features/categories/components/CategoriesPage'
 import { ClientsPage } from '@/features/clients/components/ClientsPage'
 import { TransactionsPage } from '@/features/transactions/components/TransactionsPage'
+import { RecurringTransactionsPage } from '@/features/recurringTransactions/components/RecurringTransactionsPage'
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
 import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
 import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimatesPage'
@@ -35,6 +36,7 @@ export function AppRouter() {
           <Route path="/categorias" element={<CategoriesPage />} />
           <Route path="/clientes" element={<ClientsPage />} />
           <Route path="/transacoes" element={<TransactionsPage />} />
+          <Route path="/recorrentes" element={<RecurringTransactionsPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />
           <Route path="/impostos" element={<TaxEstimatesPage />} />

@@ -36,6 +36,7 @@ public class TransactionPersistenceMapper {
                 .origin(transaction.origin())
                 .createdAt(transaction.createdAt())
                 .transferId(transaction.transferId())
+                .recurringTransactionId(transaction.recurringTransactionId())
                 .build();
     }
 
@@ -52,6 +53,7 @@ public class TransactionPersistenceMapper {
                 entity.getOrigin(),
                 entity.getCreatedAt(),
                 entity.getTransferId(),
-                entity.getImportBatch() == null ? null : entity.getImportBatch().getId());
+                entity.getImportBatch() == null ? null : entity.getImportBatch().getId(),
+                entity.getRecurringTransactionId());
     }
 }

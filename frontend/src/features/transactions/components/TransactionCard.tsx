@@ -24,6 +24,12 @@ export function TransactionCard({
 }: TransactionCardProps) {
   const [open, setOpen] = useState(false)
   const isTransfer = transaction.transferId != null
+  const isRecurring = transaction.origin === 'RECURRING'
+  const recurringBadge = isRecurring && (
+    <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-zinc-700 dark:text-zinc-200">
+      Recorrente
+    </span>
+  )
   const amountClassName = transaction.type === 'INCOME' ? 'font-semibold text-[#5ab482]' : 'font-semibold text-[#f06464]'
   const amountLabel = `${transaction.type === 'INCOME' ? '+' : '-'} ${formatCurrency(transaction.amount)}`
   const metaLine = `${formatDateOnlyBr(transaction.transactionDate)} · ${accountName}${
@@ -69,6 +75,7 @@ export function TransactionCard({
                 Transferência
               </span>
             )}
+            {recurringBadge}
             <p className="break-words text-sm text-zinc-800 dark:text-zinc-100">{transaction.description}</p>
             <div className="flex items-end justify-between gap-2">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{metaLine}</p>
@@ -87,6 +94,7 @@ export function TransactionCard({
                 Transferência
               </span>
             )}
+            {recurringBadge}
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">{metaLine}</p>
         </div>
