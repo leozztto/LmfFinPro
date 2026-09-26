@@ -169,6 +169,24 @@ A barra de progresso fica vermelha e aparece o aviso "limite ultrapassado" — �
 Hoje não — orçamentos só podem ser criados e removidos. Para mudar o limite, remova o orçamento e crie outro para o mesmo mês e categoria.
 ___
 
+## Metas de economia
+
+**O dinheiro que eu coloco numa meta sai da minha conta?**
+Não. As metas são "caixinhas" virtuais: um aporte só registra que você separou aquele valor para a meta. Nenhuma transação é criada e o saldo das contas não muda. Se você também guarda o dinheiro numa poupança de verdade, a transferência entre contas continua sendo lançada à parte, na tela de Transferências.
+
+**Como funciona o "separar X% das receitas"?**
+Ao definir um percentual na meta, ela calcula quanto separar das receitas **já recebidas (pagas)** no mês — receitas pendentes e transferências entre contas não entram — e desconta o que você já aportou nela no mês. O botão "Separar" lança esse valor como aporte com um clique; nada é separado sem você confirmar. A sugestão nunca passa do que falta para atingir o valor-alvo.
+
+**De onde vem o percentual sugerido na caixinha do imposto?**
+Da alíquota de referência do seu regime tributário (o mesmo cadastrado em Configurações), igual à sugestão da tela de Impostos. Para autônomo, a faixa é escolhida pela receita média dos 3 meses anteriores. Você pode trocar o percentual livremente.
+
+**Como é calculado o "guarde R$ X/mês"?**
+É o que falta para o valor-alvo dividido pelos meses até o prazo, contando o mês atual e o do prazo. Metas sem prazo não mostram esse valor. Se o prazo já passou, aparece o total que falta.
+
+**Posso retirar dinheiro de uma meta?**
+Sim, com um resgate, desde que não seja maior que o valor guardado. Pelo mesmo motivo, não dá para excluir um aporte se isso deixar a meta com valor guardado negativo — exclua antes o resgate.
+___
+
 ## Estimativa de imposto
 
 **A estimativa de imposto substitui um contador?**

@@ -29,7 +29,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       role="presentation"
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
         role="dialog"
         aria-modal="true"
         aria-label={title}

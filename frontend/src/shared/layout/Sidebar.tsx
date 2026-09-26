@@ -4,6 +4,7 @@ import {
   HelpCircleIcon,
   HomeIcon,
   PercentIcon,
+  PiggyBankIcon,
   RepeatIcon,
   SwapIcon,
   TagIcon,
@@ -32,6 +33,7 @@ const NAV_SECTIONS = [
       { to: '/transferencias', label: 'Transferências', icon: TransferIcon },
       { to: '/importacoes', label: 'Importações', icon: UploadIcon },
       { to: '/orcamentos', label: 'Orçamentos', icon: TargetIcon },
+      { to: '/metas', label: 'Metas', icon: PiggyBankIcon },
     ],
   },
   {
