@@ -8,8 +8,11 @@ import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.BreakdownPoint;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.DashboardOverview;
+import com.lmf.finpro.domain.model.RecurrenceFrequency;
+import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,6 +30,7 @@ class DashboardApplicationServiceTest {
 
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
+    @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
 
     @InjectMocks private DashboardApplicationService service;
 
@@ -131,5 +135,35 @@ class DashboardApplicationServiceTest {
 
         assertThat(projection).hasSize(1);
         assertThat(projection.get(0).balance()).isEqualByComparingTo("1900");
+    }
+
+    @Test
+    void getCashFlowProjectionIncludesTheUsersRecurringTransactions() {
+        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        when(accountRepositoryPort.findAllByUserId(10L))
+                .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
+        when(recurringTransactionRepositoryPort.findAllByUserId(10L))
+                .thenReturn(
+                        List.of(
+                                new RecurringTransaction(
+                                        1L,
+                                        10L,
+                                        1L,
+                                        null,
+                                        null,
+                                        "Aluguel",
+                                        BigDecimal.valueOf(1500),
+                                        CategoryType.EXPENSE,
+                                        RecurrenceFrequency.MONTHLY,
+                                        nextMonth.atDay(5),
+                                        null,
+                                        0,
+                                        true,
+                                        LocalDateTime.now())));
+
+        var projection = service.getCashFlowProjection(10L, 1);
+
+        assertThat(projection.get(0).balance()).isEqualByComparingTo("-500");
     }
 }

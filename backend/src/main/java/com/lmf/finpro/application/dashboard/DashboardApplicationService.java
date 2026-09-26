@@ -10,6 +10,7 @@ import com.lmf.finpro.domain.model.DashboardOverview;
 import com.lmf.finpro.domain.model.MonthlyFlowPoint;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -23,6 +24,7 @@ public class DashboardApplicationService {
 
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
+    private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
 
     public DashboardOverview getOverview(Long userId) {
         List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
@@ -60,14 +62,21 @@ public class DashboardApplicationService {
                 ownedNonTransferTransactions(userId), sumInitialBalance(userId), monthsCount);
     }
 
-    /** Anexa a projeção ao saldo real do fim do mês atual (exclui transações com data futura). */
+    /**
+     * Anexa a projeção ao saldo real do fim do mês atual (exclui transações com data futura),
+     * somando as ocorrências dos lançamentos recorrentes do usuário.
+     */
     public List<CashFlowProjectionPoint> getCashFlowProjection(Long userId, int monthsAhead) {
         List<Transaction> transactions = ownedNonTransferTransactions(userId);
         BigDecimal anchorBalance =
                 DashboardAggregator.balanceOverTime(transactions, sumInitialBalance(userId), 1)
                         .get(0)
                         .balance();
-        return DashboardAggregator.cashFlowProjection(transactions, anchorBalance, monthsAhead);
+        return DashboardAggregator.cashFlowProjection(
+                transactions,
+                anchorBalance,
+                monthsAhead,
+                recurringTransactionRepositoryPort.findAllByUserId(userId));
     }
 
     public List<BreakdownPoint> getCategoryBreakdown(

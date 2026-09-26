@@ -2,12 +2,16 @@ package com.lmf.finpro.domain.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Cálculos puros do dashboard (sem dependência de repositório) — a partir de uma lista de
@@ -95,14 +99,49 @@ public final class DashboardAggregator {
         return balance;
     }
 
-    /**
-     * Projeção para os próximos {@code monthsAhead} meses a partir de {@code currentBalance}: um
-     * mês futuro com transações já cadastradas usa o líquido real; senão, usa a média móvel do
-     * líquido dos últimos 3 meses.
-     */
+    /** Projeção sem lançamentos recorrentes — ver a sobrecarga completa. */
     public static List<CashFlowProjectionPoint> cashFlowProjection(
             List<Transaction> transactions, BigDecimal currentBalance, int monthsAhead) {
-        List<MonthlyFlowPoint> recentFlow = monthlyFlow(transactions, 3);
+        return cashFlowProjection(transactions, currentBalance, monthsAhead, List.of());
+    }
+
+    /**
+     * Projeção para os próximos {@code monthsAhead} meses a partir de {@code currentBalance} (saldo
+     * ao final do mês atual). Cada mês soma duas partes:
+     *
+     * <ul>
+     *   <li><b>variável</b>: o líquido real das transações avulsas já cadastradas para o mês, ou,
+     *       se não houver nenhuma, a média móvel do líquido dos últimos 3 meses;
+     *   <li><b>recorrente</b>: as ocorrências ainda não lançadas das recorrências ativas que caem
+     *       no mês, com as datas exatas de cada uma.
+     * </ul>
+     *
+     * <p>Para não contar a mesma coisa duas vezes, as transações já lançadas por uma recorrência
+     * ativa ficam fora da média (ela já entra pela parte recorrente), e as ocorrências que ainda
+     * vão cair no mês atual somam ao saldo de partida — o {@code currentBalance} só enxerga o que
+     * já virou transação.
+     */
+    public static List<CashFlowProjectionPoint> cashFlowProjection(
+            List<Transaction> transactions,
+            BigDecimal currentBalance,
+            int monthsAhead,
+            List<RecurringTransaction> recurrences) {
+        List<RecurringTransaction> activeRecurrences =
+                recurrences.stream().filter(RecurringTransaction::active).toList();
+        Set<Long> activeRecurrenceIds =
+                activeRecurrences.stream()
+                        .map(RecurringTransaction::id)
+                        .collect(Collectors.toSet());
+        List<Transaction> variableTransactions =
+                transactions.stream()
+                        .filter(
+                                transaction ->
+                                        transaction.recurringTransactionId() == null
+                                                || !activeRecurrenceIds.contains(
+                                                        transaction.recurringTransactionId()))
+                        .toList();
+
+        List<MonthlyFlowPoint> recentFlow = monthlyFlow(variableTransactions, 3);
         BigDecimal totalNet = BigDecimal.ZERO;
         for (MonthlyFlowPoint point : recentFlow) {
             totalNet = totalNet.add(point.income()).subtract(point.expense());
@@ -110,11 +149,24 @@ public final class DashboardAggregator {
         BigDecimal averageNet =
                 totalNet.divide(BigDecimal.valueOf(recentFlow.size()), 10, RoundingMode.HALF_UP);
 
-        List<CashFlowProjectionPoint> result = new ArrayList<>();
+        YearMonth currentMonth = YearMonth.now();
+        Map<YearMonth, BigDecimal> recurringNetByMonth =
+                pendingRecurringNetByMonth(
+                        activeRecurrences, currentMonth.plusMonths(monthsAhead).atEndOfMonth());
+
+        // Pendentes até o fim do mês atual (inclusive as atrasadas, se o agendamento ainda não
+        // rodou) ajustam o saldo de partida.
         BigDecimal balance = currentBalance;
+        for (Map.Entry<YearMonth, BigDecimal> entry : recurringNetByMonth.entrySet()) {
+            if (!entry.getKey().isAfter(currentMonth)) {
+                balance = balance.add(entry.getValue());
+            }
+        }
+
+        List<CashFlowProjectionPoint> result = new ArrayList<>();
         for (YearMonth month : nextMonths(monthsAhead)) {
             List<Transaction> monthTransactions =
-                    transactions.stream()
+                    variableTransactions.stream()
                             .filter(
                                     transaction ->
                                             YearMonth.from(transaction.transactionDate())
@@ -125,18 +177,35 @@ public final class DashboardAggregator {
             if (!monthTransactions.isEmpty()) {
                 net = BigDecimal.ZERO;
                 for (Transaction transaction : monthTransactions) {
-                    net =
-                            net.add(
-                                    transaction.type() == CategoryType.INCOME
-                                            ? transaction.amount()
-                                            : transaction.amount().negate());
+                    net = net.add(signedAmount(transaction.type(), transaction.amount()));
                 }
             }
+            net = net.add(recurringNetByMonth.getOrDefault(month, BigDecimal.ZERO));
 
             balance = balance.add(net);
             result.add(new CashFlowProjectionPoint(month, balance, true));
         }
         return result;
+    }
+
+    /**
+     * Líquido, por mês, das ocorrências recorrentes ainda não lançadas até {@code lastDate}
+     * (inclusive). Ocorrências já lançadas não entram — elas já são transações.
+     */
+    private static Map<YearMonth, BigDecimal> pendingRecurringNetByMonth(
+            List<RecurringTransaction> activeRecurrences, LocalDate lastDate) {
+        Map<YearMonth, BigDecimal> netByMonth = new HashMap<>();
+        for (RecurringTransaction recurrence : activeRecurrences) {
+            BigDecimal amount = signedAmount(recurrence.type(), recurrence.amount());
+            for (LocalDate date : recurrence.dueOccurrenceDates(lastDate)) {
+                netByMonth.merge(YearMonth.from(date), amount, BigDecimal::add);
+            }
+        }
+        return netByMonth;
+    }
+
+    private static BigDecimal signedAmount(CategoryType type, BigDecimal amount) {
+        return type == CategoryType.INCOME ? amount : amount.negate();
     }
 
     /**
