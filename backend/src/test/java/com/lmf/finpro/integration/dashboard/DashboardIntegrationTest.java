@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.offset;
 
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
@@ -18,6 +19,7 @@ import com.lmf.finpro.infrastructure.web.dto.dashboard.DashboardOverviewResponse
 import com.lmf.finpro.infrastructure.web.dto.dashboard.MonthlyFlowPointResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionStatusRequest;
 import com.lmf.finpro.infrastructure.web.exception.ApiError;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
 import com.lmf.finpro.integration.support.TestDataFactory;
@@ -25,11 +27,14 @@ import com.lmf.finpro.integration.support.TestUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
 
 class DashboardIntegrationTest extends AbstractIntegrationTest {
+
+    private static final LocalDate TODAY = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
 
     @Test
     void categoryBreakdownRejectsInvalidMonthFormat() {
@@ -153,6 +158,37 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(points).hasSize(6);
         assertThat(points.get(5).month()).isEqualTo(YearMonth.now());
+        assertThat(points.get(5).balance()).isEqualByComparingTo(overview.currentBalance());
+    }
+
+    @Test
+    void balanceEvolutionIgnoresPendingTransactions() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user, BigDecimal.valueOf(1000));
+        createTransaction(
+                user, accountId, null, null, BigDecimal.valueOf(500), TODAY, CategoryType.INCOME);
+        TransactionResponse pendingExpense =
+                createTransaction(
+                        user,
+                        accountId,
+                        null,
+                        null,
+                        BigDecimal.valueOf(200),
+                        TODAY,
+                        CategoryType.EXPENSE);
+        markAsPending(user, pendingExpense.id());
+
+        DashboardOverviewResponse overview = getOverview(user);
+
+        ResponseEntity<BalancePointResponse[]> response =
+                restTemplate.exchange(
+                        "/api/dashboard/balance-evolution?months=6",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        BalancePointResponse[].class);
+        List<BalancePointResponse> points = List.of(response.getBody());
+
+        assertThat(points.get(5).balance()).isEqualByComparingTo("1500");
         assertThat(points.get(5).balance()).isEqualByComparingTo(overview.currentBalance());
     }
 
@@ -338,7 +374,19 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
         return response.getBody().id();
     }
 
-    private void createTransaction(
+    private void markAsPending(TestUser user, Long transactionId) {
+        ResponseEntity<TransactionResponse> response =
+                restTemplate.exchange(
+                        "/api/transactions/" + transactionId + "/status",
+                        HttpMethod.PATCH,
+                        new HttpEntity<>(
+                                new TransactionStatusRequest(TransactionStatus.PENDING),
+                                user.authHeaders()),
+                        TransactionResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private TransactionResponse createTransaction(
             TestUser user,
             Long accountId,
             Long categoryId,
@@ -356,5 +404,6 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
                         new HttpEntity<>(request, user.authHeaders()),
                         TransactionResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return response.getBody();
     }
 }
