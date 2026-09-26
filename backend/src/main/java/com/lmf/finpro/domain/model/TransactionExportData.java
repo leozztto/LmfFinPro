@@ -19,5 +19,6 @@ public record TransactionExportData(YearMonth referenceMonth, List<TransactionEx
             String clientName,
             String description,
             CategoryType type,
+            TransactionStatus status,
             BigDecimal amount) {}
 }

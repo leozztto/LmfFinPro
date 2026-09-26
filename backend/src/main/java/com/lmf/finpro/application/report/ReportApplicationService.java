@@ -526,6 +526,7 @@ public class ReportApplicationService {
                                                                 "Cliente removido"),
                                                 transaction.description(),
                                                 transaction.type(),
+                                                transaction.status(),
                                                 transaction.amount()))
                         .toList();
 
