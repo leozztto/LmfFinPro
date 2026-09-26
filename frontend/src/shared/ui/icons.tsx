@@ -534,6 +534,25 @@ export function BellIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function PiggyBankIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <path d="M19 9.5c1 .3 2 1 2 2.5M5 11a7 6 0 0 1 12.2-3.8c.9.2 1.8.8 1.8 1.8v3a3 3 0 0 1-2 2.8V18h-3v-1.5h-4V18H7v-2.2A6 6 0 0 1 5 11Z" />
+      <path d="M8.5 6.3A3 3 0 0 1 14 5" />
+      <circle cx="15" cy="10.5" r=".6" fill="currentColor" />
+    </svg>
+  )
+}
+
 export function RepeatIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
