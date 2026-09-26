@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.web.dto.account;
 
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,4 +11,5 @@ public record AccountResponse(
         AccountType type,
         BigDecimal initialBalance,
         BigDecimal currentBalance,
-        LocalDateTime createdAt) {}
+        LocalDateTime createdAt,
+        AccountScope scope) {}

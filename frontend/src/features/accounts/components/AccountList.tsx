@@ -6,7 +6,7 @@ import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
 import { useAccounts } from '../hooks/useAccounts'
 import { useDeleteAccount } from '../hooks/useDeleteAccount'
-import { ACCOUNT_TYPE_LABELS, type Account, type AccountType } from '../types'
+import { ACCOUNT_SCOPE_LABELS, ACCOUNT_TYPE_LABELS, type Account, type AccountType } from '../types'
 import { formatCurrency } from '@/shared/format/currency'
 import { AccountForm } from './AccountForm'
 
@@ -111,7 +111,18 @@ export function AccountList() {
             <Card key={account.id} className="flex items-end justify-between gap-3">
               <div className="min-w-0">
                 <p className="break-words font-medium text-zinc-800 dark:text-zinc-100">{account.name}</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                  {ACCOUNT_TYPE_LABELS[account.type]}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      account.scope === 'BUSINESS'
+                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300'
+                        : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
+                    }`}
+                  >
+                    {ACCOUNT_SCOPE_LABELS[account.scope]}
+                  </span>
+                </p>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
                   Saldo inicial: {formatCurrency(account.initialBalance)}
                 </p>

@@ -9,6 +9,7 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
+import com.lmf.finpro.domain.model.TransactionReportData;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import java.math.BigDecimal;
@@ -182,6 +183,35 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                         row.amount().toPlainString()
                     });
         }
+        return CsvWriter.write(rows);
+    }
+
+    /** Uma linha por transação e, ao final, os totais geral, pago e pendente. */
+    @Override
+    public byte[] exportTransactionReport(TransactionReportData data) {
+        List<String[]> rows = new ArrayList<>();
+        rows.add(
+                new String[] {
+                    "Data", "Descrição", "Conta", "Categoria", "Cliente", "Situação", "Valor"
+                });
+        for (TransactionReportData.Row row : data.rows()) {
+            rows.add(
+                    new String[] {
+                        row.date().format(DATE_FORMAT),
+                        row.description(),
+                        row.accountName(),
+                        row.categoryName(),
+                        row.clientName(),
+                        row.status() == TransactionStatus.PAID ? "Paga" : "Pendente",
+                        row.amount().toPlainString()
+                    });
+        }
+        rows.add(new String[] {"", "TOTAL", "", "", "", "", data.total().toPlainString()});
+        rows.add(new String[] {"", "Total pago", "", "", "", "", data.paidTotal().toPlainString()});
+        rows.add(
+                new String[] {
+                    "", "Total pendente", "", "", "", "", data.pendingTotal().toPlainString()
+                });
         return CsvWriter.write(rows);
     }
 

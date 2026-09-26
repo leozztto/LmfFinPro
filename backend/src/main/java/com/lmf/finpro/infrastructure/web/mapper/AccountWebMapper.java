@@ -15,6 +15,7 @@ public class AccountWebMapper {
                 account.type(),
                 account.initialBalance(),
                 currentBalance,
-                account.createdAt());
+                account.createdAt(),
+                account.scope());
     }
 }

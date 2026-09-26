@@ -6,6 +6,8 @@ export type ReportType =
   | 'INCOME_STATEMENT'
   | 'BUDGET_VS_ACTUAL'
   | 'TRANSACTION_EXPORT'
+  | 'INCOME_REPORT'
+  | 'EXPENSE_REPORT'
 
 export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
 
@@ -58,6 +60,8 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   INCOME_STATEMENT: 'Resultado do período (DRE)',
   BUDGET_VS_ACTUAL: 'Orçamento vs. realizado',
   TRANSACTION_EXPORT: 'Exportação de transações',
+  INCOME_REPORT: 'Receitas (com filtros)',
+  EXPENSE_REPORT: 'Despesas (com filtros)',
 }
 
 export const REPORT_GRANULARITY_LABELS: Record<ReportGranularity, string> = {
@@ -70,3 +74,35 @@ export const REPORT_FORMAT_LABELS: Record<ReportFormat, string> = {
   PDF: 'PDF',
   CSV: 'CSV (Excel/Sheets)',
 }
+
+/**
+ * Filtros dos relatórios de receitas/despesas, como vêm do formulário (texto). Todos opcionais:
+ * campo vazio não é enviado para a API.
+ */
+export interface TransactionReportFilters {
+  startDate: string
+  endDate: string
+  accountId: string
+  accountScope: string
+  categoryId: string
+  clientId: string
+  status: string
+  minAmount: string
+  maxAmount: string
+  description: string
+}
+
+export const EMPTY_TRANSACTION_REPORT_FILTERS: TransactionReportFilters = {
+  startDate: '',
+  endDate: '',
+  accountId: '',
+  accountScope: '',
+  categoryId: '',
+  clientId: '',
+  status: '',
+  minAmount: '',
+  maxAmount: '',
+  description: '',
+}
+
+export type TransactionReportKind = 'INCOME' | 'EXPENSE'

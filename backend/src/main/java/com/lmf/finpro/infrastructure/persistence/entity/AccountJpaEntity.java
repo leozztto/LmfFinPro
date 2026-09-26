@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.persistence.entity;
 
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -35,6 +36,10 @@ public class AccountJpaEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AccountScope scope;
 
     @PrePersist
     void onCreate() {

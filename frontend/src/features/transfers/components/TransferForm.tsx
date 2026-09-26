@@ -8,11 +8,20 @@ import { useCreateTransfer } from '../hooks/useCreateTransfer'
 import { transferSchema, type TransferFormValues } from '../schemas'
 import { getCurrentIsoDate } from '@/shared/format/date'
 
-interface TransferFormProps {
-  onSuccess?: () => void
+export interface TransferFormInitialValues {
+  fromAccountId?: number
+  toAccountId?: number
+  amount?: number
+  description?: string
 }
 
-export function TransferForm({ onSuccess }: TransferFormProps) {
+interface TransferFormProps {
+  onSuccess?: () => void
+  /** Pré-preenchimento (ex.: "Pagar pró-labore" já traz as contas PJ/PF e o valor sugerido). */
+  initialValues?: TransferFormInitialValues
+}
+
+export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
   const { data: accounts } = useAccounts()
   const createTransfer = useCreateTransfer()
   const { showToast } = useToast()
@@ -27,6 +36,7 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: {
+      ...initialValues,
       transferDate: getCurrentIsoDate(),
     },
   })
@@ -63,7 +73,7 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
       <FormField label="Conta de origem" htmlFor="transfer-from-account" error={errors.fromAccountId?.message}>
-        <Select id="transfer-from-account" defaultValue="" {...register('fromAccountId')}>
+        <Select id="transfer-from-account" defaultValue={initialValues?.fromAccountId ?? ''} {...register('fromAccountId')}>
           <option value="" disabled>
             Selecione...
           </option>
@@ -75,7 +85,7 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
         </Select>
       </FormField>
       <FormField label="Conta de destino" htmlFor="transfer-to-account" error={errors.toAccountId?.message}>
-        <Select id="transfer-to-account" defaultValue="" {...register('toAccountId')}>
+        <Select id="transfer-to-account" defaultValue={initialValues?.toAccountId ?? ''} {...register('toAccountId')}>
           <option value="" disabled>
             Selecione...
           </option>

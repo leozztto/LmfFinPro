@@ -534,6 +534,25 @@ export function BellIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function BriefcaseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      {...props}
+    >
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M3 13h18" />
+    </svg>
+  )
+}
+
 export function PiggyBankIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

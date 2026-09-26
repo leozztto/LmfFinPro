@@ -16,6 +16,7 @@ public class AccountPersistenceMapper {
                 .type(account.type())
                 .initialBalance(account.initialBalance())
                 .createdAt(account.createdAt())
+                .scope(account.scope())
                 .build();
     }
 
@@ -26,6 +27,7 @@ public class AccountPersistenceMapper {
                 entity.getName(),
                 entity.getType(),
                 entity.getInitialBalance(),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                entity.getScope());
     }
 }
