@@ -13,6 +13,7 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
@@ -32,6 +33,7 @@ class AccountApplicationServiceTest {
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private TransferRepositoryPort transferRepositoryPort;
+    @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
 
     @InjectMocks private AccountApplicationService service;
 
@@ -125,6 +127,18 @@ class AccountApplicationServiceTest {
     void deleteThrowsWhenAccountHasLinkedTransactions() {
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(existingAccount));
         when(transactionRepositoryPort.existsByAccountId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(10L, 1L))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(accountRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteThrowsWhenAccountHasLinkedRecurringTransactions() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(existingAccount));
+        when(transactionRepositoryPort.existsByAccountId(1L)).thenReturn(false);
+        when(transferRepositoryPort.existsByAccountId(1L)).thenReturn(false);
+        when(recurringTransactionRepositoryPort.existsByAccountId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.delete(10L, 1L))
                 .isInstanceOf(EntityHasLinkedRecordsException.class);

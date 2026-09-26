@@ -6,6 +6,7 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ public class AccountApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final TransferRepositoryPort transferRepositoryPort;
+    private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
 
     public Account create(
             Long currentUserId, String name, AccountType type, BigDecimal initialBalance) {
@@ -51,6 +53,10 @@ public class AccountApplicationService {
                 || transferRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
                     "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de remover a conta.");
+        }
+        if (recurringTransactionRepositoryPort.existsByAccountId(accountId)) {
+            throw new EntityHasLinkedRecordsException(
+                    "Esta conta possui lançamentos recorrentes vinculados. Exclua-os antes de remover a conta.");
         }
         accountRepositoryPort.deleteById(accountId);
     }

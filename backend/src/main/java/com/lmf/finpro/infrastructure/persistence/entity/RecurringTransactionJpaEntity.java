@@ -1,7 +1,7 @@
 package com.lmf.finpro.infrastructure.persistence.entity;
 
 import com.lmf.finpro.domain.model.CategoryType;
-import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.RecurrenceFrequency;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -9,17 +9,21 @@ import java.time.LocalDateTime;
 import lombok.*;
 
 @Entity
-@Table(name = "transactions")
+@Table(name = "recurring_transactions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TransactionJpaEntity {
+public class RecurringTransactionJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserJpaEntity user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "account_id", nullable = false)
@@ -33,18 +37,11 @@ public class TransactionJpaEntity {
     @JoinColumn(name = "client_id")
     private ClientJpaEntity client;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "import_batch_id")
-    private ImportBatchJpaEntity importBatch;
-
     @Column(nullable = false)
     private String description;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
-
-    @Column(name = "transaction_date", nullable = false)
-    private LocalDate transactionDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -52,17 +49,22 @@ public class TransactionJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @Builder.Default
-    private TransactionOrigin origin = TransactionOrigin.MANUAL;
+    private RecurrenceFrequency frequency;
+
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Column(name = "generated_occurrences", nullable = false)
+    private int generatedOccurrences;
+
+    @Column(nullable = false)
+    private boolean active;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "transfer_id")
-    private Long transferId;
-
-    @Column(name = "recurring_transaction_id")
-    private Long recurringTransactionId;
 
     @PrePersist
     void onCreate() {

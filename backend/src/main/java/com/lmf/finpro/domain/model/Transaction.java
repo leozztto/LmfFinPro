@@ -16,7 +16,38 @@ public record Transaction(
         TransactionOrigin origin,
         LocalDateTime createdAt,
         Long transferId,
-        Long importBatchId) {
+        Long importBatchId,
+        Long recurringTransactionId) {
+
+    /** Transação sem vínculo com recorrência (manual, importada ou de transferência). */
+    public Transaction(
+            Long id,
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionOrigin origin,
+            LocalDateTime createdAt,
+            Long transferId,
+            Long importBatchId) {
+        this(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                null);
+    }
 
     public static Transaction create(
             Long accountId,
@@ -105,6 +136,26 @@ public record Transaction(
                 origin,
                 createdAt,
                 transferId,
-                importBatchId);
+                importBatchId,
+                recurringTransactionId);
+    }
+
+    /** Ocorrência de um {@link RecurringTransaction} lançada na data {@code occurrenceDate}. */
+    public static Transaction createFromRecurrence(
+            RecurringTransaction recurrence, LocalDate occurrenceDate) {
+        return new Transaction(
+                null,
+                recurrence.accountId(),
+                recurrence.categoryId(),
+                recurrence.clientId(),
+                recurrence.description(),
+                recurrence.amount(),
+                occurrenceDate,
+                recurrence.type(),
+                TransactionOrigin.RECURRING,
+                LocalDateTime.now(),
+                null,
+                null,
+                recurrence.id());
     }
 }

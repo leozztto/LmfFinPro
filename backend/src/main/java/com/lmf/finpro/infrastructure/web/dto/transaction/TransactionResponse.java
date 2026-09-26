@@ -18,4 +18,5 @@ public record TransactionResponse(
         TransactionOrigin origin,
         LocalDateTime createdAt,
         Long transferId,
-        Long importBatchId) {}
+        Long importBatchId,
+        Long recurringTransactionId) {}
