@@ -202,7 +202,7 @@ ___
 ## Dashboard
 
 **O que o Dashboard mostra?**
-Cards com o saldo atual (somando todas as contas, só com transações pagas), a receita e a despesa do mês corrente, o total a receber e a pagar (transações pendentes) e o saldo previsto (saldo atual + a receber − a pagar); gráficos de fluxo mensal e de evolução do saldo nos últimos 6 meses; saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses.
+Cards com o saldo atual (somando todas as contas, só com transações pagas), a receita e a despesa do mês corrente, o total a receber e a pagar (transações pendentes) e o saldo previsto (saldo atual + a receber − a pagar); gráficos de fluxo mensal (pagas e pendentes, pelo mês da transação) e de evolução do saldo nos últimos 6 meses (só transações pagas, então o último ponto bate com o saldo atual); saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses.
 
 **Os gráficos do Dashboard atualizam em tempo real?**
 Eles refletem os dados quando você entra ou volta pra tela, e também quando você volta para a aba do navegador depois de usar outra janela — mas não há atualização contínua em segundo plano enquanto você está com a tela aberta. Criar ou excluir uma transação em outra tela atualiza o Dashboard na próxima vez que você o visitar.
