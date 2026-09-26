@@ -32,7 +32,7 @@ public class DashboardApplicationService {
         BigDecimal initialBalanceTotal = sumInitialBalance(accounts);
 
         // Saldo atual só com o que já foi pago; pendentes (a receber/a pagar) formam o previsto.
-        List<Transaction> paid = transactions.stream().filter(Transaction::isPaid).toList();
+        List<Transaction> paid = paidOnly(transactions);
         List<Transaction> pending =
                 transactions.stream().filter(transaction -> !transaction.isPaid()).toList();
 
@@ -68,8 +68,11 @@ public class DashboardApplicationService {
     }
 
     public List<BalancePoint> getBalanceEvolution(Long userId, int monthsCount) {
+        // Histórico real: só pagas, para o último ponto bater com o saldo atual do overview.
         return DashboardAggregator.balanceOverTime(
-                ownedNonTransferTransactions(userId), sumInitialBalance(userId), monthsCount);
+                paidOnly(ownedNonTransferTransactions(userId)),
+                sumInitialBalance(userId),
+                monthsCount);
     }
 
     /**
@@ -108,6 +111,10 @@ public class DashboardApplicationService {
         return transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
                 .filter(transaction -> transaction.transferId() == null)
                 .toList();
+    }
+
+    private List<Transaction> paidOnly(List<Transaction> transactions) {
+        return transactions.stream().filter(Transaction::isPaid).toList();
     }
 
     private BigDecimal sumInitialBalance(Long userId) {
