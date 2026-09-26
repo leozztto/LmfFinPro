@@ -41,6 +41,8 @@ services:
       # E-mails (ex: redefinição de senha) vão para o Mailpit em dev: http://localhost:8025
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-mailpit}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
+      # Resumo diário de alertas; para testar, "0 * * * * *" dispara a cada minuto.
+      FINPRO_ALERTS_CRON: ${FINPRO_ALERTS_CRON:-0 0 8 * * *}
     ports:
       - "8080:8080"
 

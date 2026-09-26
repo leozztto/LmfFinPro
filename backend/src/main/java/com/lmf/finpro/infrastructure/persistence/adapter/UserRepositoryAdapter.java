@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.UserPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.UserJpaRepository;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,11 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     @Override
     public Optional<User> findById(Long id) {
         return userJpaRepository.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Long> findAllIds() {
+        return userJpaRepository.findAllIds();
     }
 
     @Override
