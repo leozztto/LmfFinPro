@@ -19,6 +19,7 @@ import com.lmf.finpro.domain.model.RecurrenceFrequency;
 import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
@@ -119,6 +120,7 @@ class RecurringTransactionApplicationServiceTest {
                 .allSatisfy(
                         transaction -> {
                             assertThat(transaction.origin()).isEqualTo(TransactionOrigin.RECURRING);
+                            assertThat(transaction.status()).isEqualTo(TransactionStatus.PENDING);
                             assertThat(transaction.accountId()).isEqualTo(2L);
                             assertThat(transaction.amount()).isEqualByComparingTo("1500");
                         });

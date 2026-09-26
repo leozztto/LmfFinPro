@@ -319,7 +319,8 @@ class DashboardAggregatorTest {
                 LocalDateTime.now(),
                 null,
                 null,
-                recurrenceId);
+                recurrenceId,
+                TransactionStatus.PENDING);
     }
 
     @Test

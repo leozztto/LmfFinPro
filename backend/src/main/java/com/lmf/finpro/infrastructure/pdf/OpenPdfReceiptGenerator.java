@@ -15,6 +15,7 @@ import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
 import com.lowagie.text.Chunk;
@@ -583,10 +584,10 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
     /** Uma linha por transação do mês (em todas as contas, incluindo transferências), por data. */
     private PdfPTable transactionExportBlock(
             List<TransactionExportData.TransactionExportRow> rows) {
-        PdfPTable table = gridTable(new float[] {1f, 1.6f, 1.6f, 1.8f, 3f, 1f, 1.3f});
+        PdfPTable table = gridTable(new float[] {1f, 1.6f, 1.6f, 1.8f, 3f, 1f, 1f, 1.3f});
 
         PdfPCell section = headerCell("TRANSAÇÕES DO PERÍODO");
-        section.setColspan(7);
+        section.setColspan(8);
         table.addCell(section);
 
         table.addCell(labelCell("Data"));
@@ -595,13 +596,14 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(labelCell("Cliente"));
         table.addCell(labelCell("Descrição"));
         table.addCell(labelCell("Tipo"));
+        table.addCell(labelCell("Situação"));
         PdfPCell valueHeader = labelCell("Valor");
         valueHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(valueHeader);
 
         if (rows.isEmpty()) {
             PdfPCell empty = valueCell("Nenhuma transação registrada neste período.");
-            empty.setColspan(7);
+            empty.setColspan(8);
             table.addCell(empty);
         } else {
             for (TransactionExportData.TransactionExportRow row : rows) {
@@ -612,6 +614,8 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
                 table.addCell(valueCell(row.clientName()));
                 table.addCell(valueCell(row.description()));
                 table.addCell(valueCell(isIncome ? "Receita" : "Despesa"));
+                table.addCell(
+                        valueCell(row.status() == TransactionStatus.PAID ? "Paga" : "Pendente"));
                 table.addCell(amountCell(formatCurrency(row.amount()), BODY_FONT));
             }
         }

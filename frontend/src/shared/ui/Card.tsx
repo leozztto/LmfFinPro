@@ -28,14 +28,18 @@ interface StatCardProps {
   label: string
   value: string
   delta?: StatDelta | null
+  /** Linha de apoio abaixo do valor (ex: como ele é calculado). */
+  hint?: string
+  className?: string
 }
 
-export function StatCard({ label, value, delta }: StatCardProps) {
+export function StatCard({ label, value, delta, hint, className = '' }: StatCardProps) {
   return (
-    <Card padding="sm">
+    <Card padding="sm" className={className}>
       <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
       <p className="mt-0.5 text-xl font-semibold text-zinc-800 dark:text-zinc-100">{value}</p>
       {delta != null && <StatDeltaBadge {...delta} />}
+      {hint && <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>}
     </Card>
   )
 }

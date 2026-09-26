@@ -8,7 +8,14 @@ import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { useTransactions } from '../hooks/useTransactions'
 import { useDeleteTransaction } from '../hooks/useDeleteTransaction'
-import { TRANSACTION_TYPE_LABELS, type TransactionType } from '../types'
+import { useUpdateTransactionStatus } from '../hooks/useUpdateTransactionStatus'
+import {
+  TRANSACTION_STATUS_LABELS,
+  TRANSACTION_TYPE_LABELS,
+  type Transaction,
+  type TransactionStatus,
+  type TransactionType,
+} from '../types'
 import { TransactionCard } from './TransactionCard'
 
 interface Filters {
@@ -16,11 +23,20 @@ interface Filters {
   categoryId: string
   clientId: string
   type: TransactionType | ''
+  status: TransactionStatus | ''
   startDate: string
   endDate: string
 }
 
-const EMPTY_FILTERS: Filters = { accountId: '', categoryId: '', clientId: '', type: '', startDate: '', endDate: '' }
+const EMPTY_FILTERS: Filters = {
+  accountId: '',
+  categoryId: '',
+  clientId: '',
+  type: '',
+  status: '',
+  startDate: '',
+  endDate: '',
+}
 
 export function TransactionList() {
   const { data: transactions, isLoading } = useTransactions()
@@ -28,6 +44,7 @@ export function TransactionList() {
   const { data: categories } = useCategories()
   const { data: clients } = useClients()
   const deleteTransaction = useDeleteTransaction()
+  const updateTransactionStatus = useUpdateTransactionStatus()
   const { showToast } = useToast()
   const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -48,6 +65,19 @@ export function TransactionList() {
     })
   }
 
+  function handleToggleStatus(transaction: Transaction) {
+    const status: TransactionStatus = transaction.status === 'PENDING' ? 'PAID' : 'PENDING'
+    updateTransactionStatus.mutate(
+      { id: transaction.id, status },
+      {
+        onSuccess: () =>
+          showToast(status === 'PAID' ? 'Transação marcada como paga.' : 'Transação marcada como pendente.', 'success'),
+        onError: (error) =>
+          showToast(error instanceof ApiError ? error.message : 'Não foi possível alterar a situação da transação.'),
+      },
+    )
+  }
+
   const accountNameById = new Map(accounts?.map((account) => [account.id, account.name]))
   const categoryNameById = new Map(categories?.map((category) => [category.id, category.name]))
   const clientNameById = new Map(clients?.map((client) => [client.id, client.name]))
@@ -59,6 +89,7 @@ export function TransactionList() {
       if (filters.categoryId && transaction.categoryId !== Number(filters.categoryId)) return false
       if (filters.clientId && transaction.clientId !== Number(filters.clientId)) return false
       if (filters.type && transaction.type !== filters.type) return false
+      if (filters.status && transaction.status !== filters.status) return false
       if (filters.startDate && transaction.transactionDate < filters.startDate) return false
       if (filters.endDate && transaction.transactionDate > filters.endDate) return false
       return true
@@ -84,7 +115,7 @@ export function TransactionList() {
   return (
     <div className="space-y-4">
       <CollapsibleFilters activeCount={activeFiltersCount}>
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <FormField label="Conta" htmlFor="filter-account">
             <Select
               id="filter-account"
@@ -141,6 +172,20 @@ export function TransactionList() {
               ))}
             </Select>
           </FormField>
+          <FormField label="Situação" htmlFor="filter-status">
+            <Select
+              id="filter-status"
+              value={filters.status}
+              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as TransactionStatus | '' }))}
+            >
+              <option value="">Todas</option>
+              {Object.entries(TRANSACTION_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
           <FormField label="De" htmlFor="filter-start-date">
             <Input
               id="filter-start-date"
@@ -158,7 +203,7 @@ export function TransactionList() {
             />
           </FormField>
           {hasActiveFilters && (
-            <div className="sm:col-span-3 lg:col-span-6">
+            <div className="sm:col-span-3 lg:col-span-4 xl:col-span-7">
               <Button variant="secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
                 Limpar filtros
               </Button>
@@ -182,6 +227,8 @@ export function TransactionList() {
               clientName={transaction.clientId ? clientNameById.get(transaction.clientId) : undefined}
               onDelete={() => handleDelete(transaction.id, transaction.description)}
               isDeleting={deleteTransaction.isPending}
+              onToggleStatus={() => handleToggleStatus(transaction)}
+              isTogglingStatus={updateTransactionStatus.isPending}
             />
           ))}
         </div>

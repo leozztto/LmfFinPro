@@ -5,6 +5,11 @@ export interface DashboardOverview {
   balanceDeltaPercent: number | null
   incomeDeltaPercent: number | null
   expenseDeltaPercent: number | null
+  /** Transações pendentes (a receber / a pagar), de qualquer data. */
+  pendingIncome: number
+  pendingExpense: number
+  /** Saldo atual + a receber - a pagar. */
+  projectedBalance: number
 }
 
 export interface RawMonthlyFlowPoint {

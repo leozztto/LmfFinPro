@@ -9,7 +9,7 @@ import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { useCreateTransaction } from '../hooks/useCreateTransaction'
 import { transactionSchema, type TransactionFormValues } from '../schemas'
-import { TRANSACTION_TYPE_LABELS } from '../types'
+import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '../types'
 import { getCurrentIsoDate } from '@/shared/format/date'
 
 interface TransactionFormProps {
@@ -117,6 +117,16 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       </FormField>
       <FormField label="Data" htmlFor="transaction-date" error={errors.transactionDate?.message}>
         <Input id="transaction-date" type="date" {...register('transactionDate')} />
+      </FormField>
+      <FormField label="Situação" htmlFor="transaction-status" error={errors.status?.message}>
+        <Select id="transaction-status" {...register('status')}>
+          <option value="">Automática (data futura fica pendente)</option>
+          {Object.entries(TRANSACTION_STATUS_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
       </FormField>
       <div className="sm:col-span-2">
         <FormField label="Descrição" htmlFor="transaction-description" error={errors.description?.message}>

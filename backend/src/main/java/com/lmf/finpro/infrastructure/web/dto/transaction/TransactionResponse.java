@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.web.dto.transaction;
 
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,4 +20,5 @@ public record TransactionResponse(
         LocalDateTime createdAt,
         Long transferId,
         Long importBatchId,
-        Long recurringTransactionId) {}
+        Long recurringTransactionId,
+        TransactionStatus status) {}

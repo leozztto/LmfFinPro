@@ -65,8 +65,8 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
-    public BigDecimal sumAmountByAccountIdAndType(Long accountId, CategoryType type) {
-        return transactionJpaRepository.sumAmountByAccountIdAndType(accountId, type);
+    public BigDecimal sumPaidAmountByAccountIdAndType(Long accountId, CategoryType type) {
+        return transactionJpaRepository.sumPaidAmountByAccountIdAndType(accountId, type);
     }
 
     @Override

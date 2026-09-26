@@ -46,7 +46,7 @@ ___
 São só categorias pra você organizar: **Conta corrente**, **Poupança** e **Carteira** (dinheiro físico/uso avulso). Não há diferença de comportamento entre elas — todas funcionam igual, é só pra você identificar visualmente.
 
 **Posso mudar o saldo inicial de uma conta depois de criada?**
-Não. O saldo inicial é fixado na criação e não pode ser editado depois — na edição, só dá pra mudar nome e tipo (o saldo inicial e o saldo atual aparecem apenas para consulta). Isso é de propósito: o saldo *atual* é sempre calculado a partir do saldo inicial mais todas as transações lançadas, nunca é um número editável à parte, então deixar o saldo inicial mutável abriria brecha pra ele ficar inconsistente com o histórico.
+Não. O saldo inicial é fixado na criação e não pode ser editado depois — na edição, só dá pra mudar nome e tipo (o saldo inicial e o saldo atual aparecem apenas para consulta). Isso é de propósito: o saldo *atual* é sempre calculado a partir do saldo inicial mais todas as transações já pagas, nunca é um número editável à parte, então deixar o saldo inicial mutável abriria brecha pra ele ficar inconsistente com o histórico.
 
 **Por que não consigo excluir uma conta?**
 Uma conta com transações ou transferências vinculadas não pode ser excluída — o sistema bloqueia pra evitar perder histórico financeiro sem querer. Remova as transações (e as transferências, na tela de Transferências) primeiro.
@@ -76,10 +76,19 @@ Na tela de Transações, clique no botão **+** (Nova transação): escolha a co
 Hoje não — a tela de Transações só permite **criar** e **excluir**, não tem opção de editar. Se você errou algo, exclua e lance de novo. A única exceção são as transações importadas de extrato: categoria e cliente delas podem ser ajustados na tela de revisão da importação.
 
 **Como encontro uma transação específica?**
-Use os filtros da tela de Transações: conta, categoria, cliente, tipo e período (de/até). A lista é sempre ordenada da data mais recente para a mais antiga.
+Use os filtros da tela de Transações: conta, categoria, cliente, tipo, situação (paga ou pendente) e período (de/até). A lista é sempre ordenada da data mais recente para a mais antiga.
 
 **Por que uma transação aparece com o botão de excluir desabilitado?**
 Ela faz parte de uma transferência (tem a etiqueta "Transferência"). Transações desse tipo só podem ser removidas junto com a transferência inteira, na tela de Transferências — isso porque toda transferência sempre lança duas transações (uma em cada conta) e as duas precisam sumir juntas pra manter os saldos corretos.
+
+**Qual a diferença entre transação paga e pendente?**
+Paga é dinheiro que já entrou ou saiu da conta; pendente é algo **a receber** ou **a pagar** (ex.: uma nota emitida que o cliente ainda não pagou, ou um boleto com vencimento futuro). O **saldo atual** das contas considera só as pagas. As pendentes aparecem no Dashboard nos cards "A receber" e "A pagar" e entram no **saldo previsto**. Relatórios, orçamentos e a estimativa de imposto contam as duas, pela data do lançamento.
+
+**Como a situação é definida quando lanço uma transação?**
+No campo "Situação" do formulário, a opção **Automática** deixa pendente o que tem data futura e marca como paga o que é de hoje ou do passado; você também pode escolher Paga ou Pendente manualmente. Transações importadas de extrato e transferências são sempre pagas. As ocorrências de lançamentos recorrentes entram como pendentes até você confirmar.
+
+**Como marco uma transação como paga?**
+Pelo botão com ícone de check no próprio card da transação (no celular, abra os detalhes do card). O mesmo botão, numa transação paga, volta ela para pendente. Transações de transferência não têm esse botão, porque são sempre pagas.
 ___
 
 ## Transferências
@@ -97,7 +106,7 @@ ___
 ## Lançamentos recorrentes
 
 **O que é um lançamento recorrente?**
-É um modelo para receitas ou despesas que se repetem (aluguel, assinaturas, mensalidade fixa de um cliente) com frequência semanal, mensal ou anual. Em cada data, o sistema lança sozinho uma transação real na conta escolhida, com a etiqueta "Recorrente" na tela de Transações. Opcionalmente, você define uma data final.
+É um modelo para receitas ou despesas que se repetem (aluguel, assinaturas, mensalidade fixa de um cliente) com frequência semanal, mensal ou anual. Em cada data, o sistema lança sozinho uma transação real na conta escolhida, com a etiqueta "Recorrente" na tela de Transações. Cada ocorrência entra como **pendente** e só passa a contar no saldo atual quando você a marca como paga. Opcionalmente, você define uma data final.
 
 **Criei uma recorrência com data inicial no passado. O que acontece?**
 Todas as ocorrências com data até hoje são lançadas na hora. Por exemplo, um aluguel mensal com início em janeiro, cadastrado em setembro, gera de uma vez as transações de janeiro a setembro. As próximas entram automaticamente no dia de cada uma.
@@ -175,7 +184,7 @@ ___
 ## Relatórios
 
 **Quais relatórios o sistema gera?**
-Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real) e **Exportação de transações** (extrato bruto de todas as transações do mês).
+Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real) e **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente).
 
 **Em quais formatos posso baixar os relatórios?**
 Todos os relatórios podem ser baixados em **PDF** ou **CSV**. O CSV usa ponto e vírgula como separador e codificação compatível com o Excel em português, então abre direto no Excel ou no Google Sheets sem precisar configurar nada.
@@ -193,7 +202,7 @@ ___
 ## Dashboard
 
 **O que o Dashboard mostra?**
-Cards com o saldo atual (somando todas as contas) e a receita e a despesa do mês corrente; gráficos de fluxo mensal e de evolução do saldo nos últimos 6 meses; saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses.
+Cards com o saldo atual (somando todas as contas, só com transações pagas), a receita e a despesa do mês corrente, o total a receber e a pagar (transações pendentes) e o saldo previsto (saldo atual + a receber − a pagar); gráficos de fluxo mensal e de evolução do saldo nos últimos 6 meses; saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses.
 
 **Os gráficos do Dashboard atualizam em tempo real?**
 Eles refletem os dados quando você entra ou volta pra tela, e também quando você volta para a aba do navegador depois de usar outra janela — mas não há atualização contínua em segundo plano enquanto você está com a tela aberta. Criar ou excluir uma transação em outra tela atualiza o Dashboard na próxima vez que você o visitar.
@@ -202,5 +211,5 @@ Eles refletem os dados quando você entra ou volta pra tela, e também quando vo
 De propósito: cada gráfico busca seus próprios dados de forma independente, então ele aparece assim que sua informação chega, em vez de a tela inteira esperar tudo ficar pronto pra mostrar qualquer coisa.
 
 **O que é a projeção de fluxo de caixa?**
-Uma estimativa de como seu saldo deve evoluir nos próximos 3 meses, partindo do saldo atual: pra meses em que você já tem transações futuras lançadas (ex: uma fatura já agendada), usa o resultado real desses lançamentos; pra meses sem nada lançado ainda, usa a média do resultado (receitas menos despesas) dos últimos 3 meses. Os **lançamentos recorrentes** ativos entram por cima disso, cada ocorrência no mês em que cai (inclusive as que ainda vão cair no mês atual). As transações já lançadas por uma recorrência ativa ficam fora da média, para não serem contadas duas vezes. No gráfico, o histórico real aparece em linha sólida e a projeção em linha tracejada.
+Uma estimativa de como seu saldo deve evoluir nos próximos 3 meses, partindo do saldo ao fim do mês atual, já contando o que está pendente até lá: pra meses em que você já tem transações futuras lançadas (ex: uma fatura já agendada), usa o resultado real desses lançamentos; pra meses sem nada lançado ainda, usa a média do resultado (receitas menos despesas) dos últimos 3 meses. Os **lançamentos recorrentes** ativos entram por cima disso, cada ocorrência no mês em que cai (inclusive as que ainda vão cair no mês atual). As transações já lançadas por uma recorrência ativa ficam fora da média, para não serem contadas duas vezes. No gráfico, o histórico real aparece em linha sólida e a projeção em linha tracejada.
 ___

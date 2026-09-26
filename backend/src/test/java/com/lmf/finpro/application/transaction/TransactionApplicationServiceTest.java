@@ -19,18 +19,23 @@ import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -42,7 +47,22 @@ class TransactionApplicationServiceTest {
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private ClientRepositoryPort clientRepositoryPort;
 
-    @InjectMocks private TransactionApplicationService service;
+    private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
+
+    private TransactionApplicationService service;
+
+    @BeforeEach
+    void setUp() {
+        Clock fixedClock =
+                Clock.fixed(Instant.parse("2026-09-25T12:00:00Z"), ZoneId.of("America/Sao_Paulo"));
+        service =
+                new TransactionApplicationService(
+                        transactionRepositoryPort,
+                        accountRepositoryPort,
+                        categoryRepositoryPort,
+                        clientRepositoryPort,
+                        fixedClock);
+    }
 
     private static Account ownedAccount() {
         return new Account(
@@ -80,7 +100,8 @@ class TransactionApplicationServiceTest {
                         "Pagamento",
                         BigDecimal.valueOf(100),
                         LocalDate.now(),
-                        CategoryType.EXPENSE);
+                        CategoryType.EXPENSE,
+                        null);
 
         assertThat(created.accountId()).isEqualTo(1L);
         assertThat(created.amount()).isEqualByComparingTo("100");
@@ -101,7 +122,8 @@ class TransactionApplicationServiceTest {
                                         "X",
                                         BigDecimal.TEN,
                                         LocalDate.now(),
-                                        CategoryType.EXPENSE))
+                                        CategoryType.EXPENSE,
+                                        null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -119,7 +141,8 @@ class TransactionApplicationServiceTest {
                                         "X",
                                         BigDecimal.TEN,
                                         LocalDate.now(),
-                                        CategoryType.EXPENSE))
+                                        CategoryType.EXPENSE,
+                                        null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -139,7 +162,8 @@ class TransactionApplicationServiceTest {
                                         "X",
                                         BigDecimal.TEN,
                                         LocalDate.now(),
-                                        CategoryType.EXPENSE))
+                                        CategoryType.EXPENSE,
+                                        null))
                 .isInstanceOf(CategoryTypeMismatchException.class);
     }
 
@@ -158,7 +182,8 @@ class TransactionApplicationServiceTest {
                                         "X",
                                         BigDecimal.TEN,
                                         LocalDate.now(),
-                                        CategoryType.INCOME))
+                                        CategoryType.INCOME,
+                                        null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -190,7 +215,8 @@ class TransactionApplicationServiceTest {
                         "X",
                         BigDecimal.TEN,
                         LocalDate.now(),
-                        CategoryType.INCOME);
+                        CategoryType.INCOME,
+                        null);
 
         assertThat(created.clientId()).isEqualTo(3L);
     }
@@ -252,5 +278,95 @@ class TransactionApplicationServiceTest {
         service.delete(10L, 7L);
 
         verify(transactionRepositoryPort).deleteById(7L);
+    }
+
+    private Transaction createWithStatus(LocalDate date, TransactionStatus status) {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        return service.create(
+                10L, 1L, null, null, "X", BigDecimal.TEN, date, CategoryType.EXPENSE, status);
+    }
+
+    @Test
+    void createWithoutStatusMarksFutureDateAsPending() {
+        assertThat(createWithStatus(TODAY.plusDays(1), null).status())
+                .isEqualTo(TransactionStatus.PENDING);
+    }
+
+    @Test
+    void createWithoutStatusMarksTodayAsPaid() {
+        assertThat(createWithStatus(TODAY, null).status()).isEqualTo(TransactionStatus.PAID);
+    }
+
+    @Test
+    void createKeepsExplicitStatusEvenIfDateSuggestsOtherwise() {
+        assertThat(createWithStatus(TODAY.minusDays(3), TransactionStatus.PENDING).status())
+                .isEqualTo(TransactionStatus.PENDING);
+    }
+
+    @Test
+    void updateStatusMarksTransactionAsPaid() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(
+                        Optional.of(ownedTransaction(null).withStatus(TransactionStatus.PENDING)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction updated = service.updateStatus(10L, 7L, TransactionStatus.PAID);
+
+        assertThat(updated.status()).isEqualTo(TransactionStatus.PAID);
+    }
+
+    @Test
+    void updateStatusRejectsPendingForTransferTransactions() {
+        when(transactionRepositoryPort.findById(7L)).thenReturn(Optional.of(ownedTransaction(50L)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+
+        assertThatThrownBy(() -> service.updateStatus(10L, 7L, TransactionStatus.PENDING))
+                .isInstanceOf(TransactionLinkedToTransferException.class);
+        verify(transactionRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void updateWithoutStatusKeepsCurrentStatus() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(
+                        Optional.of(ownedTransaction(null).withStatus(TransactionStatus.PENDING)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.update(
+                10L, 7L, null, null, "Novo", BigDecimal.ONE, TODAY, CategoryType.EXPENSE, null);
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepositoryPort).save(captor.capture());
+        assertThat(captor.getValue().status()).isEqualTo(TransactionStatus.PENDING);
+        assertThat(captor.getValue().description()).isEqualTo("Novo");
+    }
+
+    @Test
+    void updateCanChangeStatusTogetherWithDetails() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(Optional.of(ownedTransaction(null)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction updated =
+                service.update(
+                        10L,
+                        7L,
+                        null,
+                        null,
+                        "Desc",
+                        BigDecimal.TEN,
+                        TODAY,
+                        CategoryType.EXPENSE,
+                        TransactionStatus.PENDING);
+
+        assertThat(updated.status()).isEqualTo(TransactionStatus.PENDING);
     }
 }

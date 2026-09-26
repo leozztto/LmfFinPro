@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.persistence.entity;
 
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -63,6 +64,11 @@ public class TransactionJpaEntity {
 
     @Column(name = "recurring_transaction_id")
     private Long recurringTransactionId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private TransactionStatus status = TransactionStatus.PAID;
 
     @PrePersist
     void onCreate() {

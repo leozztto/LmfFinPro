@@ -21,6 +21,7 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -407,6 +408,7 @@ class OpenPdfReceiptGeneratorTest {
                                         "",
                                         "Aluguel escritório",
                                         CategoryType.EXPENSE,
+                                        TransactionStatus.PENDING,
                                         new BigDecimal("1500.00"))));
 
         byte[] pdf = generator.generateTransactionExport(data);

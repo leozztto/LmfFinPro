@@ -8,4 +8,7 @@ public record DashboardOverviewResponse(
         BigDecimal currentMonthExpense,
         Double balanceDeltaPercent,
         Double incomeDeltaPercent,
-        Double expenseDeltaPercent) {}
+        Double expenseDeltaPercent,
+        BigDecimal pendingIncome,
+        BigDecimal pendingExpense,
+        BigDecimal projectedBalance) {}
