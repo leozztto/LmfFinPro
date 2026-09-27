@@ -1,6 +1,9 @@
 package com.lmf.finpro.application.dashboard;
 
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountBalances;
+import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.AccountValuation;
 import com.lmf.finpro.domain.model.BalancePoint;
 import com.lmf.finpro.domain.model.BreakdownPoint;
 import com.lmf.finpro.domain.model.CashFlowProjectionPoint;
@@ -10,12 +13,17 @@ import com.lmf.finpro.domain.model.DashboardOverview;
 import com.lmf.finpro.domain.model.MonthlyFlowPoint;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +34,7 @@ public class DashboardApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
+    private final AccountValuationRepositoryPort accountValuationRepositoryPort;
     private final Clock clock;
 
     public DashboardOverview getOverview(Long userId) {
@@ -39,10 +48,13 @@ public class DashboardApplicationService {
         List<Transaction> pending =
                 transactions.stream().filter(transaction -> !transaction.isPaid()).toList();
 
+        // Contas de investimento seguem o valor de mercado informado (rendimento não resgatado).
+        Function<LocalDate, BigDecimal> investmentGain = investmentGains(accounts);
         BigDecimal currentBalance =
                 initialBalanceTotal
                         .add(sumByType(paid, CategoryType.INCOME))
-                        .subtract(sumByType(paid, CategoryType.EXPENSE));
+                        .subtract(sumByType(paid, CategoryType.EXPENSE))
+                        .add(investmentGain.apply(null));
         BigDecimal pendingIncome = sumByType(pending, CategoryType.INCOME);
         BigDecimal pendingExpense = sumByType(pending, CategoryType.EXPENSE);
 
@@ -54,7 +66,8 @@ public class DashboardApplicationService {
         BigDecimal previousBalance =
                 DashboardAggregator.balanceOverTime(paid, initialBalanceTotal, thisMonth, 2)
                         .get(0)
-                        .balance();
+                        .balance()
+                        .add(investmentGain.apply(thisMonth.minusMonths(1).atEndOfMonth()));
 
         return new DashboardOverview(
                 currentBalance,
@@ -75,11 +88,23 @@ public class DashboardApplicationService {
 
     public List<BalancePoint> getBalanceEvolution(Long userId, int monthsCount) {
         // Histórico real: só pagas, para o último ponto bater com o saldo atual do overview.
+        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+        Function<LocalDate, BigDecimal> investmentGain = investmentGains(accounts);
         return DashboardAggregator.balanceOverTime(
-                paidOnly(ownedNonTransferTransactions(userId)),
-                sumInitialBalance(userId),
-                currentMonth(),
-                monthsCount);
+                        paidOnly(ownedNonTransferTransactions(accounts)),
+                        sumInitialBalance(accounts),
+                        currentMonth(),
+                        monthsCount)
+                .stream()
+                .map(
+                        point ->
+                                new BalancePoint(
+                                        point.month(),
+                                        point.balance()
+                                                .add(
+                                                        investmentGain.apply(
+                                                                point.month().atEndOfMonth()))))
+                .toList();
     }
 
     /**
@@ -87,12 +112,14 @@ public class DashboardApplicationService {
      * somando as ocorrências dos lançamentos recorrentes do usuário.
      */
     public List<CashFlowProjectionPoint> getCashFlowProjection(Long userId, int monthsAhead) {
-        List<Transaction> transactions = ownedNonTransferTransactions(userId);
+        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+        List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal anchorBalance =
                 DashboardAggregator.balanceOverTime(
-                                transactions, sumInitialBalance(userId), currentMonth(), 1)
+                                transactions, sumInitialBalance(accounts), currentMonth(), 1)
                         .get(0)
-                        .balance();
+                        .balance()
+                        .add(investmentGains(accounts).apply(currentMonth().atEndOfMonth()));
         return DashboardAggregator.cashFlowProjection(
                 transactions,
                 anchorBalance,
@@ -122,16 +149,44 @@ public class DashboardApplicationService {
                 .toList();
     }
 
+    /**
+     * Rendimento ainda não realizado das contas de investimento com valor de mercado informado,
+     * como função da data: o saldo consolidado soma esse ajuste para bater com a tela de Contas.
+     * Carrega os dados uma vez só; sem valorizações, é sempre zero (e não consulta transações).
+     */
+    private Function<LocalDate, BigDecimal> investmentGains(List<Account> accounts) {
+        List<Account> investments =
+                accounts.stream()
+                        .filter(account -> account.type() == AccountType.INVESTMENT)
+                        .toList();
+        List<Long> ids = investments.stream().map(Account::id).toList();
+        List<AccountValuation> valuations =
+                ids.isEmpty() ? List.of() : accountValuationRepositoryPort.findAllByAccountIds(ids);
+        if (valuations.isEmpty()) {
+            return asOf -> BigDecimal.ZERO;
+        }
+        Map<Long, List<Transaction>> transactionsByAccount =
+                transactionRepositoryPort.findAllByAccountIds(ids).stream()
+                        .collect(Collectors.groupingBy(Transaction::accountId));
+        return asOf ->
+                investments.stream()
+                        .map(
+                                account ->
+                                        AccountBalances.valuationGain(
+                                                account,
+                                                transactionsByAccount.getOrDefault(
+                                                        account.id(), List.of()),
+                                                valuations,
+                                                asOf))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private YearMonth currentMonth() {
         return YearMonth.now(clock);
     }
 
     private List<Transaction> paidOnly(List<Transaction> transactions) {
         return transactions.stream().filter(Transaction::isPaid).toList();
-    }
-
-    private BigDecimal sumInitialBalance(Long userId) {
-        return sumInitialBalance(accountRepositoryPort.findAllByUserId(userId));
     }
 
     private BigDecimal sumInitialBalance(List<Account> accounts) {

@@ -163,6 +163,24 @@ Porque ela ainda não virou transação: o sistema lança cada ocorrência no pr
 Tudo o que ainda está em aberto no mês escolhido: pendentes, atrasadas desse mês, previsões das recorrências e o DAS. "Já recebido" e "Já pago" somam o que já foi quitado no mês, mesmo com as pagas escondidas.
 ___
 
+## Patrimônio e investimentos
+
+**O que é o patrimônio líquido?**
+É tudo o que você tem menos o que deve: o saldo das contas mais o valor atual dos investimentos, menos o saldo devedor das dívidas. A tela Patrimônio mostra o valor de hoje, quanto mudou desde o fim do mês passado e um gráfico mês a mês, com as contas, os investimentos e as dívidas separados (dá para ver os mesmos números em tabela).
+
+**Como cadastro um investimento?**
+Crie uma conta do tipo **Investimento** em Contas (por exemplo, "Corretora" ou "Tesouro Selic"). Para aplicar, faça uma transferência de uma conta sua para ela; para resgatar, uma transferência de volta. Assim o dinheiro sai de um lugar e entra no outro, sem virar receita nem despesa.
+
+**Como o rendimento aparece?**
+De tempos em tempos, informe quanto o investimento vale (o saldo do extrato da corretora), pelo botão de valor de mercado no card da conta ou na tela Patrimônio. O saldo da conta passa a ser esse valor mais o que você aplicar ou resgatar depois. O rendimento é a diferença entre o valor atual e o que você aplicou (líquido de resgates), em reais e em percentual. Ele não vira receita, então não mexe no imposto, nos orçamentos nem nos relatórios. Se você resgatar tudo, o rendimento sai junto normalmente.
+
+**Como acompanho uma dívida?**
+Na tela Patrimônio, no card Dívidas, cadastre a dívida (financiamento, empréstimo, cartão ou outra) com o saldo devedor atual. As parcelas você continua lançando como despesas. De tempos em tempos, atualize o saldo devedor pelo extrato do banco; quando terminar de pagar, informe saldo zero, e ela aparece como quitada.
+
+**Por que o histórico mostra saldo antes de eu cadastrar a conta?**
+O saldo inicial de uma conta não tem data: ele vale para todo o histórico, como na evolução do saldo do Dashboard. Os valores de mercado e os saldos devedores, esses sim, entram a partir da data em que foram informados.
+___
+
 ## Clientes
 
 **Pra que serve cadastrar clientes?**
