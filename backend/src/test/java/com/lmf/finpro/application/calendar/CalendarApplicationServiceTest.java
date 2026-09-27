@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -44,6 +45,8 @@ class CalendarApplicationServiceTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 15);
     private static final Long USER_ID = 10L;
 
+    @Mock private ExchangeRateApplicationService exchangeRateApplicationService;
+
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
@@ -65,7 +68,8 @@ class CalendarApplicationServiceTest {
                         taxEstimateRepositoryPort,
                         categoryRepositoryPort,
                         clientRepositoryPort,
-                        Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE));
+                        Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE),
+                        exchangeRateApplicationService);
         lenient()
                 .when(accountRepositoryPort.findAllByUserId(USER_ID))
                 .thenReturn(

@@ -177,8 +177,23 @@ De tempos em tempos, informe quanto o investimento vale (o saldo do extrato da c
 **Como acompanho uma dívida?**
 Na tela Patrimônio, no card Dívidas, cadastre a dívida (financiamento, empréstimo, cartão ou outra) com o saldo devedor atual. As parcelas você continua lançando como despesas. De tempos em tempos, atualize o saldo devedor pelo extrato do banco; quando terminar de pagar, informe saldo zero, e ela aparece como quitada.
 
-**Por que o histórico mostra saldo antes de eu cadastrar a conta?**
-O saldo inicial de uma conta não tem data: ele vale para todo o histórico, como na evolução do saldo do Dashboard. Os valores de mercado e os saldos devedores, esses sim, entram a partir da data em que foram informados.
+**Por que a conta aparece zerada nos meses antes de eu cadastrá-la?**
+O saldo inicial vale a partir do dia em que a conta foi criada: antes disso não há histórico. Transações que você lançar com data anterior entram normalmente nos meses delas. Os valores de mercado e os saldos devedores entram a partir da data em que foram informados.
+___
+
+## Moedas
+
+**Posso ter uma conta em dólar ou euro?**
+Sim. Ao criar a conta, escolha a moeda (real, dólar ou euro). O saldo e os lançamentos dela ficam nessa moeda, e a tela de Contas mostra também o equivalente em reais. A moeda só pode ser trocada enquanto a conta não tiver lançamentos.
+
+**Como lanço uma compra em dólar no cartão em reais?**
+Na transação, escolha a moeda da operação e informe o valor em dólar. O valor cobrado na conta vem sugerido pela cotação do dia; ajuste para o que o banco realmente cobrou (com spread e IOF). As duas informações ficam registradas.
+
+**Como os totais tratam outras moedas?**
+Tudo o que junta contas diferentes (Dashboard, orçamentos, relatórios, pró-labore) fica em reais. Cada lançamento de uma conta em outra moeda é convertido pela PTAX do Banco Central do dia dele. No Patrimônio, o saldo dessas contas é convertido pela cotação do fim de cada mês, então a variação do câmbio aparece ali.
+
+**E uma remessa do exterior para a minha conta em reais?**
+Faça uma transferência da conta em dólar para a conta em reais e informe quanto saiu e quanto entrou. O valor recebido vem sugerido pela cotação, mas vale o que caiu de fato na conta.
 ___
 
 ## Clientes

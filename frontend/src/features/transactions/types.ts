@@ -1,4 +1,5 @@
 import type { TagSummary } from '@/features/tags/types'
+import type { Currency } from '@/shared/format/currency'
 
 export type TransactionType = 'INCOME' | 'EXPENSE'
 export type TransactionOrigin = 'MANUAL' | 'IMPORTED' | 'RECURRING'
@@ -19,6 +20,11 @@ export interface Transaction {
   importBatchId: number | null
   recurringTransactionId: number | null
   status: TransactionStatus
+  /** Moeda e valor da operação feita em outra moeda (ex.: compra em dólar no cartão em reais). */
+  originalCurrency: Currency | null
+  originalAmount: number | null
+  /** Valor em reais — o que entra nos totais; igual a `amount` nas contas em reais. */
+  baseAmount: number
   /** Quantidade de comprovantes anexados (vem na listagem). */
   attachmentCount?: number
   tags: TagSummary[]
@@ -29,7 +35,10 @@ export interface TransactionInput {
   categoryId?: number
   clientId?: number
   description: string
+  /** Na moeda da conta. */
   amount: number
+  originalCurrency?: Currency
+  originalAmount?: number
   transactionDate: string
   type: TransactionType
   /** Ausente: o backend decide pela data (futura = pendente). */

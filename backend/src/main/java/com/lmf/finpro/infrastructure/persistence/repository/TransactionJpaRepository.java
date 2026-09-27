@@ -41,7 +41,7 @@ public interface TransactionJpaRepository
 
     @Query(
             """
-        SELECT COALESCE(SUM(t.amount), 0) FROM TransactionJpaEntity t
+        SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
         WHERE t.account.user.id = :userId AND t.category.id = :categoryId AND t.type = :type
           AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
         """)

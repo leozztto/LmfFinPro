@@ -1,4 +1,5 @@
 import type { AccountScope } from '@/features/accounts/types'
+import type { Currency } from '@/shared/format/currency'
 
 export interface NetWorthPoint {
   /** "YYYY-MM" */
@@ -13,9 +14,14 @@ export interface NetWorthAccountRow {
   accountId: number
   name: string
   scope: AccountScope
+  /** Na moeda da conta. */
   balance: number
+  currency: Currency
+  /** Pela última cotação. */
+  balanceInBrl: number
 }
 
+/** Valores na moeda da conta; os `...InBrl`, em reais pela última cotação. */
 export interface NetWorthInvestmentRow {
   accountId: number
   name: string
@@ -28,6 +34,9 @@ export interface NetWorthInvestmentRow {
   /** Fração (0.05 = 5%); null quando o aplicado não é positivo. */
   gainRate: number | null
   lastValuationDate: string | null
+  currency: Currency
+  currentValueInBrl: number
+  gainInBrl: number
 }
 
 export type DebtType = 'FINANCING' | 'LOAN' | 'CREDIT_CARD' | 'OTHER'

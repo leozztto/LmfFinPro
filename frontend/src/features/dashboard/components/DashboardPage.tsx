@@ -107,6 +107,11 @@ function OverviewTab() {
   return (
     <div className="space-y-5">
       <ConcentrationNotice />
+      {accounts?.some((account) => account.currency !== 'BRL') && (
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Valores em reais: cada lançamento em outra moeda entra pela PTAX do dia dele.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard

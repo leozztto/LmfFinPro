@@ -53,6 +53,13 @@ finpro:
   viacep:
     base-url: ${VIACEP_BASE_URL:https://viacep.com.br/ws}
     timeout-ms: ${VIACEP_TIMEOUT_MS:5000}
+  # Cotação PTAX do Banco Central, para as contas e transações em outra moeda — ver
+  # ExchangeRateScheduler.
+  bcb-ptax:
+    base-url: ${BCB_PTAX_BASE_URL:https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata}
+    timeout-ms: ${BCB_PTAX_TIMEOUT_MS:8000}
+  exchange-rates:
+    cron: ${FINPRO_EXCHANGE_RATES_CRON:0 30 13 * * MON-FRI}
 
 # Usado só pelos testes de contrato Pact (CategoryProviderPactTest), não pela aplicação em si.
 pactbroker:

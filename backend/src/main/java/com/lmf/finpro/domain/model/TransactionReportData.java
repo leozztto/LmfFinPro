@@ -22,8 +22,11 @@ public record TransactionReportData(
         List<CategoryTotal> categoryTotals) {
 
     /**
+     * @param amount valor em reais
      * @param tags tags da transação já formatadas para exibição (ex.: "#site-acme #dedutível"); ""
      *     quando não há
+     * @param foreignValue valor fora do real ({@link Transaction#foreignValue}); {@code null}
+     *     quando tudo foi em reais
      */
     public record Row(
             LocalDate date,
@@ -33,7 +36,30 @@ public record TransactionReportData(
             String clientName,
             TransactionStatus status,
             BigDecimal amount,
-            String tags) {
+            String tags,
+            Money foreignValue) {
+
+        /** Em reais. */
+        public Row(
+                LocalDate date,
+                String description,
+                String accountName,
+                String categoryName,
+                String clientName,
+                TransactionStatus status,
+                BigDecimal amount,
+                String tags) {
+            this(
+                    date,
+                    description,
+                    accountName,
+                    categoryName,
+                    clientName,
+                    status,
+                    amount,
+                    tags,
+                    null);
+        }
 
         /** Sem tags. */
         public Row(

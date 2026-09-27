@@ -124,13 +124,23 @@ export function AccountList() {
                   >
                     {ACCOUNT_SCOPE_LABELS[account.scope]}
                   </span>
+                  {account.currency !== 'BRL' && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                      {account.currency}
+                    </span>
+                  )}
                 </p>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                  Saldo inicial: {formatCurrency(account.initialBalance)}
+                  Saldo inicial: {formatCurrency(account.initialBalance, account.currency)}
                 </p>
                 <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  Saldo atual: {formatCurrency(account.currentBalance)}
+                  Saldo atual: {formatCurrency(account.currentBalance, account.currency)}
                 </p>
+                {account.currency !== 'BRL' && account.currentBalanceInBrl != null && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    ≈ {formatCurrency(account.currentBalanceInBrl)} pela última cotação
+                  </p>
+                )}
               </div>
               <div className="flex shrink-0 gap-1.5">
                 {account.type === 'INVESTMENT' && (

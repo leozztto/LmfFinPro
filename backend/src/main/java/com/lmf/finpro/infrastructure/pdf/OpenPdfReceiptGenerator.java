@@ -10,6 +10,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
@@ -120,7 +121,10 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             document.add(statementTransactionsBlock(data));
             document.add(
                     statementTotalsBlock(
-                            data.totalIncome(), data.totalExpense(), data.closingBalance()));
+                            data.totalIncome(),
+                            data.totalExpense(),
+                            data.closingBalance(),
+                            data.account().currency()));
             document.add(footer("extrato"));
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar o PDF do extrato.", e);
@@ -533,7 +537,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             for (Transaction transaction : transactions) {
                 table.addCell(valueCell(transaction.transactionDate().format(DATE_FORMAT)));
                 table.addCell(valueCell(transaction.description()));
-                table.addCell(amountCell(formatCurrency(transaction.amount()), BODY_FONT));
+                table.addCell(amountCell(formatCurrency(transaction.baseAmount()), BODY_FONT));
             }
         }
 
@@ -559,7 +563,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(valueCell(accountTypeLabel(account.type())));
 
         table.addCell(labelCell("Saldo de abertura"));
-        table.addCell(valueCell(formatCurrency(openingBalance)));
+        table.addCell(valueCell(formatCurrency(openingBalance, account.currency())));
         table.completeRow();
         return table;
     }
@@ -587,6 +591,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             empty.setColspan(5);
             table.addCell(empty);
         } else {
+            Currency currency = data.account().currency();
             BigDecimal runningBalance = data.openingBalance();
             for (Transaction transaction : data.transactions()) {
                 boolean isIncome = transaction.type() == CategoryType.INCOME;
@@ -600,25 +605,29 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
                 table.addCell(valueCell(isIncome ? "Receita" : "Despesa"));
                 table.addCell(
                         amountCell(
-                                (isIncome ? "+ " : "- ") + formatCurrency(transaction.amount()),
+                                (isIncome ? "+ " : "- ")
+                                        + formatCurrency(transaction.amount(), currency),
                                 BODY_FONT));
-                table.addCell(amountCell(formatCurrency(runningBalance), BODY_FONT));
+                table.addCell(amountCell(formatCurrency(runningBalance, currency), BODY_FONT));
             }
         }
         return table;
     }
 
     private PdfPTable statementTotalsBlock(
-            BigDecimal totalIncome, BigDecimal totalExpense, BigDecimal closingBalance) {
+            BigDecimal totalIncome,
+            BigDecimal totalExpense,
+            BigDecimal closingBalance,
+            Currency currency) {
         PdfPTable table = gridTable(new float[] {1f, 1f, 1f});
 
         table.addCell(headerCell("TOTAL DE RECEITAS"));
         table.addCell(headerCell("TOTAL DE DESPESAS"));
         table.addCell(headerCell("SALDO FINAL DO PERÍODO"));
 
-        table.addCell(amountCell(formatCurrency(totalIncome), TOTAL_FONT));
-        table.addCell(amountCell(formatCurrency(totalExpense), TOTAL_FONT));
-        table.addCell(amountCell(formatCurrency(closingBalance), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalIncome, currency), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(totalExpense, currency), TOTAL_FONT));
+        table.addCell(amountCell(formatCurrency(closingBalance, currency), TOTAL_FONT));
         return table;
     }
 
@@ -999,6 +1008,13 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
 
     private String formatCurrency(BigDecimal value) {
         return NumberFormat.getCurrencyInstance(PT_BR).format(value);
+    }
+
+    /** Na moeda informada, no formato brasileiro (ex.: "US$ 1.234,56"). */
+    private String formatCurrency(BigDecimal value, Currency currency) {
+        NumberFormat format = NumberFormat.getCurrencyInstance(PT_BR);
+        format.setCurrency(java.util.Currency.getInstance(currency.name()));
+        return format.format(value);
     }
 
     private String capitalize(String text) {

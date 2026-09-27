@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.transaction;
 
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
@@ -9,6 +10,7 @@ import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -34,6 +36,7 @@ public class TransactionApplicationService {
     private final Clock clock;
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
     private final TagApplicationService tagApplicationService;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     /** Sem tags. */
     public Transaction create(
@@ -64,7 +67,6 @@ public class TransactionApplicationService {
      * As tags (por nome) são criadas se ainda não existirem, na mesma transação de banco — uma tag
      * inválida desfaz o lançamento inteiro.
      */
-    @Transactional
     public Transaction create(
             Long currentUserId,
             Long accountId,
@@ -76,7 +78,41 @@ public class TransactionApplicationService {
             CategoryType type,
             TransactionStatus status,
             List<String> tagNames) {
-        requireOwnedAccount(currentUserId, accountId);
+        return create(
+                currentUserId,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                status,
+                tagNames,
+                null,
+                null);
+    }
+
+    /**
+     * {@code amount} é o valor na moeda da conta. Operação feita em outra moeda (ex.: compra em
+     * dólar no cartão em reais) informa também {@code originalCurrency} e {@code originalAmount};
+     * se a moeda for a própria da conta, os dois são ignorados.
+     */
+    @Transactional
+    public Transaction create(
+            Long currentUserId,
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionStatus status,
+            List<String> tagNames,
+            Currency originalCurrency,
+            BigDecimal originalAmount) {
+        Account account = requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
         TransactionStatus resolvedStatus =
@@ -85,15 +121,19 @@ public class TransactionApplicationService {
                         : TransactionStatus.defaultFor(transactionDate, LocalDate.now(clock));
         Transaction saved =
                 transactionRepositoryPort.save(
-                        Transaction.create(
-                                accountId,
-                                categoryId,
-                                clientId,
-                                description,
-                                amount,
-                                transactionDate,
-                                type,
-                                resolvedStatus));
+                        withCurrencies(
+                                Transaction.create(
+                                        accountId,
+                                        categoryId,
+                                        clientId,
+                                        description,
+                                        amount,
+                                        transactionDate,
+                                        type,
+                                        resolvedStatus),
+                                account,
+                                originalCurrency,
+                                originalAmount));
         tagApplicationService.replaceTransactionTags(currentUserId, saved.id(), tagNames);
         return saved;
     }
@@ -110,8 +150,6 @@ public class TransactionApplicationService {
         return findOwnedOrThrow(currentUserId, transactionId);
     }
 
-    /** {@code tagNames} nulo mantém as tags atuais. */
-    @Transactional
     public Transaction update(
             Long currentUserId,
             Long transactionId,
@@ -123,12 +161,57 @@ public class TransactionApplicationService {
             CategoryType type,
             TransactionStatus status,
             List<String> tagNames) {
+        return update(
+                currentUserId,
+                transactionId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                status,
+                tagNames,
+                null,
+                null);
+    }
+
+    /**
+     * {@code tagNames} nulo mantém as tags atuais. A moeda original segue a regra da criação: sem
+     * ela, a operação passa a ser na moeda da conta. O valor em reais é recalculado.
+     */
+    @Transactional
+    public Transaction update(
+            Long currentUserId,
+            Long transactionId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionStatus status,
+            List<String> tagNames,
+            Currency originalCurrency,
+            BigDecimal originalAmount) {
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
+        Account account = requireOwnedAccount(currentUserId, existing.accountId());
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
         Transaction updated =
-                existing.withDetails(
-                        categoryId, clientId, description, amount, transactionDate, type);
+                withCurrencies(
+                        existing.withDetails(
+                                categoryId, clientId, description, amount, transactionDate, type),
+                        account,
+                        originalCurrency,
+                        originalAmount);
+        // Perna de transferência: o valor em reais é o combinado entre as duas pontas (para elas
+        // se anularem no consolidado); só muda se o valor ou a data mudarem.
+        if (existing.transferId() != null
+                && existing.amount().compareTo(amount) == 0
+                && existing.transactionDate().isEqual(transactionDate)) {
+            updated = updated.withBaseAmount(existing.baseAmount());
+        }
         if (status != null) {
             requireStatusChangeAllowed(existing, status);
             updated = updated.withStatus(status);
@@ -208,8 +291,33 @@ public class TransactionApplicationService {
         return transaction;
     }
 
-    private void requireOwnedAccount(Long currentUserId, Long accountId) {
-        accountRepositoryPort
+    /**
+     * Moeda original (só quando diferente da moeda da conta) e valor em reais, pela cotação do dia
+     * da transação nas contas em outra moeda.
+     */
+    private Transaction withCurrencies(
+            Transaction transaction,
+            Account account,
+            Currency originalCurrency,
+            BigDecimal originalAmount) {
+        boolean foreign = originalCurrency != null && originalCurrency != account.currency();
+        if (foreign && (originalAmount == null || originalAmount.signum() <= 0)) {
+            throw new IllegalArgumentException(
+                    "Informe o valor da operação em " + originalCurrency + ".");
+        }
+        return transaction
+                .withOriginal(foreign ? originalCurrency : null, foreign ? originalAmount : null)
+                .withBaseAmount(
+                        account.currency().isBase()
+                                ? transaction.amount()
+                                : exchangeRateApplicationService.toBrl(
+                                        account.currency(),
+                                        transaction.amount(),
+                                        transaction.transactionDate()));
+    }
+
+    private Account requireOwnedAccount(Long currentUserId, Long accountId) {
+        return accountRepositoryPort
                 .findById(accountId)
                 .filter(account -> account.belongsTo(currentUserId))
                 .orElseThrow(

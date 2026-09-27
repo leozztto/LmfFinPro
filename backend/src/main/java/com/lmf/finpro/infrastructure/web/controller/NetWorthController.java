@@ -41,7 +41,9 @@ public class NetWorthController {
                                                 row.account().id(),
                                                 row.account().name(),
                                                 row.account().scope(),
-                                                row.balance()))
+                                                row.balance(),
+                                                row.account().currency(),
+                                                row.balanceInBrl()))
                         .toList(),
                 report.investments().stream()
                         .map(
@@ -56,7 +58,10 @@ public class NetWorthController {
                                                 row.gainRate(),
                                                 row.lastValuation() == null
                                                         ? null
-                                                        : row.lastValuation().valuationDate()))
+                                                        : row.lastValuation().valuationDate(),
+                                                row.account().currency(),
+                                                row.currentValueInBrl(),
+                                                row.gainInBrl()))
                         .toList(),
                 report.debts().stream()
                         .map(

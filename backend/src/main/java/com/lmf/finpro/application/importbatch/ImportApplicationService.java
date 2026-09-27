@@ -1,8 +1,10 @@
 package com.lmf.finpro.application.importbatch;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.ImportFileInvalidException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryRule;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -32,10 +34,11 @@ public class ImportApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     public ImportBatch importFile(
             Long currentUserId, Long accountId, String originalFileName, InputStream fileContent) {
-        requireOwnedAccount(currentUserId, accountId);
+        Account account = requireOwnedAccount(currentUserId, accountId);
         ImportFormat format = detectFormat(originalFileName);
         List<ParsedTransactionRow> rows =
                 switch (format) {
@@ -53,7 +56,7 @@ public class ImportApplicationService {
             CategoryType type =
                     row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
             Long categoryId = matchCategory(rules, row.description(), type);
-            transactionRepositoryPort.save(
+            Transaction imported =
                     Transaction.createImported(
                             accountId,
                             categoryId,
@@ -61,7 +64,14 @@ public class ImportApplicationService {
                             row.signedAmount().abs(),
                             row.date(),
                             type,
-                            batch.id()));
+                            batch.id());
+            if (!account.currency().isBase()) {
+                imported =
+                        imported.withBaseAmount(
+                                exchangeRateApplicationService.toBrl(
+                                        account.currency(), imported.amount(), row.date()));
+            }
+            transactionRepositoryPort.save(imported);
         }
 
         return importBatchRepositoryPort.save(batch.withStatus(ImportStatus.COMPLETED));
@@ -104,12 +114,13 @@ public class ImportApplicationService {
         Transaction updated =
                 transactionRepositoryPort.save(
                         existing.withDetails(
-                                categoryId,
-                                clientId,
-                                existing.description(),
-                                existing.amount(),
-                                existing.transactionDate(),
-                                existing.type()));
+                                        categoryId,
+                                        clientId,
+                                        existing.description(),
+                                        existing.amount(),
+                                        existing.transactionDate(),
+                                        existing.type())
+                                .withBaseAmount(existing.baseAmount()));
 
         if (categoryId != null) {
             reinforceRule(currentUserId, existing.description(), categoryId);
@@ -165,8 +176,8 @@ public class ImportApplicationService {
                                         "Importação não encontrada: " + batchId));
     }
 
-    private void requireOwnedAccount(Long currentUserId, Long accountId) {
-        accountRepositoryPort
+    private Account requireOwnedAccount(Long currentUserId, Long accountId) {
+        return accountRepositoryPort
                 .findById(accountId)
                 .filter(account -> account.belongsTo(currentUserId))
                 .orElseThrow(

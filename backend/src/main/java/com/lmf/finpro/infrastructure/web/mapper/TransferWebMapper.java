@@ -17,6 +17,7 @@ public class TransferWebMapper {
                 result.transfer().description(),
                 result.fromTransactionId(),
                 result.toTransactionId(),
-                result.transfer().createdAt());
+                result.transfer().createdAt(),
+                result.transfer().creditedAmount());
     }
 }

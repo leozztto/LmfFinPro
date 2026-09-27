@@ -1,3 +1,5 @@
+import type { Currency } from '@/shared/format/currency'
+
 export type AccountType = 'CHECKING' | 'SAVINGS' | 'WALLET' | 'INVESTMENT'
 
 /** Pessoal (PF) ou da empresa (PJ) — base do cálculo de pró-labore. */
@@ -7,10 +9,16 @@ export interface Account {
   id: number
   name: string
   type: AccountType
+  /** Na moeda da conta, como o saldo atual. */
   initialBalance: number
   currentBalance: number
   createdAt: string
   scope: AccountScope
+  currency: Currency
+  /** Saldo atual em reais pela última cotação; null se a cotação estiver indisponível. */
+  currentBalanceInBrl: number | null
+  /** A conta já tem lançamentos: a moeda não pode mais ser trocada. */
+  hasEntries: boolean
 }
 
 export interface AccountInput {
@@ -18,6 +26,7 @@ export interface AccountInput {
   type: AccountType
   initialBalance: number
   scope: AccountScope
+  currency: Currency
 }
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {

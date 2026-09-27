@@ -12,6 +12,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.ReportGranularity;
@@ -83,7 +84,7 @@ public class ReportApplicationService {
 
         BigDecimal total =
                 transactions.stream()
-                        .map(Transaction::amount)
+                        .map(Transaction::baseAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new ClientReceiptData(issuer, client, referenceMonth, transactions, total);
@@ -184,7 +185,7 @@ public class ReportApplicationService {
         for (Transaction transaction : transactions) {
             totalsByMonth.merge(
                     transaction.transactionDate().getMonth(),
-                    transaction.amount(),
+                    transaction.baseAmount(),
                     BigDecimal::add);
         }
 
@@ -198,7 +199,7 @@ public class ReportApplicationService {
 
         BigDecimal totalYear =
                 transactions.stream()
-                        .map(Transaction::amount)
+                        .map(Transaction::baseAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new ClientAnnualStatementData(issuer, client, year, monthlyIncomes, totalYear);
@@ -251,7 +252,7 @@ public class ReportApplicationService {
                             ? "Sem categoria"
                             : categoryNameById.getOrDefault(
                                     transaction.categoryId(), "Categoria removida");
-            totalsByCategoryName.merge(categoryName, transaction.amount(), BigDecimal::add);
+            totalsByCategoryName.merge(categoryName, transaction.baseAmount(), BigDecimal::add);
         }
 
         List<CategoryExpenseReportData.CategoryExpense> categoryExpenses =
@@ -335,9 +336,9 @@ public class ReportApplicationService {
         for (Transaction transaction : transactions) {
             Month month = transaction.transactionDate().getMonth();
             if (transaction.type() == CategoryType.INCOME) {
-                incomeByMonth.merge(month, transaction.amount(), BigDecimal::add);
+                incomeByMonth.merge(month, transaction.baseAmount(), BigDecimal::add);
             } else {
-                expenseByMonth.merge(month, transaction.amount(), BigDecimal::add);
+                expenseByMonth.merge(month, transaction.baseAmount(), BigDecimal::add);
             }
         }
         return Arrays.stream(Month.values())
@@ -364,9 +365,9 @@ public class ReportApplicationService {
                     continue;
                 }
                 if (transaction.type() == CategoryType.INCOME) {
-                    income = income.add(transaction.amount());
+                    income = income.add(transaction.baseAmount());
                 } else {
-                    expense = expense.add(transaction.amount());
+                    expense = expense.add(transaction.baseAmount());
                 }
             }
             periods.add(periodResult(quarter + "º trimestre", income, expense));
@@ -379,12 +380,12 @@ public class ReportApplicationService {
         BigDecimal income =
                 transactions.stream()
                         .filter(transaction -> transaction.type() == CategoryType.INCOME)
-                        .map(Transaction::amount)
+                        .map(Transaction::baseAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal expense =
                 transactions.stream()
                         .filter(transaction -> transaction.type() == CategoryType.EXPENSE)
-                        .map(Transaction::amount)
+                        .map(Transaction::baseAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
         return List.of(periodResult(year.toString(), income, expense));
     }
@@ -495,6 +496,8 @@ public class ReportApplicationService {
         List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
         Map<Long, String> accountNameById =
                 accounts.stream().collect(Collectors.toMap(Account::id, Account::name));
+        Map<Long, Currency> accountCurrencyById =
+                accounts.stream().collect(Collectors.toMap(Account::id, Account::currency));
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
 
         Map<Long, String> categoryNameById =
@@ -537,10 +540,14 @@ public class ReportApplicationService {
                                                 transaction.description(),
                                                 transaction.type(),
                                                 transaction.status(),
-                                                transaction.amount(),
+                                                transaction.baseAmount(),
                                                 Tag.joinLabels(
                                                         tagsByTransaction.getOrDefault(
-                                                                transaction.id(), List.of()))))
+                                                                transaction.id(), List.of())),
+                                                transaction.foreignValue(
+                                                        accountCurrencyById.getOrDefault(
+                                                                transaction.accountId(),
+                                                                Currency.BRL))))
                         .toList();
 
         return new TransactionExportData(referenceMonth, rows);

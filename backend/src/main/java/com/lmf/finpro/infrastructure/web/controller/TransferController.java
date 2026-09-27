@@ -40,7 +40,8 @@ public class TransferController {
                         request.toAccountId(),
                         request.amount(),
                         request.transferDate(),
-                        request.description());
+                        request.description(),
+                        request.receivedAmount());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
     }
 

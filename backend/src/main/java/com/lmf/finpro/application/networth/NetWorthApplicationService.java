@@ -1,7 +1,10 @@
 package com.lmf.finpro.application.networth;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.Debt;
+import com.lmf.finpro.domain.model.ExchangeRates;
 import com.lmf.finpro.domain.model.NetWorthCalculator;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
@@ -33,6 +36,7 @@ public class NetWorthApplicationService {
     private final DebtRepositoryPort debtRepositoryPort;
     private final DebtBalanceRepositoryPort debtBalanceRepositoryPort;
     private final Clock clock;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     public NetWorthCalculator.Report summary(Long currentUserId, int monthsCount) {
         if (monthsCount < 1 || monthsCount > MAX_MONTHS) {
@@ -57,6 +61,20 @@ public class NetWorthApplicationService {
                 debts,
                 debtBalanceRepositoryPort.findAllByDebtIds(debts.stream().map(Debt::id).toList()),
                 months,
-                currentMonth);
+                currentMonth,
+                rates(accounts, months.get(0).atDay(1), currentMonth.atEndOfMonth()));
+    }
+
+    /** Cotações do período, só das moedas das contas (nenhuma, se tudo estiver em reais). */
+    private ExchangeRates rates(List<Account> accounts, LocalDate from, LocalDate to) {
+        List<Currency> foreign =
+                accounts.stream()
+                        .map(Account::currency)
+                        .filter(currency -> !currency.isBase())
+                        .distinct()
+                        .toList();
+        return foreign.isEmpty()
+                ? ExchangeRates.none()
+                : exchangeRateApplicationService.table(foreign, from, to);
     }
 }

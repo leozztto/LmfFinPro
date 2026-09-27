@@ -4,9 +4,11 @@ import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.CepNotFoundException;
 import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
+import com.lmf.finpro.domain.exception.CurrencyChangeNotAllowedException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
+import com.lmf.finpro.domain.exception.ExchangeRateUnavailableException;
 import com.lmf.finpro.domain.exception.ImportFileInvalidException;
 import com.lmf.finpro.domain.exception.IncorrectCurrentPasswordException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
@@ -83,6 +85,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleCepServiceUnavailable(
             CepServiceUnavailableException ex, HttpServletRequest request) {
         return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ExchangeRateUnavailableException.class)
+    public ResponseEntity<ApiError> handleExchangeRateUnavailable(
+            ExchangeRateUnavailableException ex, HttpServletRequest request) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(CurrencyChangeNotAllowedException.class)
+    public ResponseEntity<ApiError> handleCurrencyChangeNotAllowed(
+            CurrencyChangeNotAllowedException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     @ExceptionHandler(SameAccountTransferException.class)

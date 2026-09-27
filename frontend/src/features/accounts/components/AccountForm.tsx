@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
-import { formatCurrency } from '@/shared/format/currency'
+import { CURRENCIES, CURRENCY_LABELS, formatCurrency } from '@/shared/format/currency'
 import { useCreateAccount } from '../hooks/useCreateAccount'
 import { useUpdateAccount } from '../hooks/useUpdateAccount'
 import { accountSchema, type AccountFormValues } from '../schemas'
@@ -12,6 +12,14 @@ import { ACCOUNT_SCOPE_LABELS, ACCOUNT_TYPE_LABELS, type Account } from '../type
 interface AccountFormProps {
   account?: Account
   onSuccess?: () => void
+}
+
+const EMPTY_VALUES: AccountFormValues = {
+  name: '',
+  type: 'CHECKING',
+  initialBalance: 0,
+  scope: 'PERSONAL',
+  currency: 'BRL',
 }
 
 export function AccountForm({ account, onSuccess }: AccountFormProps) {
@@ -31,21 +39,26 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: isEditing
-      ? { name: account.name, type: account.type, initialBalance: account.initialBalance, scope: account.scope }
-      : { type: 'CHECKING', initialBalance: 0, scope: 'PERSONAL' },
+      ? {
+          name: account.name,
+          type: account.type,
+          initialBalance: account.initialBalance,
+          scope: account.scope,
+          currency: account.currency,
+        }
+      : EMPTY_VALUES,
   })
+  const currency = watch('currency')
+  const currencyLocked = isEditing && account.hasEntries
 
   async function onSubmit(values: AccountFormValues) {
     try {
       if (isEditing) {
-        await updateAccount.mutateAsync({
-          id: account.id,
-          input: { name: values.name, type: values.type, initialBalance: values.initialBalance, scope: values.scope },
-        })
+        await updateAccount.mutateAsync({ id: account.id, input: values })
         showToast('Conta atualizada com sucesso.', 'success')
       } else {
         await createAccount.mutateAsync(values)
-        reset({ name: '', type: 'CHECKING', initialBalance: 0, scope: 'PERSONAL' })
+        reset(EMPTY_VALUES)
         showToast('Conta criada com sucesso.', 'success')
       }
       onSuccess?.()
@@ -88,12 +101,37 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
           ))}
         </Select>
       </FormField>
+      <FormField
+        label="Moeda"
+        htmlFor="account-currency"
+        error={errors.currency?.message}
+        hint={
+          currencyLocked
+            ? 'A conta já tem lançamentos: para outra moeda, crie uma nova conta.'
+            : currency !== 'BRL'
+              ? 'Saldo e lançamentos ficam nesta moeda; os totais do app são convertidos para reais pela PTAX.'
+              : undefined
+        }
+      >
+        <Select id="account-currency" disabled={currencyLocked} {...register('currency')}>
+          {CURRENCIES.map((value) => (
+            <option key={value} value={value}>
+              {CURRENCY_LABELS[value]}
+            </option>
+          ))}
+        </Select>
+      </FormField>
       <FormField label="Saldo inicial" htmlFor="account-balance" error={errors.initialBalance?.message}>
         <Input id="account-balance" type="number" step="0.01" disabled={isEditing} {...register('initialBalance')} />
       </FormField>
       {isEditing && (
         <FormField label="Saldo atual" htmlFor="account-current-balance">
-          <Input id="account-current-balance" value={formatCurrency(account.currentBalance)} disabled readOnly />
+          <Input
+            id="account-current-balance"
+            value={formatCurrency(account.currentBalance, account.currency)}
+            disabled
+            readOnly
+          />
         </FormField>
       )}
       <div className="sm:col-span-2">

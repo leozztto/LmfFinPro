@@ -72,6 +72,56 @@ class NetWorthCalculatorTest {
     }
 
     @Test
+    void foreignAccountEntersInRealsAtTheRateOfTheEndOfEachMonth() {
+        Account wise =
+                new Account(
+                        3L,
+                        10L,
+                        "Wise",
+                        AccountType.CHECKING,
+                        new BigDecimal("1000"),
+                        null,
+                        AccountScope.BUSINESS,
+                        Currency.USD);
+        ExchangeRates rates =
+                new ExchangeRates(
+                        List.of(
+                                new ExchangeRate(
+                                        Currency.USD,
+                                        LocalDate.of(2026, 1, 30),
+                                        new BigDecimal("5.00")),
+                                new ExchangeRate(
+                                        Currency.USD,
+                                        LocalDate.of(2026, 2, 27),
+                                        new BigDecimal("5.50"))));
+
+        Report report =
+                NetWorthCalculator.calculate(
+                        List.of(CHECKING, wise),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        List.of(JANUARY, FEBRUARY),
+                        FEBRUARY,
+                        rates);
+
+        // Os mesmos US$ 1.000 valem mais em reais em fevereiro: a variação cambial aparece.
+        assertThat(report.history().get(0).cash()).isEqualByComparingTo("7000");
+        assertThat(report.current().cash()).isEqualByComparingTo("7500");
+        assertThat(report.changeFromPreviousMonth()).isEqualByComparingTo("500");
+        assertThat(report.accounts())
+                .anySatisfy(
+                        row -> {
+                            assertThat(row.account()).isEqualTo(wise);
+                            assertThat(row.balance()).isEqualByComparingTo("1000");
+                            assertThat(row.balanceInBrl()).isEqualByComparingTo("5500");
+                        });
+        // Ordenadas pelo valor em reais: a conta em dólar vem antes.
+        assertThat(report.accounts().get(0).account()).isEqualTo(wise);
+    }
+
+    @Test
     void describesEachInvestmentDebtAndAccount() {
         List<Transaction> transactions =
                 List.of(

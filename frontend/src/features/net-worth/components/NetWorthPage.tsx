@@ -60,6 +60,12 @@ export function NetWorthPage() {
       {netWorth && (
         <>
           <SummaryCards netWorth={netWorth} />
+          {hasForeignCurrency(netWorth) && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Valores em reais: contas em outra moeda são convertidas pela PTAX do fim de cada mês (no mês atual, pela
+              última cotação), então a variação do câmbio aparece no patrimônio.
+            </p>
+          )}
           <NetWorthChart history={netWorth.history} />
           <div className="grid gap-4 lg:grid-cols-2">
             <InvestmentsCard netWorth={netWorth} onValue={setValuing} />
@@ -96,6 +102,10 @@ export function NetWorthPage() {
       </Modal>
     </div>
   )
+}
+
+function hasForeignCurrency(netWorth: NetWorth): boolean {
+  return [...netWorth.accounts, ...netWorth.investments].some((row) => row.currency !== 'BRL')
 }
 
 function SummaryCards({ netWorth }: { netWorth: NetWorth }) {
@@ -152,9 +162,9 @@ function InvestmentsCard({
                 <div className="min-w-0">
                   <p className="break-words text-sm font-medium text-zinc-800 dark:text-zinc-100">{investment.name}</p>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Aplicado {formatCurrency(investment.invested)} ·{' '}
+                    Aplicado {formatCurrency(investment.invested, investment.currency)} ·{' '}
                     <span className={gainClassName(investment.gain)}>
-                      {formatSignedCurrency(investment.gain)}
+                      {formatSignedCurrency(investment.gain, investment.currency)}
                       {rate && ` (${rate})`}
                     </span>
                   </p>
@@ -166,8 +176,15 @@ function InvestmentsCard({
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-                    {formatCurrency(investment.currentValue)}
+                  <span className="text-right">
+                    <span className="block text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                      {formatCurrency(investment.currentValue, investment.currency)}
+                    </span>
+                    {investment.currency !== 'BRL' && (
+                      <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                        ≈ {formatCurrency(investment.currentValueInBrl)}
+                      </span>
+                    )}
                   </span>
                   <IconButton icon={TrendingUpIcon} label="Atualizar valor" onClick={() => onValue(investment)} />
                 </div>
@@ -274,7 +291,16 @@ function AccountsCard({ netWorth }: { netWorth: NetWorth }) {
               <span className="block truncate text-zinc-800 dark:text-zinc-100">{account.name}</span>
               <span className="block text-xs text-zinc-500 dark:text-zinc-400">{ACCOUNT_SCOPE_LABELS[account.scope]}</span>
             </span>
-            <span className="shrink-0 font-medium text-zinc-800 dark:text-zinc-100">{formatCurrency(account.balance)}</span>
+            <span className="shrink-0 text-right">
+              <span className="block font-medium text-zinc-800 dark:text-zinc-100">
+                {formatCurrency(account.balance, account.currency)}
+              </span>
+              {account.currency !== 'BRL' && (
+                <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                  ≈ {formatCurrency(account.balanceInBrl)}
+                </span>
+              )}
+            </span>
           </li>
         ))}
       </ul>

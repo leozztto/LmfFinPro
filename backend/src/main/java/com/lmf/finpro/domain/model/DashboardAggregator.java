@@ -60,9 +60,9 @@ public final class DashboardAggregator {
                 continue;
             }
             if (transaction.type() == CategoryType.INCOME) {
-                income.merge(month, transaction.amount(), BigDecimal::add);
+                income.merge(month, transaction.baseAmount(), BigDecimal::add);
             } else {
-                expense.merge(month, transaction.amount(), BigDecimal::add);
+                expense.merge(month, transaction.baseAmount(), BigDecimal::add);
             }
         }
 
@@ -97,8 +97,8 @@ public final class DashboardAggregator {
             balance =
                     balance.add(
                             transaction.type() == CategoryType.INCOME
-                                    ? transaction.amount()
-                                    : transaction.amount().negate());
+                                    ? transaction.baseAmount()
+                                    : transaction.baseAmount().negate());
         }
         return balance;
     }
@@ -185,7 +185,7 @@ public final class DashboardAggregator {
             if (!monthTransactions.isEmpty()) {
                 net = BigDecimal.ZERO;
                 for (Transaction transaction : monthTransactions) {
-                    net = net.add(signedAmount(transaction.type(), transaction.amount()));
+                    net = net.add(signedAmount(transaction.type(), transaction.baseAmount()));
                 }
             }
             net = net.add(recurringNetByMonth.getOrDefault(month, BigDecimal.ZERO));
@@ -256,7 +256,9 @@ public final class DashboardAggregator {
                 continue;
             }
             totals.merge(
-                    entityIdExtractor.apply(transaction), transaction.amount(), BigDecimal::add);
+                    entityIdExtractor.apply(transaction),
+                    transaction.baseAmount(),
+                    BigDecimal::add);
         }
 
         return totals.entrySet().stream()

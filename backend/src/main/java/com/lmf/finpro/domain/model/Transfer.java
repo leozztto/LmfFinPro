@@ -4,6 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * @param amount valor que sai da conta de origem, na moeda dela
+ * @param receivedAmount valor que entra na conta de destino, na moeda dela, quando as moedas das
+ *     contas são diferentes; {@code null} quando são iguais (entra o mesmo {@code amount})
+ */
 public record Transfer(
         Long id,
         Long userId,
@@ -12,13 +17,46 @@ public record Transfer(
         BigDecimal amount,
         LocalDate transferDate,
         String description,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        BigDecimal receivedAmount) {
+
+    public Transfer(
+            Long id,
+            Long userId,
+            Long fromAccountId,
+            Long toAccountId,
+            BigDecimal amount,
+            LocalDate transferDate,
+            String description,
+            LocalDateTime createdAt) {
+        this(
+                id,
+                userId,
+                fromAccountId,
+                toAccountId,
+                amount,
+                transferDate,
+                description,
+                createdAt,
+                null);
+    }
 
     public static Transfer create(
             Long userId,
             Long fromAccountId,
             Long toAccountId,
             BigDecimal amount,
+            LocalDate transferDate,
+            String description) {
+        return create(userId, fromAccountId, toAccountId, amount, null, transferDate, description);
+    }
+
+    public static Transfer create(
+            Long userId,
+            Long fromAccountId,
+            Long toAccountId,
+            BigDecimal amount,
+            BigDecimal receivedAmount,
             LocalDate transferDate,
             String description) {
         return new Transfer(
@@ -29,7 +67,13 @@ public record Transfer(
                 amount,
                 transferDate,
                 description,
-                LocalDateTime.now());
+                LocalDateTime.now(),
+                receivedAmount);
+    }
+
+    /** Valor que entra na conta de destino, na moeda dela. */
+    public BigDecimal creditedAmount() {
+        return receivedAmount != null ? receivedAmount : amount;
     }
 
     public boolean belongsTo(Long candidateUserId) {
