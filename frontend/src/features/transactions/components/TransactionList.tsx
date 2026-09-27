@@ -266,6 +266,7 @@ export function TransactionList() {
         open={attachmentsFor !== null}
         onClose={() => setAttachmentsFor(null)}
         title={attachmentsFor ? `Comprovantes · ${attachmentsFor.description}` : 'Comprovantes'}
+        size="lg"
       >
         {attachmentsFor && <TransactionAttachmentsPanel transactionId={attachmentsFor.id} />}
       </Modal>

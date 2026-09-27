@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, FormField, Input, Select } from '@/shared/ui'
+import { Button, FormField, Input, Label, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
@@ -11,6 +11,11 @@ import { useCreateTransaction } from '../hooks/useCreateTransaction'
 import { transactionSchema, type TransactionFormValues } from '../schemas'
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '../types'
 import { getCurrentIsoDate } from '@/shared/format/date'
+import { AttachmentDropzone } from '@/features/attachments/components/AttachmentDropzone'
+import { PendingAttachmentList } from '@/features/attachments/components/PendingAttachmentList'
+import { usePendingAttachments } from '@/features/attachments/hooks/usePendingAttachments'
+import { useUploadPendingAttachments } from '@/features/attachments/hooks/useTransactionAttachments'
+import { MAX_ATTACHMENTS_PER_TRANSACTION } from '@/features/attachments/utils'
 
 interface TransactionFormProps {
   onSuccess?: () => void
@@ -21,7 +26,10 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const { data: categories } = useCategories()
   const { data: clients } = useClients()
   const createTransaction = useCreateTransaction()
+  const uploadPending = useUploadPendingAttachments()
+  const pendingAttachments = usePendingAttachments()
   const { showToast } = useToast()
+  const isSaving = createTransaction.isPending || uploadPending.isPending
 
   const {
     register,
@@ -51,20 +59,39 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   }, [selectedCategory, setValue])
 
   async function onSubmit(values: TransactionFormValues) {
+    let transactionId: number
     try {
-      await createTransaction.mutateAsync(values)
-      reset({
-        accountId: values.accountId,
-        description: '',
-        amount: 0,
-        type: 'EXPENSE',
-        transactionDate: getCurrentIsoDate(),
-      })
-      showToast('Transação lançada com sucesso.', 'success')
-      onSuccess?.()
+      transactionId = (await createTransaction.mutateAsync(values)).id
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível lançar a transação.')
+      return
     }
+
+    // Os comprovantes só podem ser enviados depois que a transação existe. Se algum falhar, a
+    // transação continua lançada e o arquivo pode ser anexado depois, pelo clipe na lista.
+    const { failed } =
+      pendingAttachments.items.length > 0
+        ? await uploadPending.mutateAsync({ transactionId, items: pendingAttachments.items })
+        : { failed: [] }
+
+    reset({
+      accountId: values.accountId,
+      description: '',
+      amount: 0,
+      type: 'EXPENSE',
+      transactionDate: getCurrentIsoDate(),
+    })
+    pendingAttachments.clear()
+    if (failed.length === 0) {
+      showToast('Transação lançada com sucesso.', 'success')
+    } else {
+      showToast(
+        `Transação lançada, mas ${
+          failed.length === 1 ? '1 comprovante não foi enviado' : `${failed.length} comprovantes não foram enviados`
+        } (${failed.map((item) => `${item.file.name}: ${item.error}`).join('; ')}). Anexe pelo clipe na lista.`,
+      )
+    }
+    onSuccess?.()
   }
 
   if (!accounts?.length) {
@@ -76,7 +103,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Conta" htmlFor="transaction-account" error={errors.accountId?.message}>
         <Select id="transaction-account" {...register('accountId')}>
           {accounts.map((account) => (
@@ -136,9 +163,30 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
         <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
       </FormField>
+      <div className="min-w-0 space-y-2 sm:col-span-2">
+        <Label htmlFor="transaction-attachments" className="mb-0">
+          Comprovantes (opcional)
+        </Label>
+        <AttachmentDropzone
+          id="transaction-attachments"
+          onFilesSelected={pendingAttachments.add}
+          disabled={isSaving || pendingAttachments.items.length >= MAX_ATTACHMENTS_PER_TRANSACTION}
+        />
+        <PendingAttachmentList
+          items={pendingAttachments.items}
+          rejections={pendingAttachments.rejections}
+          onChangeType={pendingAttachments.changeType}
+          onRemove={pendingAttachments.remove}
+          disabled={isSaving}
+        />
+      </div>
       <div className="sm:col-span-2">
-        <Button type="submit" disabled={createTransaction.isPending} className="w-full">
-          {createTransaction.isPending ? 'Salvando...' : 'Lançar transação'}
+        <Button type="submit" disabled={isSaving} className="w-full">
+          {createTransaction.isPending
+            ? 'Salvando...'
+            : uploadPending.isPending
+              ? 'Enviando comprovantes...'
+              : 'Lançar transação'}
         </Button>
       </div>
     </form>
