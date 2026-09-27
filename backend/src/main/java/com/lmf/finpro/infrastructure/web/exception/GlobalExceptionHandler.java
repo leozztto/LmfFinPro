@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.web.exception;
 
+import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.CepNotFoundException;
 import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
@@ -12,6 +13,7 @@ import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
+import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
@@ -27,6 +29,7 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @Slf4j
 @RestControllerAdvice
@@ -92,6 +95,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(PaidTransactionLockedException.class)
+    public ResponseEntity<ApiError> handlePaidTransactionLocked(
+            PaidTransactionLockedException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(TransactionLinkedToTransferException.class)
     public ResponseEntity<ApiError> handleTransactionLinkedToTransfer(
             TransactionLinkedToTransferException ex, HttpServletRequest request) {
@@ -120,6 +129,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleImportFileInvalid(
             ImportFileInvalidException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AttachmentInvalidException.class)
+    public ResponseEntity<ApiError> handleAttachmentInvalid(
+            AttachmentInvalidException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    /** Arquivo acima do limite de upload do Spring (spring.servlet.multipart.max-file-size). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleMaxUploadSize(
+            MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        return build(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "O arquivo é grande demais. O limite é de 10 MB por arquivo.",
+                request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

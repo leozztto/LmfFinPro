@@ -17,6 +17,8 @@ export interface Transaction {
   importBatchId: number | null
   recurringTransactionId: number | null
   status: TransactionStatus
+  /** Quantidade de comprovantes anexados (vem na listagem). */
+  attachmentCount?: number
 }
 
 export interface TransactionInput {

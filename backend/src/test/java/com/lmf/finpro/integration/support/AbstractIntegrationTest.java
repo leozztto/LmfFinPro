@@ -1,5 +1,9 @@
 package com.lmf.finpro.integration.support;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -52,6 +56,20 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        // Anexos gravados numa pasta temporária, não dentro do projeto.
+        registry.add("finpro.attachments.storage-dir", () -> ATTACHMENTS_DIR.toString());
+    }
+
+    protected static final Path ATTACHMENTS_DIR = createAttachmentsDir();
+
+    private static Path createAttachmentsDir() {
+        try {
+            Path dir = Files.createTempDirectory("finpro-attachments-test");
+            dir.toFile().deleteOnExit();
+            return dir;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Autowired protected TestRestTemplate restTemplate;

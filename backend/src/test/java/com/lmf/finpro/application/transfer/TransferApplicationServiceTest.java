@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
+import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -36,6 +37,8 @@ class TransferApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private AccountApplicationService accountApplicationService;
+
+    @Mock private TransactionAttachmentApplicationService transactionAttachmentApplicationService;
 
     @InjectMocks private TransferApplicationService service;
 

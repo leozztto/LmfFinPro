@@ -20,6 +20,7 @@ import com.lmf.finpro.integration.support.TestUser;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -153,6 +154,9 @@ class TransactionReportIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<byte[]> pdf = get("/api/reports/incomes?startDate=2026-08-01");
         assertThat(pdf.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(pdf.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        // Data de hoje no fuso de São Paulo, igual ao Clock da aplicação.
+        assertThat(pdf.getHeaders().getContentDisposition().getFilename())
+                .isEqualTo("receitas-" + LocalDate.now(ZoneId.of("America/Sao_Paulo")) + ".pdf");
         assertThat(new String(pdf.getBody(), 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 

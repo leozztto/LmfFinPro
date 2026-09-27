@@ -9,6 +9,7 @@ import { IncomeStatementForm } from './IncomeStatementForm'
 import { BudgetVsActualReportForm } from './BudgetVsActualReportForm'
 import { TransactionExportForm } from './TransactionExportForm'
 import { TransactionReportForm } from './TransactionReportForm'
+import { AttachmentsArchiveForm } from './AttachmentsArchiveForm'
 
 export function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('CLIENT_RECEIPT')
@@ -37,19 +38,22 @@ export function ReportsPage() {
             ))}
           </Select>
         </FormField>
-        <FormField label="Formato do arquivo" htmlFor="report-format">
-          <Select
-            id="report-format"
-            value={format}
-            onChange={(e) => setFormat(e.target.value as ReportFormat)}
-          >
-            {Object.entries(REPORT_FORMAT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </FormField>
+        {/* O pacote de comprovantes é sempre um ZIP: o seletor de formato não se aplica a ele. */}
+        {reportType !== 'ATTACHMENTS_ARCHIVE' && (
+          <FormField label="Formato do arquivo" htmlFor="report-format">
+            <Select
+              id="report-format"
+              value={format}
+              onChange={(e) => setFormat(e.target.value as ReportFormat)}
+            >
+              {Object.entries(REPORT_FORMAT_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        )}
       </div>
 
       {reportType === 'CLIENT_RECEIPT' && <ClientReceiptForm format={format} />}
@@ -61,6 +65,7 @@ export function ReportsPage() {
       {reportType === 'TRANSACTION_EXPORT' && <TransactionExportForm format={format} />}
       {reportType === 'INCOME_REPORT' && <TransactionReportForm key="INCOME" kind="INCOME" format={format} />}
       {reportType === 'EXPENSE_REPORT' && <TransactionReportForm key="EXPENSE" kind="EXPENSE" format={format} />}
+      {reportType === 'ATTACHMENTS_ARCHIVE' && <AttachmentsArchiveForm />}
     </div>
   )
 }

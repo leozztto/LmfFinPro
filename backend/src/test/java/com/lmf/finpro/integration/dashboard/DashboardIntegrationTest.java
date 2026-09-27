@@ -19,7 +19,6 @@ import com.lmf.finpro.infrastructure.web.dto.dashboard.DashboardOverviewResponse
 import com.lmf.finpro.infrastructure.web.dto.dashboard.MonthlyFlowPointResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
-import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionStatusRequest;
 import com.lmf.finpro.infrastructure.web.exception.ApiError;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
 import com.lmf.finpro.integration.support.TestDataFactory;
@@ -167,16 +166,8 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
         Long accountId = createAccount(user, BigDecimal.valueOf(1000));
         createTransaction(
                 user, accountId, null, null, BigDecimal.valueOf(500), TODAY, CategoryType.INCOME);
-        TransactionResponse pendingExpense =
-                createTransaction(
-                        user,
-                        accountId,
-                        null,
-                        null,
-                        BigDecimal.valueOf(200),
-                        TODAY,
-                        CategoryType.EXPENSE);
-        markAsPending(user, pendingExpense.id());
+        // Criada já pendente (paga não volta a pendente, então não dá para marcar depois).
+        createPendingExpense(user, accountId, BigDecimal.valueOf(200));
 
         DashboardOverviewResponse overview = getOverview(user);
 
@@ -374,16 +365,25 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
         return response.getBody().id();
     }
 
-    private void markAsPending(TestUser user, Long transactionId) {
+    private void createPendingExpense(TestUser user, Long accountId, BigDecimal amount) {
         ResponseEntity<TransactionResponse> response =
                 restTemplate.exchange(
-                        "/api/transactions/" + transactionId + "/status",
-                        HttpMethod.PATCH,
+                        "/api/transactions",
+                        HttpMethod.POST,
                         new HttpEntity<>(
-                                new TransactionStatusRequest(TransactionStatus.PENDING),
+                                new TransactionRequest(
+                                        accountId,
+                                        null,
+                                        null,
+                                        "Conta a pagar",
+                                        amount,
+                                        TODAY,
+                                        CategoryType.EXPENSE,
+                                        TransactionStatus.PENDING),
                                 user.authHeaders()),
                         TransactionResponse.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().status()).isEqualTo(TransactionStatus.PENDING);
     }
 
     private TransactionResponse createTransaction(

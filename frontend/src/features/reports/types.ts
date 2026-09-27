@@ -8,6 +8,7 @@ export type ReportType =
   | 'TRANSACTION_EXPORT'
   | 'INCOME_REPORT'
   | 'EXPENSE_REPORT'
+  | 'ATTACHMENTS_ARCHIVE'
 
 export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
 
@@ -62,6 +63,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   TRANSACTION_EXPORT: 'Exportação de transações',
   INCOME_REPORT: 'Receitas (com filtros)',
   EXPENSE_REPORT: 'Despesas (com filtros)',
+  ATTACHMENTS_ARCHIVE: 'Comprovantes do ano (ZIP)',
 }
 
 export const REPORT_GRANULARITY_LABELS: Record<ReportGranularity, string> = {

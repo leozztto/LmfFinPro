@@ -23,20 +23,28 @@ import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.User;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.Year;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class OpenPdfReceiptGeneratorTest {
 
-    private final OpenPdfReceiptGenerator generator = new OpenPdfReceiptGenerator();
+    private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
+
+    private final OpenPdfReceiptGenerator generator =
+            new OpenPdfReceiptGenerator(Clock.system(ZONE));
 
     private static User issuer() {
         Address address =
@@ -143,6 +151,21 @@ class OpenPdfReceiptGeneratorTest {
 
         assertThat(pdf).isNotEmpty();
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void issueDateAndFooterUseTheSaoPauloClockEvenWhenUtcIsAlreadyTheNextDay() throws IOException {
+        // 30/09 às 23h30 em Brasília = 01/10 às 02h30 em UTC.
+        Clock lateNightClock =
+                Clock.fixed(LocalDateTime.of(2026, 9, 30, 23, 30).atZone(ZONE).toInstant(), ZONE);
+        ClientReceiptData data =
+                new ClientReceiptData(
+                        issuer(), client(), YearMonth.of(2026, 9), List.of(), BigDecimal.ZERO);
+
+        byte[] pdf = new OpenPdfReceiptGenerator(lateNightClock).generateClientReceipt(data);
+
+        String text = new PdfTextExtractor(new PdfReader(pdf)).getTextFromPage(1);
+        assertThat(text).contains("30/09/2026 23:30").doesNotContain("01/10/2026");
     }
 
     @Test

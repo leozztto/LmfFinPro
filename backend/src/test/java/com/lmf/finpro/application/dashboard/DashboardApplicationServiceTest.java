@@ -16,13 +16,15 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,7 +35,21 @@ class DashboardApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
 
-    @InjectMocks private DashboardApplicationService service;
+    private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
+    private static final Clock CLOCK = Clock.system(ZONE);
+    private static final YearMonth CURRENT_MONTH = YearMonth.now(CLOCK);
+
+    private DashboardApplicationService service;
+
+    @BeforeEach
+    void setUp() {
+        service =
+                new DashboardApplicationService(
+                        accountRepositoryPort,
+                        transactionRepositoryPort,
+                        recurringTransactionRepositoryPort,
+                        CLOCK);
+    }
 
     private static Account account(BigDecimal initialBalance) {
         return new Account(
@@ -60,7 +76,7 @@ class DashboardApplicationServiceTest {
 
     @Test
     void getOverviewExcludesTransfersFromCurrentBalance() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
@@ -86,7 +102,7 @@ class DashboardApplicationServiceTest {
 
     @Test
     void getOverviewLeavesPendingOutOfCurrentBalanceButInProjectedBalance() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
@@ -132,7 +148,7 @@ class DashboardApplicationServiceTest {
 
     @Test
     void getCategoryBreakdownDelegatesToAggregatorWithOwnedTransactionsOnly() {
-        YearMonth month = YearMonth.now();
+        YearMonth month = CURRENT_MONTH;
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         Transaction ownTransaction =
@@ -165,8 +181,27 @@ class DashboardApplicationServiceTest {
     }
 
     @Test
+    void getMonthlyFlowUsesTheSaoPauloMonthEvenWhenUtcIsAlreadyInTheNextMonth() {
+        // 30/09 às 23h30 em Brasília = 01/10 às 02h30 em UTC.
+        Clock lateNightClock =
+                Clock.fixed(LocalDateTime.of(2026, 9, 30, 23, 30).atZone(ZONE).toInstant(), ZONE);
+        DashboardApplicationService lateNightService =
+                new DashboardApplicationService(
+                        accountRepositoryPort,
+                        transactionRepositoryPort,
+                        recurringTransactionRepositoryPort,
+                        lateNightClock);
+        when(accountRepositoryPort.findAllByUserId(10L))
+                .thenReturn(List.of(account(BigDecimal.ZERO)));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
+
+        assertThat(lateNightService.getMonthlyFlow(10L, 1).get(0).month())
+                .isEqualTo(YearMonth.of(2026, 9));
+    }
+
+    @Test
     void getCashFlowProjectionAnchorsOnBalanceExcludingFutureTransactions() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
@@ -186,7 +221,7 @@ class DashboardApplicationServiceTest {
 
     @Test
     void getCashFlowProjectionIncludesTheUsersRecurringTransactions() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
