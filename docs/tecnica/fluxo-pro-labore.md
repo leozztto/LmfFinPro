@@ -24,8 +24,9 @@ O pagamento em si é uma **transferência de conta PJ para conta PF**, usando as
 
   O botão **Pagar R$ X** abre o `TransferForm` pré-preenchido: conta PJ com mais saldo → primeira conta PF, com `suggestedPayment` e a descrição "Pró-labore MM/aaaa". Ele fica desabilitado sem valor a pagar ou sem conta PF.
 - **Card "Como o valor é calculado"**: as parcelas da base escolhida, cada uma com uma explicação curta.
-- **Card "Configuração do cálculo"** (`ProLaboreSettingsForm`): base, reserva (%) ou colchão (meses), conforme a base; modo do imposto e alíquota manual; pró-labore fixo.
+- **Card "Configuração do cálculo"** (`ProLaboreSettingsForm`), no topo da tela e em largura total, **recolhido por padrão** (o título mostra um resumo: base, imposto e valor fixo). Fechar só esconde o formulário, sem perder o que foi digitado. Campos: base, reserva (%) ou colchão (meses), conforme a base; modo do imposto e alíquota manual; encargos; pró-labore fixo. Abaixo dele, os demais cards ficam em duas colunas a partir de `lg`: disponível e cálculo, depois retiradas e despesas PJ.
 - **Card "Retiradas deste mês"**: transferências PJ → PF do mês.
+- **Card "Despesas PJ do mês"** (abaixo das retiradas): as transações de despesa das contas PJ que compõem `monthBusinessExpenses` — pagas no mês e pendentes até o fim dele, inclusive as atrasadas —, com data, conta, categoria e situação (Paga, A pagar, Atrasada), da mais recente para a mais antiga. A lista (`businessExpenses` na resposta de `GET /api/pro-labore`) é montada no backend a partir das mesmas transações somadas no cálculo, então o total sempre bate com a linha "Despesas PJ do mês". É só leitura: um pagamento feito pela conta PJ é custo da empresa e já reduz o disponível como despesa. Ele **não** é retirada; contá-lo também como retirada o descontaria duas vezes.
 - **Tela de Contas**: campo "Uso" no formulário e etiqueta PF/PJ em cada card.
 
 ## 3. Arquitetura (hexagonal)

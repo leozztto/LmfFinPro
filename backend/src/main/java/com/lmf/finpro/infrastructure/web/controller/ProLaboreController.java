@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.model.ProLaboreCalculator;
 import com.lmf.finpro.domain.model.ProLaboreSettings;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.prolabore.ProLaboreResponse;
+import com.lmf.finpro.infrastructure.web.dto.prolabore.ProLaboreResponse.BusinessExpenseResponse;
 import com.lmf.finpro.infrastructure.web.dto.prolabore.ProLaboreResponse.PayrollResponse;
 import com.lmf.finpro.infrastructure.web.dto.prolabore.ProLaboreResponse.SettingsResponse;
 import com.lmf.finpro.infrastructure.web.dto.prolabore.ProLaboreResponse.WithdrawalResponse;
@@ -104,6 +105,19 @@ public class ProLaboreController {
                                                 withdrawal.amount(),
                                                 withdrawal.fromAccountName(),
                                                 withdrawal.toAccountName()))
+                        .toList(),
+                summary.businessExpenses().stream()
+                        .map(
+                                expense ->
+                                        new BusinessExpenseResponse(
+                                                expense.transactionId(),
+                                                expense.date(),
+                                                expense.description(),
+                                                expense.amount(),
+                                                expense.paid(),
+                                                expense.overdue(),
+                                                expense.accountName(),
+                                                expense.categoryName()))
                         .toList(),
                 summary.suggestedFromAccountId(),
                 summary.suggestedToAccountId());

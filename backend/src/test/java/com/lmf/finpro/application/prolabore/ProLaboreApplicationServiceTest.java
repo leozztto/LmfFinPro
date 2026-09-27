@@ -9,6 +9,7 @@ import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ContributionType;
 import com.lmf.finpro.domain.model.GoalContribution;
@@ -25,6 +26,7 @@ import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.GoalContributionRepositoryPort;
 import com.lmf.finpro.domain.port.out.ProLaboreSettingsRepositoryPort;
 import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
@@ -76,6 +78,7 @@ class ProLaboreApplicationServiceTest {
     @Mock private GoalContributionRepositoryPort goalContributionRepositoryPort;
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private ProLaboreSettingsRepositoryPort proLaboreSettingsRepositoryPort;
+    @Mock private CategoryRepositoryPort categoryRepositoryPort;
 
     private ProLaboreApplicationService service;
 
@@ -91,6 +94,7 @@ class ProLaboreApplicationServiceTest {
                         goalContributionRepositoryPort,
                         userRepositoryPort,
                         proLaboreSettingsRepositoryPort,
+                        categoryRepositoryPort,
                         Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE));
         lenient()
                 .when(accountRepositoryPort.findAllByUserId(USER_ID))
@@ -170,6 +174,16 @@ class ProLaboreApplicationServiceTest {
         assertThat(summary.pendingBusinessExpenses()).isEqualByComparingTo("1700");
         // Nada pago em setembro + 1700 pendentes (transferência fica de fora).
         assertThat(summary.monthBusinessExpenses()).isEqualByComparingTo("1700");
+        // A lista mostra exatamente as despesas somadas no custo do mês, da mais recente à mais
+        // antiga; a de 02/09 está atrasada.
+        assertThat(summary.businessExpenses())
+                .extracting(ProLaboreSummary.BusinessExpense::amount)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("1500"), new BigDecimal("200"));
+        assertThat(summary.businessExpenses())
+                .extracting(ProLaboreSummary.BusinessExpense::overdue)
+                .containsExactly(false, true);
+        assertThat(summary.businessExpenses().get(0).accountName()).isEqualTo("PJ");
         // Só a receita PJ recebida: 10000 × 6% (MEI).
         assertThat(summary.monthBusinessIncome()).isEqualByComparingTo("10000");
         assertThat(summary.taxRate()).isEqualByComparingTo("0.06");
@@ -179,6 +193,57 @@ class ProLaboreApplicationServiceTest {
         assertThat(summary.result().availableToWithdraw()).isEqualByComparingTo("6700");
         assertThat(summary.suggestedFromAccountId()).isEqualTo(1L);
         assertThat(summary.suggestedToAccountId()).isEqualTo(2L);
+    }
+
+    @Test
+    void businessExpensesListPaidOnesOfTheMonthWithCategoryName() {
+        Transaction paid =
+                new Transaction(
+                        40L,
+                        1L,
+                        7L,
+                        null,
+                        "Contador",
+                        new BigDecimal("450"),
+                        LocalDate.of(2026, 9, 10),
+                        CategoryType.EXPENSE,
+                        TransactionOrigin.MANUAL,
+                        null,
+                        null,
+                        null,
+                        null,
+                        TransactionStatus.PAID);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                paid,
+                                tx(
+                                        CategoryType.EXPENSE,
+                                        "300",
+                                        LocalDate.of(2026, 8, 10),
+                                        true,
+                                        null)));
+        when(categoryRepositoryPort.findAllVisibleToUser(USER_ID))
+                .thenReturn(
+                        List.of(
+                                new Category(
+                                        7L,
+                                        USER_ID,
+                                        "Serviços",
+                                        CategoryType.EXPENSE,
+                                        null,
+                                        null)));
+
+        ProLaboreSummary summary = service.summary(USER_ID);
+
+        assertThat(summary.businessExpenses()).hasSize(1);
+        ProLaboreSummary.BusinessExpense expense = summary.businessExpenses().get(0);
+        assertThat(expense.transactionId()).isEqualTo(40L);
+        assertThat(expense.description()).isEqualTo("Contador");
+        assertThat(expense.paid()).isTrue();
+        assertThat(expense.overdue()).isFalse();
+        assertThat(expense.categoryName()).isEqualTo("Serviços");
+        assertThat(summary.monthBusinessExpenses()).isEqualByComparingTo("450");
     }
 
     @Test
