@@ -59,9 +59,9 @@ public final class TagTotalsCalculator {
             }
             count++;
             if (transaction.type() == CategoryType.INCOME) {
-                income = income.add(transaction.amount());
+                income = income.add(transaction.baseAmount());
             } else {
-                expense = expense.add(transaction.amount());
+                expense = expense.add(transaction.baseAmount());
             }
         }
         return new TagTotalsReportData.Row(label, count, income, expense, income.subtract(expense));

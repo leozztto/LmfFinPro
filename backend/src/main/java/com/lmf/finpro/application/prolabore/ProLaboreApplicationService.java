@@ -255,7 +255,9 @@ public class ProLaboreApplicationService {
                                 new Withdrawal(
                                         transfer.id(),
                                         transfer.transferDate(),
-                                        transfer.amount(),
+                                        amountInBrl(
+                                                transfer,
+                                                accountById.get(transfer.fromAccountId())),
                                         accountById.get(transfer.fromAccountId()).name(),
                                         accountById.get(transfer.toAccountId()).name()))
                 .toList();
@@ -276,14 +278,14 @@ public class ProLaboreApplicationService {
                 .sorted(
                         Comparator.comparing(Transaction::transactionDate)
                                 .reversed()
-                                .thenComparing(Transaction::amount, Comparator.reverseOrder()))
+                                .thenComparing(Transaction::baseAmount, Comparator.reverseOrder()))
                 .map(
                         transaction ->
                                 new BusinessExpense(
                                         transaction.id(),
                                         transaction.transactionDate(),
                                         transaction.description(),
-                                        transaction.amount(),
+                                        transaction.baseAmount(),
                                         transaction.isPaid(),
                                         !transaction.isPaid()
                                                 && transaction.transactionDate().isBefore(today),
@@ -292,6 +294,18 @@ public class ProLaboreApplicationService {
                                                 ? null
                                                 : categoryNames.get(transaction.categoryId())))
                 .toList();
+    }
+
+    /**
+     * Retirada em reais: o lado em reais da transferência (o que caiu na conta PF, ou o que saiu da
+     * PJ). Entre duas contas em moeda estrangeira, o valor em reais gravado nas transações não está
+     * à mão aqui; vale o que entrou na PF.
+     */
+    private static BigDecimal amountInBrl(Transfer transfer, Account from) {
+        if (from.currency().isBase()) {
+            return transfer.amount();
+        }
+        return transfer.creditedAmount();
     }
 
     private static boolean isBusiness(Account account) {
@@ -313,6 +327,6 @@ public class ProLaboreApplicationService {
     }
 
     private static BigDecimal sum(Stream<Transaction> transactions) {
-        return transactions.map(Transaction::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return transactions.map(Transaction::baseAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
@@ -136,10 +137,14 @@ public class TransactionReportApplicationService {
                                                                 transaction.clientId(),
                                                                 "Cliente removido"),
                                                 transaction.status(),
-                                                transaction.amount(),
+                                                transaction.baseAmount(),
                                                 Tag.joinLabels(
                                                         tagsByTransaction.getOrDefault(
-                                                                transaction.id(), List.of()))))
+                                                                transaction.id(), List.of())),
+                                                transaction.foreignValue(
+                                                        accountCurrency(
+                                                                accountById,
+                                                                transaction.accountId()))))
                         .toList();
 
         return new TransactionReportData(
@@ -269,6 +274,11 @@ public class TransactionReportApplicationService {
     private static String accountName(Map<Long, Account> accountById, Long accountId) {
         Account account = accountById.get(accountId);
         return account == null ? "Conta removida" : account.name();
+    }
+
+    private static Currency accountCurrency(Map<Long, Account> accountById, Long accountId) {
+        Account account = accountById.get(accountId);
+        return account == null ? Currency.BRL : account.currency();
     }
 
     private static String categoryName(Map<Long, String> categoryNameById, Long categoryId) {

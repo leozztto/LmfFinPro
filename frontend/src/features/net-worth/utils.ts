@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/shared/format/currency'
+import { formatCurrency, type Currency } from '@/shared/format/currency'
 import { formatMonthLabel } from '@/features/dashboard/utils'
 import type { NetWorthPoint } from './types'
 
@@ -9,9 +9,9 @@ const percentFormatter = new Intl.NumberFormat('pt-BR', {
 })
 
 /** Valor com sinal explícito: "+ R$ 100,00" / "− R$ 50,00" / "R$ 0,00". */
-export function formatSignedCurrency(value: number): string {
-  if (value === 0) return formatCurrency(0)
-  return `${value > 0 ? '+' : '−'} ${formatCurrency(Math.abs(value))}`
+export function formatSignedCurrency(value: number, currency: Currency = 'BRL'): string {
+  if (value === 0) return formatCurrency(0, currency)
+  return `${value > 0 ? '+' : '−'} ${formatCurrency(Math.abs(value), currency)}`
 }
 
 /** Fração do backend (0.1 = 10%) com sinal; null quando não há base para o percentual. */

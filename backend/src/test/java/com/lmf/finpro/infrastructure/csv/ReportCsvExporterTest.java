@@ -14,8 +14,10 @@ import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.Money;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
@@ -293,9 +295,9 @@ class ReportCsvExporterTest {
 
         assertThat(content)
                 .isEqualTo(
-                        "Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor;Tags\r\n"
-                                + "2026-09-05;Conta Corrente;Aluguel;;Aluguel escritório;Despesa;Paga;1500.00;\r\n"
-                                + "2026-09-20;Conta Corrente;Serviços;Cliente X;Mensalidade;Receita;Pendente;3000.00;\r\n");
+                        "Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor;Tags;Moeda original;Valor original\r\n"
+                                + "2026-09-05;Conta Corrente;Aluguel;;Aluguel escritório;Despesa;Paga;1500.00;;;\r\n"
+                                + "2026-09-20;Conta Corrente;Serviços;Cliente X;Mensalidade;Receita;Pendente;3000.00;;;\r\n");
     }
 
     @Test
@@ -332,12 +334,14 @@ class ReportCsvExporterTest {
                                         new BigDecimal("1500.00")),
                                 new TransactionReportData.Row(
                                         LocalDate.of(2026, 9, 28),
-                                        "Internet",
+                                        "Hospedagem",
                                         "Conta PJ",
                                         "Serviços",
                                         "",
                                         TransactionStatus.PENDING,
-                                        new BigDecimal("120.00"))),
+                                        new BigDecimal("120.00"),
+                                        "",
+                                        new Money(Currency.USD, new BigDecimal("22.50")))),
                         new BigDecimal("1620.00"),
                         new BigDecimal("1500.00"),
                         new BigDecimal("120.00"),
@@ -347,11 +351,11 @@ class ReportCsvExporterTest {
 
         assertThat(content)
                 .isEqualTo(
-                        "Data;Descrição;Conta;Categoria;Cliente;Situação;Valor;Tags\r\n"
-                                + "2026-09-05;Aluguel;Conta PJ;Moradia;;Paga;1500.00;\r\n"
-                                + "2026-09-28;Internet;Conta PJ;Serviços;;Pendente;120.00;\r\n"
-                                + ";TOTAL;;;;;1620.00;\r\n"
-                                + ";Total pago;;;;;1500.00;\r\n"
-                                + ";Total pendente;;;;;120.00;\r\n");
+                        "Data;Descrição;Conta;Categoria;Cliente;Situação;Valor;Tags;Moeda original;Valor original\r\n"
+                                + "2026-09-05;Aluguel;Conta PJ;Moradia;;Paga;1500.00;;;\r\n"
+                                + "2026-09-28;Hospedagem;Conta PJ;Serviços;;Pendente;120.00;;USD;22.50\r\n"
+                                + ";TOTAL;;;;;1620.00;;;\r\n"
+                                + ";Total pago;;;;;1500.00;;;\r\n"
+                                + ";Total pendente;;;;;120.00;;;\r\n");
     }
 }

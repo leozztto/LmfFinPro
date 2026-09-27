@@ -13,7 +13,10 @@ import java.util.List;
 public record TransactionExportData(YearMonth referenceMonth, List<TransactionExportRow> rows) {
 
     /**
+     * @param amount valor em reais
      * @param tags tags formatadas para exibição (ex.: "#site-acme #dedutível"); "" sem tags
+     * @param foreignValue valor fora do real ({@link Transaction#foreignValue}); {@code null}
+     *     quando tudo foi em reais
      */
     public record TransactionExportRow(
             LocalDate date,
@@ -24,7 +27,32 @@ public record TransactionExportData(YearMonth referenceMonth, List<TransactionEx
             CategoryType type,
             TransactionStatus status,
             BigDecimal amount,
-            String tags) {
+            String tags,
+            Money foreignValue) {
+
+        /** Em reais. */
+        public TransactionExportRow(
+                LocalDate date,
+                String accountName,
+                String categoryName,
+                String clientName,
+                String description,
+                CategoryType type,
+                TransactionStatus status,
+                BigDecimal amount,
+                String tags) {
+            this(
+                    date,
+                    accountName,
+                    categoryName,
+                    clientName,
+                    description,
+                    type,
+                    status,
+                    amount,
+                    tags,
+                    null);
+        }
 
         /** Sem tags. */
         public TransactionExportRow(

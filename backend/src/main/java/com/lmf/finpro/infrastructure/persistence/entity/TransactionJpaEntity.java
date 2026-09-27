@@ -1,6 +1,7 @@
 package com.lmf.finpro.infrastructure.persistence.entity;
 
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import jakarta.persistence.*;
@@ -69,6 +70,16 @@ public class TransactionJpaEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private TransactionStatus status = TransactionStatus.PAID;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "original_currency", length = 3)
+    private Currency originalCurrency;
+
+    @Column(name = "original_amount", precision = 14, scale = 2)
+    private BigDecimal originalAmount;
+
+    @Column(name = "base_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal baseAmount;
 
     @PrePersist
     void onCreate() {

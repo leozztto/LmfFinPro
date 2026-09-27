@@ -98,6 +98,7 @@ export function TransactionList() {
   }
 
   const accountNameById = new Map(accounts?.map((account) => [account.id, account.name]))
+  const accountCurrencyById = new Map(accounts?.map((account) => [account.id, account.currency]))
   const categoryNameById = new Map(categories?.map((category) => [category.id, category.name]))
   const clientNameById = new Map(clients?.map((client) => [client.id, client.name]))
 
@@ -268,6 +269,7 @@ export function TransactionList() {
               key={transaction.id}
               transaction={transaction}
               accountName={accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
+              accountCurrency={accountCurrencyById.get(transaction.accountId)}
               categoryName={transaction.categoryId ? categoryNameById.get(transaction.categoryId) : undefined}
               clientName={transaction.clientId ? clientNameById.get(transaction.clientId) : undefined}
               onDelete={() => handleDelete(transaction.id, transaction.description)}

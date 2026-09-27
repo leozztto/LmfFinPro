@@ -62,10 +62,11 @@ public final class TransactionSpecifications {
                 predicates.add(cb.equal(root.get("status"), criteria.status()));
             }
             if (criteria.minAmount() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("amount"), criteria.minAmount()));
+                predicates.add(
+                        cb.greaterThanOrEqualTo(root.get("baseAmount"), criteria.minAmount()));
             }
             if (criteria.maxAmount() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("amount"), criteria.maxAmount()));
+                predicates.add(cb.lessThanOrEqualTo(root.get("baseAmount"), criteria.maxAmount()));
             }
             if (criteria.description() != null) {
                 predicates.add(

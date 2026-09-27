@@ -62,7 +62,9 @@ public class TransactionController {
                         request.transactionDate(),
                         request.type(),
                         request.status(),
-                        request.tagNames());
+                        request.tagNames(),
+                        request.originalCurrency(),
+                        request.originalAmount());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(toResponses(currentUser.userId(), List.of(created)).get(0));
     }
@@ -83,7 +85,9 @@ public class TransactionController {
                         request.transactionDate(),
                         request.type(),
                         request.status(),
-                        request.tagNames());
+                        request.tagNames(),
+                        request.originalCurrency(),
+                        request.originalAmount());
         return toResponses(currentUser.userId(), List.of(updated)).get(0);
     }
 

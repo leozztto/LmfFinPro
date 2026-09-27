@@ -31,9 +31,15 @@ public final class NetWorthCalculator {
             BigDecimal debts,
             BigDecimal netWorth) {}
 
-    public record AccountRow(Account account, BigDecimal balance) {}
+    /**
+     * @param balance saldo atual, na moeda da conta
+     * @param balanceInBrl saldo atual em reais, pela última cotação
+     */
+    public record AccountRow(Account account, BigDecimal balance, BigDecimal balanceInBrl) {}
 
     /**
+     * Valores na moeda da conta, com o valor atual e o rendimento também em reais.
+     *
      * @param invested saldo contábil: saldo inicial + entradas − saídas (o que foi aplicado,
      *     líquido de resgates)
      * @param gain valor atual − aplicado (rendimento ainda não resgatado)
@@ -46,7 +52,9 @@ public final class NetWorthCalculator {
             BigDecimal currentValue,
             BigDecimal gain,
             BigDecimal gainRate,
-            AccountValuation lastValuation) {}
+            AccountValuation lastValuation,
+            BigDecimal currentValueInBrl,
+            BigDecimal gainInBrl) {}
 
     /**
      * @param lastBalance último saldo devedor informado, ou {@code null}
@@ -54,6 +62,8 @@ public final class NetWorthCalculator {
     public record DebtRow(Debt debt, BigDecimal currentBalance, DebtBalance lastBalance) {}
 
     /**
+     * Valores consolidados em reais.
+     *
      * @param investmentGain soma do rendimento de todos os investimentos
      * @param changeFromPreviousMonth patrimônio atual − o do fim do mês anterior; {@code null} com
      *     histórico de um mês só
@@ -82,6 +92,32 @@ public final class NetWorthCalculator {
             List<DebtBalance> debtBalances,
             List<YearMonth> months,
             YearMonth currentMonth) {
+        return calculate(
+                accounts,
+                transactions,
+                valuations,
+                debts,
+                debtBalances,
+                months,
+                currentMonth,
+                ExchangeRates.none());
+    }
+
+    /**
+     * Contas em outra moeda entram em reais: em cada mês, pela cotação do fim do mês (no atual,
+     * pela última) — a variação cambial aparece no patrimônio. Dívidas são sempre em reais.
+     *
+     * @param rates cotações do período do histórico
+     */
+    public static Report calculate(
+            List<Account> accounts,
+            List<Transaction> transactions,
+            List<AccountValuation> valuations,
+            List<Debt> debts,
+            List<DebtBalance> debtBalances,
+            List<YearMonth> months,
+            YearMonth currentMonth,
+            ExchangeRates rates) {
         Map<Long, List<Transaction>> transactionsByAccount =
                 transactions.stream().collect(Collectors.groupingBy(Transaction::accountId));
         Map<Long, List<DebtBalance>> balancesByDebt =
@@ -94,11 +130,14 @@ public final class NetWorthCalculator {
             BigDecimal investments = BigDecimal.ZERO;
             for (Account account : accounts) {
                 BigDecimal balance =
-                        AccountBalances.balance(
-                                account,
-                                transactionsByAccount.getOrDefault(account.id(), List.of()),
-                                valuations,
-                                asOf);
+                        rates.toBrl(
+                                account.currency(),
+                                AccountBalances.balance(
+                                        account,
+                                        transactionsByAccount.getOrDefault(account.id(), List.of()),
+                                        valuations,
+                                        asOf),
+                                month.atEndOfMonth());
                 if (account.type() == AccountType.INVESTMENT) {
                     investments = investments.add(balance);
                 } else {
@@ -124,6 +163,8 @@ public final class NetWorthCalculator {
                             cash.add(investments).subtract(debtTotal)));
         }
 
+        // Última cotação: o fim do mês atual ainda não chegou, então vale a mais recente.
+        LocalDate latest = currentMonth.atEndOfMonth();
         List<AccountRow> accountRows = new ArrayList<>();
         List<InvestmentRow> investmentRows = new ArrayList<>();
         for (Account account : accounts) {
@@ -132,7 +173,11 @@ public final class NetWorthCalculator {
             BigDecimal current =
                     AccountBalances.balance(account, accountTransactions, valuations, null);
             if (account.type() != AccountType.INVESTMENT) {
-                accountRows.add(new AccountRow(account, current));
+                accountRows.add(
+                        new AccountRow(
+                                account,
+                                current,
+                                rates.toBrl(account.currency(), current, latest)));
                 continue;
             }
             BigDecimal invested = AccountBalances.bookBalance(account, accountTransactions, null);
@@ -146,11 +191,12 @@ public final class NetWorthCalculator {
                             invested.signum() > 0
                                     ? gain.divide(invested, RATE_SCALE, RoundingMode.HALF_UP)
                                     : null,
-                            AccountBalances.latestValuation(account, valuations, null)
-                                    .orElse(null)));
+                            AccountBalances.latestValuation(account, valuations, null).orElse(null),
+                            rates.toBrl(account.currency(), current, latest),
+                            rates.toBrl(account.currency(), gain, latest)));
         }
-        accountRows.sort(Comparator.comparing(AccountRow::balance).reversed());
-        investmentRows.sort(Comparator.comparing(InvestmentRow::currentValue).reversed());
+        accountRows.sort(Comparator.comparing(AccountRow::balanceInBrl).reversed());
+        investmentRows.sort(Comparator.comparing(InvestmentRow::currentValueInBrl).reversed());
 
         List<DebtRow> debtRows =
                 debts.stream()
@@ -179,7 +225,7 @@ public final class NetWorthCalculator {
                 current,
                 changeFromPreviousMonth,
                 investmentRows.stream()
-                        .map(InvestmentRow::gain)
+                        .map(InvestmentRow::gainInBrl)
                         .reduce(BigDecimal.ZERO, BigDecimal::add),
                 history,
                 accountRows,

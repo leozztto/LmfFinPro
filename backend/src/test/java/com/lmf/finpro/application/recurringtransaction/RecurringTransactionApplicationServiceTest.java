@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
@@ -46,6 +47,8 @@ class RecurringTransactionApplicationServiceTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
 
+    @Mock private ExchangeRateApplicationService exchangeRateApplicationService;
+
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
@@ -67,7 +70,8 @@ class RecurringTransactionApplicationServiceTest {
                         categoryRepositoryPort,
                         clientRepositoryPort,
                         fixedClock,
-                        tagApplicationService);
+                        tagApplicationService,
+                        exchangeRateApplicationService);
     }
 
     private Account ownedAccount() {

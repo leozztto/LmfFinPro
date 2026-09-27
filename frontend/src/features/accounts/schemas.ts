@@ -5,6 +5,7 @@ export const accountSchema = z.object({
   type: z.enum(['CHECKING', 'SAVINGS', 'WALLET', 'INVESTMENT']),
   initialBalance: z.coerce.number({ invalid_type_error: 'informe um valor numérico' }),
   scope: z.enum(['PERSONAL', 'BUSINESS']).default('PERSONAL'),
+  currency: z.enum(['BRL', 'USD', 'EUR']).default('BRL'),
 })
 
 export type AccountFormValues = z.infer<typeof accountSchema>

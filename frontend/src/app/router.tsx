@@ -41,7 +41,7 @@ export function AppRouter() {
           <Route path="/categorias" element={<CategoriesPage />} />
           <Route path="/clientes" element={<ClientsPage />} />
           <Route path="/transacoes" element={<TransactionsPage />} />
-          <Route path="/recorrentes" element={<RecurringTransactionsPage />} />
+          <Route path="/recorrencias" element={<RecurringTransactionsPage />} />
           <Route path="/calendario" element={<CalendarPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />

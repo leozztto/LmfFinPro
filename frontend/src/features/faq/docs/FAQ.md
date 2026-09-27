@@ -177,8 +177,23 @@ De tempos em tempos, informe quanto o investimento vale (o saldo do extrato da c
 **Como acompanho uma dívida?**
 Na tela Patrimônio, no card Dívidas, cadastre a dívida (financiamento, empréstimo, cartão ou outra) com o saldo devedor atual. As parcelas você continua lançando como despesas. De tempos em tempos, atualize o saldo devedor pelo extrato do banco; quando terminar de pagar, informe saldo zero, e ela aparece como quitada.
 
-**Por que o histórico mostra saldo antes de eu cadastrar a conta?**
-O saldo inicial de uma conta não tem data: ele vale para todo o histórico, como na evolução do saldo do Dashboard. Os valores de mercado e os saldos devedores, esses sim, entram a partir da data em que foram informados.
+**Por que a conta aparece zerada nos meses antes de eu cadastrá-la?**
+O saldo inicial vale a partir do dia em que a conta foi criada: antes disso não há histórico. Transações que você lançar com data anterior entram normalmente nos meses delas. Os valores de mercado e os saldos devedores entram a partir da data em que foram informados.
+___
+
+## Moedas
+
+**Posso ter uma conta em dólar ou euro?**
+Sim. Ao criar a conta, escolha a moeda (real, dólar ou euro). O saldo e os lançamentos dela ficam nessa moeda, e a tela de Contas mostra também o equivalente em reais. A moeda só pode ser trocada enquanto a conta não tiver lançamentos.
+
+**Como lanço uma compra em dólar no cartão em reais?**
+Na transação, escolha a moeda da operação e informe o valor em dólar. O valor cobrado na conta vem sugerido pela cotação do dia; ajuste para o que o banco realmente cobrou (com spread e IOF). As duas informações ficam registradas.
+
+**Como os totais tratam outras moedas?**
+Tudo o que junta contas diferentes (Dashboard, orçamentos, relatórios, pró-labore) fica em reais. Cada lançamento de uma conta em outra moeda é convertido pela PTAX do Banco Central do dia dele. No Patrimônio, o saldo dessas contas é convertido pela cotação do fim de cada mês, então a variação do câmbio aparece ali.
+
+**E uma remessa do exterior para a minha conta em reais?**
+Faça uma transferência da conta em dólar para a conta em reais e informe quanto saiu e quanto entrou. O valor recebido vem sugerido pela cotação, mas vale o que caiu de fato na conta.
 ___
 
 ## Clientes
@@ -195,14 +210,8 @@ Não, o campo cliente é opcional em qualquer transação. Receitas sem cliente 
 **Por que não consigo excluir um cliente?**
 Cliente com transações vinculadas não pode ser excluído, para não perder o histórico de receitas dele. Exclua as transações vinculadas antes — ou, se só quiser tirá-lo da lista do dia a dia, marque-o como inativo.
 
-**Onde vejo a análise de clientes e o que ela mostra?**
-Na aba **Clientes** do Dashboard (também há atalhos na tela de Clientes e no card "Receita por cliente"). Ela mostra o desempenho de cada cliente nos últimos 3, 6, 12 ou 24 meses: um gráfico com a receita mês a mês dos 5 maiores clientes (os demais somados em "Outros"), o ranking de clientes com receita, participação na receita, número de recebimentos, ticket médio, despesas vinculadas ao cliente, resultado líquido e data do último recebimento, e o histórico mês a mês do cliente que você escolher no ranking. Por padrão entram as receitas recebidas e a receber; dá pra ver só as já recebidas. Transferências entre suas contas não entram.
-
-**O que é o alerta de concentração de receita?**
-Ele mostra quanto da sua receita do período vem do maior cliente. A partir de **50%** a concentração é **alta** — se esse cliente parar de contratar, a maior parte do faturamento vai junto; entre 30% e 50% é **moderada**; abaixo de 30%, a receita está diversificada. A conta usa toda a receita do período, inclusive a lançada sem cliente, então vincular o cliente nos lançamentos deixa a análise mais fiel.
-
-**Como é calculado o ticket médio?**
-É a receita dividida pelo número de recebimentos (lançamentos de receita) no período. O ticket médio geral considera só as receitas com cliente vinculado.
+**Onde vejo a análise de clientes?**
+No Dashboard, aba **Clientes** — o link "Ver análise de clientes" desta tela leva direto pra lá. O que ela mostra está explicado na seção Dashboard.
 ___
 
 ## Importação de extrato
@@ -271,11 +280,9 @@ ___
 ## Pró-labore
 
 **Como é calculado o "quanto posso me pagar este mês"?**
-Depende da **base do cálculo** que você escolher na própria tela, em "Configuração do cálculo":
+Depende da **base do cálculo** que você escolher na própria tela, em "Configuração do cálculo". Se não sobrar nada, o valor fica em zero, e a tela mostra cada parcela da conta.
 - **Receitas do mês** (padrão): as receitas PJ já recebidas no mês, menos as despesas PJ do mês (pagas e pendentes), o imposto, a reserva da empresa e o que você já retirou no mês. O valor nunca passa do que as contas PJ comportam hoje (saldo menos contas a pagar e imposto) — se passar, a tela avisa que foi limitado.
 - **Saldo atual**: o saldo das contas PJ menos as contas a pagar até o fim do mês, o imposto a reservar e um colchão de caixa.
-
-Se não sobrar nada, o valor fica em zero. A tela mostra cada parcela da conta.
 
 **O que dá pra configurar?**
 A base do cálculo; o **imposto**, automático (a alíquota da sua caixinha do imposto ou, sem ela, a de referência do seu regime) ou um percentual definido por você; a **reserva da empresa**, em % das receitas (padrão 10%, usada na base "receitas do mês"); o **colchão de caixa**, em meses da despesa média PJ dos 3 meses anteriores (de 0 a 12, usado na base "saldo atual"); e um **pró-labore fixo** opcional.
@@ -332,7 +339,30 @@ ___
 ## Dashboard
 
 **O que o Dashboard mostra?**
-Ele tem duas abas. A **Clientes** traz a análise de clientes (veja a seção Clientes). A **Visão geral** mostra cards com o saldo atual (somando todas as contas, só com transações pagas), a receita e a despesa do mês corrente, o total a receber e a pagar (transações pendentes) e o saldo previsto (saldo atual + a receber − a pagar); gráficos de fluxo mensal (pagas e pendentes, pelo mês da transação) e de evolução do saldo nos últimos 6 meses (só transações pagas, então o último ponto bate com o saldo atual); saldo por conta; despesas por categoria, receita por categoria e receita por cliente no mês corrente; e a projeção de fluxo de caixa para os próximos 3 meses. Quando um único cliente responde por 50% ou mais da sua receita dos últimos 12 meses, aparece um aviso de concentração no topo da Visão geral.
+Ele tem duas abas: **Visão geral**, com o mês atual, e **Clientes**, com a análise da sua receita por cliente.
+
+**O que aparece na Visão geral?**
+De cima para baixo (com alguma conta em outra moeda, um aviso lembra que os valores estão em reais — veja a seção Moedas):
+- o aviso de concentração, quando um único cliente responde por 50% ou mais da sua receita dos últimos 12 meses (com atalho para a análise);
+- cards com o saldo atual (todas as contas, só transações pagas), a receita e a despesa do mês, o total a receber e a pagar (pendentes) e o saldo previsto (saldo atual + a receber − a pagar);
+- o resumo do **patrimônio líquido**, quando você tem investimento ou dívida cadastrados, com atalho para a tela Patrimônio;
+- os gráficos de fluxo mensal (pagas e pendentes, pelo mês da transação), de evolução do saldo nos últimos 6 meses (só pagas, então o último ponto bate com o saldo atual), de projeção de fluxo de caixa e de saldo por conta;
+- despesas por categoria, receita por categoria e receita por cliente no mês, com o link "Ver análise completa de clientes".
+
+**O que aparece na aba Clientes?**
+O desempenho de cada cliente no período escolhido; transferências entre suas contas não entram. De cima para baixo:
+- os filtros: período (últimos 3, 6, 12 ou 24 meses) e receitas (todas, incluindo as a receber, ou só as já recebidas);
+- o alerta de concentração de receita;
+- cards com a receita do período (e quanto dela está sem cliente vinculado), o número de clientes com receita, o ticket médio e a participação do maior cliente (e dos 3 maiores);
+- um gráfico com a receita mês a mês dos 5 maiores clientes (os demais somados em "Outros"), com a tabela dos valores;
+- o ranking de clientes, com receita, participação, recebimentos, ticket médio e resultado líquido (em telas largas, também as despesas vinculadas e o último recebimento);
+- o histórico do cliente escolhido: gráfico mês a mês e um resumo com receita, participação, despesas vinculadas, líquido, recebimentos, meses com receita e último recebimento. Clicar num cliente do ranking leva ao histórico dele; dá pra trocar de cliente ali mesmo.
+
+**O que é o alerta de concentração de receita?**
+Ele mostra quanto da sua receita do período vem do maior cliente. A partir de **50%** a concentração é **alta**: se esse cliente parar de contratar, a maior parte do faturamento vai junto. Entre 30% e 50% ela é **moderada**; abaixo de 30%, a receita está diversificada. A conta usa toda a receita do período, inclusive a lançada sem cliente, então vincular o cliente nos lançamentos deixa a análise mais fiel.
+
+**Como é calculado o ticket médio?**
+É a receita dividida pelo número de recebimentos (lançamentos de receita) no período. O ticket médio geral considera só as receitas com cliente vinculado.
 
 **Os gráficos do Dashboard atualizam em tempo real?**
 Eles refletem os dados quando você entra ou volta pra tela, e também quando você volta para a aba do navegador depois de usar outra janela — mas não há atualização contínua em segundo plano enquanto você está com a tela aberta. Criar ou excluir uma transação em outra tela atualiza o Dashboard na próxima vez que você o visitar.

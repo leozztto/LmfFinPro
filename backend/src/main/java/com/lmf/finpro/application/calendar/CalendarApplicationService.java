@@ -1,10 +1,12 @@
 package com.lmf.finpro.application.calendar;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.DasSchedule;
 import com.lmf.finpro.domain.model.FinancialCalendar;
+import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.User;
@@ -44,6 +46,7 @@ public class CalendarApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
     private final Clock clock;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     /** Calendário com os nomes de conta, categoria e cliente de cada lançamento já resolvidos. */
     public record Result(
@@ -76,7 +79,9 @@ public class CalendarApplicationService {
                         referenceMonth,
                         today,
                         transactions,
-                        recurringTransactionRepositoryPort.findAllByUserId(currentUserId),
+                        recurrencesInBrl(
+                                accounts,
+                                recurringTransactionRepositoryPort.findAllByUserId(currentUserId)),
                         dasDue(currentUserId, referenceMonth),
                         includePaid);
 
@@ -87,6 +92,14 @@ public class CalendarApplicationService {
                         .collect(Collectors.toMap(Category::id, Category::name)),
                 clientRepositoryPort.findAllByUserId(currentUserId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name)));
+    }
+
+    /** Valores em reais, como as transações ({@link Transaction#baseAmount()}). */
+    private List<RecurringTransaction> recurrencesInBrl(
+            List<Account> accounts, List<RecurringTransaction> recurrences) {
+        return accounts.stream().allMatch(account -> account.currency().isBase())
+                ? recurrences
+                : exchangeRateApplicationService.recurrencesInBrl(accounts, recurrences);
     }
 
     /** O DAS que vence no mês (dia 20) é o da competência anterior. */

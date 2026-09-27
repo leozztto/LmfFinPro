@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type Ref } from 'react'
-import { Card, FormField, Select, StatCard } from '@/shared/ui'
+import { Card, Select, StatCard } from '@/shared/ui'
 import { AlertTriangleIcon, CheckCircleIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
@@ -28,32 +28,30 @@ export function ClientAnalyticsPanel() {
   const { data, isLoading, isError } = useClientAnalytics(months, onlyReceived)
 
   return (
-    <div className="space-y-6">
-      {/* Filtros numa linha só no tablet/desktop; empilhados no celular. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
-        <FormField label="Período" htmlFor="client-analytics-period">
-          <Select
-            id="client-analytics-period"
-            value={months}
-            onChange={(event) => setMonths(Number(event.target.value))}
-          >
-            {PERIOD_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                Últimos {option} meses
-              </option>
-            ))}
-          </Select>
-        </FormField>
-        <FormField label="Receitas" htmlFor="client-analytics-status">
-          <Select
-            id="client-analytics-status"
-            value={onlyReceived ? 'received' : 'all'}
-            onChange={(event) => setOnlyReceived(event.target.value === 'received')}
-          >
-            <option value="all">Todas (recebidas e a receber)</option>
-            <option value="received">Só as já recebidas</option>
-          </Select>
-        </FormField>
+    <div className="space-y-5">
+      {/* Filtros compactos, lado a lado já no celular (as opções são curtas); à direita no desktop. */}
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+        <Select
+          aria-label="Período: últimos meses"
+          value={months}
+          onChange={(event) => setMonths(Number(event.target.value))}
+          className="sm:w-48"
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option} meses
+            </option>
+          ))}
+        </Select>
+        <Select
+          aria-label="Receitas consideradas"
+          value={onlyReceived ? 'received' : 'all'}
+          onChange={(event) => setOnlyReceived(event.target.value === 'received')}
+          className="sm:w-56"
+        >
+          <option value="all">Todas as receitas</option>
+          <option value="received">Só recebidas</option>
+        </Select>
       </div>
 
       {isLoading && <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando análise...</p>}
@@ -101,7 +99,8 @@ function AnalyticsContent({ data, selectedClientId, onSelectClient }: AnalyticsC
     <>
       <RiskCallout risk={risk} />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {/* 2×2 até o desktop pequeno (com a barra lateral sobra pouco espaço); 4 lado a lado nas telas largas. */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard
           label="Receita no período"
           value={formatCurrency(data.totalIncome)}
@@ -156,17 +155,22 @@ interface ClientHistorySectionProps {
   ref: Ref<HTMLElement>
 }
 
-/** Histórico mês a mês de um cliente, com seletor próprio para trocar de cliente sem voltar ao ranking. */
+/**
+ * Histórico mês a mês de um cliente, com seletor próprio para trocar de cliente sem voltar ao
+ * ranking: o resumo numa grade (2 colunas no celular, 4 a partir do tablet) e o gráfico em largura
+ * total logo abaixo — em vez de um resumo em coluna ao lado, que ficava mais alto que o gráfico.
+ */
 function ClientHistorySection({ ranking, selected, color, onSelectClient, ref }: ClientHistorySectionProps) {
   return (
     <section ref={ref} className="scroll-mt-4 space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Histórico do cliente</h3>
-        <div className="sm:w-72">
+        {ranking.length > 1 && (
           <Select
             aria-label="Cliente do histórico"
             value={selected.clientId}
             onChange={(event) => onSelectClient(Number(event.target.value))}
+            className="sm:w-72"
           >
             {ranking.map((row) => (
               <option key={row.clientId} value={row.clientId}>
@@ -174,47 +178,30 @@ function ClientHistorySection({ ranking, selected, color, onSelectClient, ref }:
               </option>
             ))}
           </Select>
-        </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="min-w-0 lg:col-span-2">
-          <MonthlyFlowChart
-            data={selected.monthly.map((month) => ({ ...month, label: formatMonthLabel(month.month) }))}
+      <Card padding="sm">
+        <p className="flex min-w-0 items-start gap-2">
+          <span className="mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: color }} aria-hidden />
+          <span className="min-w-0 break-words font-semibold text-zinc-800 dark:text-zinc-100">{selected.name}</span>
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
+          <SummaryItem label="Receita" value={formatCurrency(selected.income)} />
+          <SummaryItem label="Participação" value={formatShare(selected.share)} />
+          <SummaryItem label="Despesas vinculadas" value={formatCurrency(selected.expense)} />
+          <SummaryItem label="Líquido" value={formatCurrency(selected.net)} negative={selected.net < 0} />
+          <SummaryItem label="Recebimentos" value={String(selected.incomeCount)} />
+          <SummaryItem label="Ticket médio" value={formatCurrency(selected.averageTicket)} />
+          <SummaryItem label="Meses com receita" value={`${selected.activeMonths} de ${selected.monthly.length}`} />
+          <SummaryItem
+            label="Último recebimento"
+            value={selected.lastIncomeDate ? formatDateOnlyBr(selected.lastIncomeDate) : '—'}
           />
-        </div>
-        <Card padding="sm" className="min-w-0">
-          <p className="flex min-w-0 items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: color }} aria-hidden />
-            <span className="truncate font-semibold text-zinc-800 dark:text-zinc-100" title={selected.name}>
-              {selected.name}
-            </span>
-          </p>
-          {/* 2 colunas no celular/tablet (o card ocupa a largura toda); 1 coluna ao lado do gráfico. */}
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm lg:grid-cols-1">
-            <SummaryItem label="Receita" value={formatCurrency(selected.income)} />
-            <SummaryItem label="Participação" value={formatShare(selected.share)} />
-            <SummaryItem label="Despesas vinculadas" value={formatCurrency(selected.expense)} />
-            <SummaryItem
-              label="Líquido"
-              value={formatCurrency(selected.net)}
-              negative={selected.net < 0}
-            />
-            <SummaryItem
-              label="Recebimentos"
-              value={`${selected.incomeCount} · ticket ${formatCurrency(selected.averageTicket)}`}
-            />
-            <SummaryItem
-              label="Meses com receita"
-              value={`${selected.activeMonths} de ${selected.monthly.length}`}
-            />
-            <SummaryItem
-              label="Último recebimento"
-              value={selected.lastIncomeDate ? formatDateOnlyBr(selected.lastIncomeDate) : '—'}
-            />
-          </dl>
-        </Card>
-      </div>
+        </dl>
+      </Card>
+
+      <MonthlyFlowChart data={selected.monthly.map((month) => ({ ...month, label: formatMonthLabel(month.month) }))} />
     </section>
   )
 }
@@ -224,7 +211,7 @@ function SummaryItem({ label, value, negative = false }: { label: string; value:
     <div className="min-w-0">
       <dt className="text-xs text-zinc-500 dark:text-zinc-400">{label}</dt>
       <dd
-        className={`truncate font-medium ${
+        className={`break-words font-medium ${
           negative ? 'text-red-600 dark:text-red-400' : 'text-zinc-800 dark:text-zinc-100'
         }`}
       >
@@ -271,35 +258,41 @@ function RankingCard({ ranking, selectedClientId, colorFor, onSelectClient }: Ra
         Escolha um cliente para ver o histórico mês a mês logo abaixo.
       </p>
 
-      {/* Celular e tablet: um card por cliente (em 2 colunas no tablet). */}
-      <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:hidden">
+      {/* Celular e tablet (onde a barra lateral já come espaço): uma linha por cliente, com o nome
+          inteiro em cima e os números embaixo. */}
+      <ul className="mt-3 space-y-2 lg:hidden">
         {ranking.map((row, index) => (
-          <li key={row.clientId} className="min-w-0">
+          <li key={row.clientId}>
             <button
               type="button"
               onClick={() => onSelectClient(row.clientId)}
+              aria-pressed={row.clientId === selectedClientId}
               className={`w-full rounded-lg border p-3 text-left ${
                 row.clientId === selectedClientId
                   ? 'border-[#2ad6a5] bg-[#2ad6a5]/5'
                   : 'border-zinc-200 dark:border-zinc-700'
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
-                <ClientName row={row} position={index + 1} color={colorFor(row)} />
-                <span className="shrink-0 font-semibold text-zinc-800 dark:text-zinc-100">{formatCurrency(row.income)}</span>
+              <ClientName row={row} position={index + 1} color={colorFor(row)} wrap />
+              <div className="mt-2 flex items-baseline justify-between gap-2">
+                <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatCurrency(row.income)}</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  líquido{' '}
+                  <span className={row.net < 0 ? 'text-red-600 dark:text-red-400' : ''}>{formatCurrency(row.net)}</span>
+                </span>
               </div>
               <ShareBar share={row.share} color={colorFor(row)} />
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {row.incomeCount} recebimento(s) · ticket {formatCurrency(row.averageTicket)} · líquido{' '}
-                {formatCurrency(row.net)}
+                {row.incomeCount} {row.incomeCount === 1 ? 'recebimento' : 'recebimentos'} · ticket{' '}
+                {formatCurrency(row.averageTicket)}
               </p>
             </button>
           </li>
         ))}
       </ul>
 
-      {/* Desktop: tabela. Com a barra lateral, o conteúdo tem ~720px no desktop pequeno, então as colunas
-          secundárias só aparecem em telas largas (e seguem no card "Histórico do cliente"). */}
+      {/* Desktop: tabela. Com a barra lateral o conteúdo tem ~720px no desktop pequeno, então
+          despesas e último recebimento só aparecem em telas largas (e seguem no histórico do cliente). */}
       <div className="mt-3 hidden overflow-x-auto lg:block">
         <table className="w-full text-sm">
           <thead>
@@ -361,12 +354,30 @@ function RankingCard({ ranking, selectedClientId, colorFor, onSelectClient }: Ra
   )
 }
 
-function ClientName({ row, position, color }: { row: ClientRankingRow; position: number; color: string }) {
+/** `wrap` quebra o nome em linhas (lista do celular); sem ele, corta com reticências (tabela). */
+function ClientName({
+  row,
+  position,
+  color,
+  wrap = false,
+}: {
+  row: ClientRankingRow
+  position: number
+  color: string
+  wrap?: boolean
+}) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="w-5 shrink-0 text-xs text-zinc-400">{position}º</span>
-      <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: color }} aria-hidden />
-      <span className="truncate font-medium text-zinc-800 dark:text-zinc-100" title={row.name}>
+    <span className={`flex min-w-0 gap-2 ${wrap ? 'items-start' : 'items-center'}`}>
+      <span className={`w-5 shrink-0 text-xs text-zinc-400 ${wrap ? 'mt-0.5' : ''}`}>{position}º</span>
+      <span
+        className={`inline-block h-2.5 w-2.5 shrink-0 rounded-sm ${wrap ? 'mt-1.5' : ''}`}
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      <span
+        className={`min-w-0 font-medium text-zinc-800 dark:text-zinc-100 ${wrap ? 'break-words' : 'truncate'}`}
+        title={row.name}
+      >
         {row.name}
       </span>
     </span>

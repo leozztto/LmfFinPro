@@ -5,20 +5,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientWorkType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
@@ -45,6 +49,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TransactionApplicationServiceTest {
 
+    @Mock private ExchangeRateApplicationService exchangeRateApplicationService;
+
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
@@ -69,7 +75,8 @@ class TransactionApplicationServiceTest {
                         clientRepositoryPort,
                         fixedClock,
                         transactionAttachmentApplicationService,
-                        tagApplicationService);
+                        tagApplicationService,
+                        exchangeRateApplicationService);
     }
 
     private static Account ownedAccount() {
@@ -113,6 +120,98 @@ class TransactionApplicationServiceTest {
 
         assertThat(created.accountId()).isEqualTo(1L);
         assertThat(created.amount()).isEqualByComparingTo("100");
+    }
+
+    @Test
+    void createInBrlAccountKeepsTheRealAmountAndTheOriginalForeignOperation() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction created =
+                service.create(
+                        10L,
+                        1L,
+                        null,
+                        null,
+                        "Hospedagem",
+                        new BigDecimal("118.40"),
+                        LocalDate.of(2026, 9, 18),
+                        CategoryType.EXPENSE,
+                        null,
+                        List.of(),
+                        Currency.USD,
+                        new BigDecimal("20.00"));
+
+        assertThat(created.amount()).isEqualByComparingTo("118.40");
+        assertThat(created.baseAmount()).isEqualByComparingTo("118.40");
+        assertThat(created.originalCurrency()).isEqualTo(Currency.USD);
+        assertThat(created.originalAmount()).isEqualByComparingTo("20.00");
+        verifyNoInteractions(exchangeRateApplicationService);
+    }
+
+    @Test
+    void createInForeignAccountConvertsToRealAtTheRateOfTheDay() {
+        Account usdAccount =
+                new Account(
+                        1L,
+                        10L,
+                        "Wise",
+                        AccountType.CHECKING,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now(),
+                        AccountScope.BUSINESS,
+                        Currency.USD);
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(usdAccount));
+        when(exchangeRateApplicationService.toBrl(
+                        Currency.USD, new BigDecimal("1000.00"), LocalDate.of(2026, 9, 18)))
+                .thenReturn(new BigDecimal("5157.50"));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction created =
+                service.create(
+                        10L,
+                        1L,
+                        null,
+                        null,
+                        "Fatura cliente",
+                        new BigDecimal("1000.00"),
+                        LocalDate.of(2026, 9, 18),
+                        CategoryType.INCOME,
+                        null,
+                        List.of(),
+                        Currency.USD,
+                        new BigDecimal("1000.00"));
+
+        assertThat(created.baseAmount()).isEqualByComparingTo("5157.50");
+        // Operação na própria moeda da conta: não é "moeda original".
+        assertThat(created.originalCurrency()).isNull();
+        assertThat(created.originalAmount()).isNull();
+    }
+
+    @Test
+    void createWithForeignCurrencyRequiresTheOriginalAmount() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+
+        assertThatThrownBy(
+                        () ->
+                                service.create(
+                                        10L,
+                                        1L,
+                                        null,
+                                        null,
+                                        "Hospedagem",
+                                        new BigDecimal("118.40"),
+                                        LocalDate.of(2026, 9, 18),
+                                        CategoryType.EXPENSE,
+                                        null,
+                                        List.of(),
+                                        Currency.EUR,
+                                        null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("EUR");
+        verify(transactionRepositoryPort, never()).save(any());
     }
 
     @Test

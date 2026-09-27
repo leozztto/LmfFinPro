@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.dashboard;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountBalances;
 import com.lmf.finpro.domain.model.AccountType;
@@ -11,6 +12,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.DashboardAggregator;
 import com.lmf.finpro.domain.model.DashboardOverview;
 import com.lmf.finpro.domain.model.MonthlyFlowPoint;
+import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
@@ -36,6 +38,7 @@ public class DashboardApplicationService {
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     private final AccountValuationRepositoryPort accountValuationRepositoryPort;
     private final Clock clock;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     public DashboardOverview getOverview(Long userId) {
         List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
@@ -125,7 +128,15 @@ public class DashboardApplicationService {
                 anchorBalance,
                 currentMonth(),
                 monthsAhead,
-                recurringTransactionRepositoryPort.findAllByUserId(userId));
+                recurrencesInBrl(
+                        accounts, recurringTransactionRepositoryPort.findAllByUserId(userId)));
+    }
+
+    private List<RecurringTransaction> recurrencesInBrl(
+            List<Account> accounts, List<RecurringTransaction> recurrences) {
+        return accounts.stream().allMatch(account -> account.currency().isBase())
+                ? recurrences
+                : exchangeRateApplicationService.recurrencesInBrl(accounts, recurrences);
     }
 
     public List<BreakdownPoint> getCategoryBreakdown(
@@ -172,13 +183,28 @@ public class DashboardApplicationService {
                 investments.stream()
                         .map(
                                 account ->
-                                        AccountBalances.valuationGain(
+                                        toBrl(
                                                 account,
-                                                transactionsByAccount.getOrDefault(
-                                                        account.id(), List.of()),
-                                                valuations,
-                                                asOf))
+                                                AccountBalances.valuationGain(
+                                                        account,
+                                                        transactionsByAccount.getOrDefault(
+                                                                account.id(), List.of()),
+                                                        valuations,
+                                                        asOf),
+                                                asOf == null ? LocalDate.now(clock) : asOf))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Valor da conta em reais na cotação do dia. As transações já trazem o valor em reais gravado
+     * ({@link Transaction#baseAmount()}); isto vale para o que é da conta em si (saldo inicial,
+     * rendimento informado).
+     */
+    private BigDecimal toBrl(Account account, BigDecimal amount, LocalDate date) {
+        if (account.currency().isBase() || amount.signum() == 0) {
+            return amount;
+        }
+        return exchangeRateApplicationService.toBrl(account.currency(), amount, date);
     }
 
     private YearMonth currentMonth() {
@@ -189,16 +215,24 @@ public class DashboardApplicationService {
         return transactions.stream().filter(Transaction::isPaid).toList();
     }
 
+    /** Saldos iniciais em reais: os de conta em outra moeda, pela cotação do dia da criação. */
     private BigDecimal sumInitialBalance(List<Account> accounts) {
         return accounts.stream()
-                .map(Account::initialBalance)
+                .map(
+                        account ->
+                                toBrl(
+                                        account,
+                                        account.initialBalance(),
+                                        account.createdAt() == null
+                                                ? LocalDate.now(clock)
+                                                : account.createdAt().toLocalDate()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal sumByType(List<Transaction> transactions, CategoryType type) {
         return transactions.stream()
                 .filter(transaction -> transaction.type() == type)
-                .map(Transaction::amount)
+                .map(Transaction::baseAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

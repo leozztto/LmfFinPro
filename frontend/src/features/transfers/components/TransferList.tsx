@@ -41,6 +41,7 @@ export function TransferList() {
   }
 
   const accountNameById = new Map(accounts?.map((account) => [account.id, account.name]))
+  const accountCurrencyById = new Map(accounts?.map((account) => [account.id, account.currency]))
 
   const filtered = useMemo(() => {
     if (!transfers) return []
@@ -123,6 +124,8 @@ export function TransferList() {
               transfer={transfer}
               fromAccountName={accountNameById.get(transfer.fromAccountId) ?? 'conta desconhecida'}
               toAccountName={accountNameById.get(transfer.toAccountId) ?? 'conta desconhecida'}
+              fromCurrency={accountCurrencyById.get(transfer.fromAccountId)}
+              toCurrency={accountCurrencyById.get(transfer.toAccountId)}
               onDelete={() => handleDelete(transfer.id)}
               isDeleting={deleteTransfer.isPending}
             />

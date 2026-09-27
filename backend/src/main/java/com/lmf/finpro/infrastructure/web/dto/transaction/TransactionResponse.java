@@ -1,6 +1,7 @@
 package com.lmf.finpro.infrastructure.web.dto.transaction;
 
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.infrastructure.web.dto.tag.TagSummaryResponse;
@@ -24,5 +25,8 @@ public record TransactionResponse(
         Long importBatchId,
         Long recurringTransactionId,
         TransactionStatus status,
+        Currency originalCurrency,
+        BigDecimal originalAmount,
+        BigDecimal baseAmount,
         long attachmentCount,
         List<TagSummaryResponse> tags) {}

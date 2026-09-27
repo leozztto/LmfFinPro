@@ -81,6 +81,25 @@ public record RecurringTransaction(
         return dates;
     }
 
+    /** Cópia com outro valor — ex.: convertido em reais para projeções, sem ser salva. */
+    public RecurringTransaction withAmount(BigDecimal newAmount) {
+        return new RecurringTransaction(
+                id,
+                userId,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                newAmount,
+                type,
+                frequency,
+                startDate,
+                endDate,
+                generatedOccurrences,
+                active,
+                createdAt);
+    }
+
     public RecurringTransaction withGeneratedOccurrences(int newGeneratedOccurrences) {
         return new RecurringTransaction(
                 id,

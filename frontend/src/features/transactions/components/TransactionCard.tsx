@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { ExpandableText, IconButton } from '@/shared/ui'
 import { CheckCircleIcon, ChevronDownIcon, ClockIcon, PaperclipIcon, TagIcon, TrashIcon } from '@/shared/ui/icons'
 import { TagBadge } from '@/features/tags/components/TagBadge'
-import { formatCurrency } from '@/shared/format/currency'
+import { formatCurrency, type Currency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import type { Transaction } from '../types'
 
 interface TransactionCardProps {
   transaction: Transaction
   accountName: string
+  /** Moeda da conta, em que está o `amount`. */
+  accountCurrency?: Currency
   categoryName?: string
   clientName?: string
   onDelete: () => void
@@ -27,6 +29,7 @@ const PENDING_BADGE_CLASS =
 export function TransactionCard({
   transaction,
   accountName,
+  accountCurrency = 'BRL',
   categoryName,
   clientName,
   onDelete,
@@ -41,10 +44,17 @@ export function TransactionCard({
   const isPending = transaction.status === 'PENDING'
   const isIncome = transaction.type === 'INCOME'
   const amountClassName = isIncome ? 'font-semibold text-[#5ab482]' : 'font-semibold text-[#f06464]'
-  const amountLabel = `${isIncome ? '+' : '-'} ${formatCurrency(transaction.amount)}`
+  const amountLabel = `${isIncome ? '+' : '-'} ${formatCurrency(transaction.amount, accountCurrency)}`
+  // Fora do real: a operação na moeda original e/ou o equivalente em reais que entra nos totais.
+  const currencyNotes = [
+    transaction.originalCurrency && transaction.originalAmount != null
+      ? formatCurrency(transaction.originalAmount, transaction.originalCurrency)
+      : null,
+    accountCurrency !== 'BRL' ? `≈ ${formatCurrency(transaction.baseAmount)}` : null,
+  ].filter(Boolean)
   const metaLine = `${formatDateOnlyBr(transaction.transactionDate)} · ${accountName}${
     categoryName ? ` · ${categoryName}` : ''
-  }${clientName ? ` · ${clientName}` : ''}`
+  }${clientName ? ` · ${clientName}` : ''}${currencyNotes.length ? ` · ${currencyNotes.join(' · ')}` : ''}`
 
   const badges = (
     <>

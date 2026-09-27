@@ -32,6 +32,9 @@ public class TransactionWebMapper {
                 transaction.importBatchId(),
                 transaction.recurringTransactionId(),
                 transaction.status(),
+                transaction.originalCurrency(),
+                transaction.originalAmount(),
+                transaction.baseAmount(),
                 attachmentCount,
                 TagSummaryResponse.of(tags));
     }

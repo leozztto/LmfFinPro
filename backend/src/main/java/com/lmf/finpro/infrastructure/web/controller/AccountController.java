@@ -1,12 +1,14 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountResponse;
 import com.lmf.finpro.infrastructure.web.mapper.AccountWebMapper;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AccountController {
 
     private final AccountApplicationService accountApplicationService;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
     private final AccountWebMapper mapper;
 
     @GetMapping
@@ -45,7 +48,8 @@ public class AccountController {
                         request.name(),
                         request.type(),
                         request.initialBalance(),
-                        request.scope());
+                        request.scope(),
+                        request.currency());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
@@ -56,7 +60,12 @@ public class AccountController {
             @Valid @RequestBody AccountRequest request) {
         Account updated =
                 accountApplicationService.update(
-                        currentUser.userId(), id, request.name(), request.type(), request.scope());
+                        currentUser.userId(),
+                        id,
+                        request.name(),
+                        request.type(),
+                        request.scope(),
+                        request.currency());
         return toResponse(updated);
     }
 
@@ -68,7 +77,11 @@ public class AccountController {
     }
 
     private AccountResponse toResponse(Account account) {
+        BigDecimal currentBalance = accountApplicationService.calculateCurrentBalance(account);
         return mapper.toResponse(
-                account, accountApplicationService.calculateCurrentBalance(account));
+                account,
+                currentBalance,
+                exchangeRateApplicationService.toBrlTodayOrNull(account.currency(), currentBalance),
+                accountApplicationService.hasLinkedRecords(account.id()));
     }
 }

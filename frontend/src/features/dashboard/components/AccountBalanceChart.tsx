@@ -14,7 +14,10 @@ interface AccountBalancePoint {
   accountId: number
   name: string
   type: Account['type']
+  /** Em reais, para as barras ficarem na mesma escala. */
   balance: number
+  /** Saldo na moeda da conta, quando não é real. */
+  foreign: { amount: number; currency: Account['currency'] } | null
   color: string
 }
 
@@ -33,7 +36,8 @@ export function AccountBalanceChart({ accounts }: AccountBalanceChartProps) {
     accountId: account.id,
     name: account.name,
     type: account.type,
-    balance: account.currentBalance,
+    balance: account.currentBalanceInBrl ?? account.currentBalance,
+    foreign: account.currency === 'BRL' ? null : { amount: account.currentBalance, currency: account.currency },
     color: palette[index % palette.length],
   }))
 
@@ -44,7 +48,9 @@ export function AccountBalanceChart({ accounts }: AccountBalanceChartProps) {
   return (
     <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Saldo por conta</h3>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">Saldo atual de cada conta cadastrada.</p>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        Saldo atual de cada conta cadastrada{bars.some((bar) => bar.foreign) ? ', em reais pela última cotação' : ''}.
+      </p>
 
       {bars.length === 0 ? (
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Nenhuma conta cadastrada ainda.</p>
@@ -113,6 +119,7 @@ function AccountTooltip({ active, payload }: TooltipProps<number, string>) {
         <span className="inline-block h-0.5 w-3 rounded-full" style={{ backgroundColor: point.color }} aria-hidden />
         <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatCurrency(Number(entry.value))}</span>
         <span className="text-zinc-500 dark:text-zinc-400">
+          {point.foreign && `${formatCurrency(point.foreign.amount, point.foreign.currency)} · `}
           {point.name} · {ACCOUNT_TYPE_LABELS[point.type]}
         </span>
       </div>

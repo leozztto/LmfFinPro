@@ -12,8 +12,10 @@ import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -163,6 +165,85 @@ class TransferApplicationServiceTest {
         verify(transactionRepositoryPort, org.mockito.Mockito.times(2)).save(captor.capture());
         assertThat(captor.getAllValues())
                 .allSatisfy(t -> assertThat(t.description()).isEqualTo("Reserva de emergência"));
+    }
+
+    @Test
+    void crossCurrencyTransferCreditsTheReceivedAmountAndBothLegsShareTheRealValue() {
+        Account from =
+                new Account(
+                        1L,
+                        10L,
+                        "Wise",
+                        AccountType.CHECKING,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now(),
+                        AccountScope.BUSINESS,
+                        Currency.USD);
+        Account to = account(2L, "Nubank");
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(from));
+        when(accountRepositoryPort.findById(2L)).thenReturn(Optional.of(to));
+        when(accountApplicationService.calculateCurrentBalance(from))
+                .thenReturn(new BigDecimal("5000"));
+        when(transferRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransferResult result =
+                service.create(
+                        10L,
+                        1L,
+                        2L,
+                        new BigDecimal("1000.00"),
+                        LocalDate.of(2026, 9, 18),
+                        null,
+                        new BigDecimal("5102.30"));
+
+        assertThat(result.transfer().receivedAmount()).isEqualByComparingTo("5102.30");
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepositoryPort, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+                .anySatisfy(
+                        t -> {
+                            assertThat(t.type()).isEqualTo(CategoryType.EXPENSE);
+                            assertThat(t.amount()).isEqualByComparingTo("1000.00");
+                            assertThat(t.baseAmount()).isEqualByComparingTo("5102.30");
+                        })
+                .anySatisfy(
+                        t -> {
+                            assertThat(t.type()).isEqualTo(CategoryType.INCOME);
+                            assertThat(t.amount()).isEqualByComparingTo("5102.30");
+                            assertThat(t.baseAmount()).isEqualByComparingTo("5102.30");
+                        });
+    }
+
+    @Test
+    void crossCurrencyTransferRequiresTheReceivedAmount() {
+        Account from =
+                new Account(
+                        1L,
+                        10L,
+                        "Wise",
+                        AccountType.CHECKING,
+                        BigDecimal.ZERO,
+                        LocalDateTime.now(),
+                        AccountScope.BUSINESS,
+                        Currency.USD);
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(from));
+        when(accountRepositoryPort.findById(2L)).thenReturn(Optional.of(account(2L, "Nubank")));
+
+        assertThatThrownBy(
+                        () ->
+                                service.create(
+                                        10L,
+                                        1L,
+                                        2L,
+                                        new BigDecimal("1000.00"),
+                                        LocalDate.of(2026, 9, 18),
+                                        null,
+                                        null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("BRL");
     }
 
     @Test

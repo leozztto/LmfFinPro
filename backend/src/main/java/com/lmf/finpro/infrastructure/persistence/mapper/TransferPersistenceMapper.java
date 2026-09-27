@@ -19,6 +19,7 @@ public class TransferPersistenceMapper {
                 .transferDate(transfer.transferDate())
                 .description(transfer.description())
                 .createdAt(transfer.createdAt())
+                .receivedAmount(transfer.receivedAmount())
                 .build();
     }
 
@@ -31,6 +32,7 @@ public class TransferPersistenceMapper {
                 entity.getAmount(),
                 entity.getTransferDate(),
                 entity.getDescription(),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                entity.getReceivedAmount());
     }
 }
