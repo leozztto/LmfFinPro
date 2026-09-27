@@ -10,6 +10,7 @@ import { ClientsPage } from '@/features/clients/components/ClientsPage'
 import { TransactionsPage } from '@/features/transactions/components/TransactionsPage'
 import { RecurringTransactionsPage } from '@/features/recurringTransactions/components/RecurringTransactionsPage'
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
+import { CalendarPage } from '@/features/calendar/components/CalendarPage'
 import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
 import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimatesPage'
 import { BudgetsPage } from '@/features/budgets/components/BudgetsPage'
@@ -40,6 +41,7 @@ export function AppRouter() {
           <Route path="/clientes" element={<ClientsPage />} />
           <Route path="/transacoes" element={<TransactionsPage />} />
           <Route path="/recorrentes" element={<RecurringTransactionsPage />} />
+          <Route path="/calendario" element={<CalendarPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />
           <Route path="/impostos" element={<TaxEstimatesPage />} />

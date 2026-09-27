@@ -15,6 +15,8 @@ import java.util.List;
  * @param taxRate alíquota usada: a manual, a da caixinha do imposto ou a de referência do regime
  * @param taxReserveSaved valor guardado nas caixinhas do imposto
  * @param withdrawnThisMonth pró-labore já retirado no mês (transferências de conta PJ para PF)
+ * @param businessExpenses as transações que compõem {@code monthBusinessExpenses}, da mais recente
+ *     para a mais antiga
  * @param suggestedFromAccountId conta PJ com mais saldo, para pré-preencher a transferência
  * @param suggestedToAccountId primeira conta PF, para pré-preencher a transferência
  */
@@ -32,6 +34,7 @@ public record ProLaboreSummary(
         BigDecimal averageMonthlyBusinessExpense,
         BigDecimal withdrawnThisMonth,
         List<Withdrawal> withdrawals,
+        List<BusinessExpense> businessExpenses,
         Long suggestedFromAccountId,
         Long suggestedToAccountId) {
 
@@ -41,4 +44,20 @@ public record ProLaboreSummary(
             BigDecimal amount,
             String fromAccountName,
             String toAccountName) {}
+
+    /**
+     * Despesa de conta PJ que entrou no custo do mês.
+     *
+     * @param overdue pendente com data anterior a hoje
+     * @param categoryName {@code null} quando a transação não tem categoria
+     */
+    public record BusinessExpense(
+            Long transactionId,
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            boolean paid,
+            boolean overdue,
+            String accountName,
+            String categoryName) {}
 }

@@ -38,6 +38,7 @@ public record ProLaboreResponse(
         boolean fixedCovered,
         BigDecimal withdrawnThisMonth,
         List<WithdrawalResponse> withdrawals,
+        List<BusinessExpenseResponse> businessExpenses,
         Long suggestedFromAccountId,
         Long suggestedToAccountId) {
 
@@ -68,4 +69,15 @@ public record ProLaboreResponse(
             BigDecimal amount,
             String fromAccountName,
             String toAccountName) {}
+
+    /** Despesa de conta PJ que entrou em {@code monthBusinessExpenses}. */
+    public record BusinessExpenseResponse(
+            Long transactionId,
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            boolean paid,
+            boolean overdue,
+            String accountName,
+            String categoryName) {}
 }

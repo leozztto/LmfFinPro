@@ -256,6 +256,41 @@ class ProLaboreIntegrationTest extends AbstractIntegrationTest {
                 ProLaboreResponse.class);
     }
 
+    @Test
+    void paymentFromBusinessAccountIsListedAsBusinessExpenseNotAsWithdrawal() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        AccountResponse business =
+                createAccount(user, "Empresa", BigDecimal.valueOf(10000), AccountScope.BUSINESS);
+        createAccount(user, "Pessoal", BigDecimal.ZERO, AccountScope.PERSONAL);
+        ResponseEntity<TransactionResponse> expense =
+                restTemplate.exchange(
+                        "/api/transactions",
+                        HttpMethod.POST,
+                        new HttpEntity<>(
+                                new TransactionRequest(
+                                        business.id(),
+                                        null,
+                                        null,
+                                        "Contador",
+                                        BigDecimal.valueOf(450),
+                                        TODAY,
+                                        CategoryType.EXPENSE),
+                                user.authHeaders()),
+                        TransactionResponse.class);
+        assertThat(expense.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        ProLaboreResponse summary = getSummary(user);
+
+        assertThat(summary.withdrawals()).isEmpty();
+        assertThat(summary.monthBusinessExpenses()).isEqualByComparingTo("450");
+        assertThat(summary.businessExpenses()).hasSize(1);
+        ProLaboreResponse.BusinessExpenseResponse row = summary.businessExpenses().get(0);
+        assertThat(row.transactionId()).isEqualTo(expense.getBody().id());
+        assertThat(row.description()).isEqualTo("Contador");
+        assertThat(row.paid()).isTrue();
+        assertThat(row.accountName()).isEqualTo("Empresa");
+    }
+
     private void createIncome(TestUser user, Long accountId, BigDecimal amount) {
         ResponseEntity<TransactionResponse> response =
                 restTemplate.exchange(
