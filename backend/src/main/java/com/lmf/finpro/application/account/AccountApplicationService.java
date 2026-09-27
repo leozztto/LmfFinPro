@@ -3,10 +3,13 @@ package com.lmf.finpro.application.account;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountBalances;
 import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.AccountValuation;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
@@ -23,6 +26,7 @@ public class AccountApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final TransferRepositoryPort transferRepositoryPort;
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
+    private final AccountValuationRepositoryPort accountValuationRepositoryPort;
 
     /** Sem uso informado, a conta é pessoal (PF). */
     public Account create(
@@ -55,6 +59,12 @@ public class AccountApplicationService {
     public Account update(
             Long currentUserId, Long accountId, String name, AccountType type, AccountScope scope) {
         Account existing = findOwnedOrThrow(currentUserId, accountId);
+        if (existing.type() == AccountType.INVESTMENT
+                && type != AccountType.INVESTMENT
+                && accountValuationRepositoryPort.existsByAccountId(accountId)) {
+            throw new EntityHasLinkedRecordsException(
+                    "Esta conta de investimento tem valores de mercado informados. Exclua-os antes de mudar o tipo da conta.");
+        }
         return accountRepositoryPort.save(
                 existing.withDetails(
                         name,
@@ -82,8 +92,22 @@ public class AccountApplicationService {
      * fora até serem confirmadas). Não há saldo persistido: é recalculado a cada leitura para nunca
      * ficar dessincronizado das transações (que podem ser editadas ou excluídas depois de
      * lançadas).
+     *
+     * <p>Conta de investimento com valor de mercado informado: o último valor mais as movimentações
+     * posteriores a ele ({@link AccountBalances}).
      */
     public BigDecimal calculateCurrentBalance(Account account) {
+        if (account.type() == AccountType.INVESTMENT) {
+            List<AccountValuation> valuations =
+                    accountValuationRepositoryPort.findAllByAccountId(account.id());
+            if (!valuations.isEmpty()) {
+                return AccountBalances.balance(
+                        account,
+                        transactionRepositoryPort.findAllByAccountIds(List.of(account.id())),
+                        valuations,
+                        null);
+            }
+        }
         BigDecimal income =
                 transactionRepositoryPort.sumPaidAmountByAccountIdAndType(
                         account.id(), CategoryType.INCOME);

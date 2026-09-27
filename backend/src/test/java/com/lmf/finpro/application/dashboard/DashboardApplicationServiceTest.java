@@ -13,6 +13,7 @@ import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ class DashboardApplicationServiceTest {
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
+    @Mock private AccountValuationRepositoryPort accountValuationRepositoryPort;
 
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
     private static final Clock CLOCK = Clock.system(ZONE);
@@ -48,6 +50,7 @@ class DashboardApplicationServiceTest {
                         accountRepositoryPort,
                         transactionRepositoryPort,
                         recurringTransactionRepositoryPort,
+                        accountValuationRepositoryPort,
                         CLOCK);
     }
 
@@ -190,6 +193,7 @@ class DashboardApplicationServiceTest {
                         accountRepositoryPort,
                         transactionRepositoryPort,
                         recurringTransactionRepositoryPort,
+                        accountValuationRepositoryPort,
                         lateNightClock);
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.ZERO)));

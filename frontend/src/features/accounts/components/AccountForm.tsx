@@ -24,6 +24,7 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
@@ -60,7 +61,16 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
       <FormField label="Nome" htmlFor="account-name" error={errors.name?.message}>
         <Input id="account-name" placeholder="Conta corrente Nubank" {...register('name')} />
       </FormField>
-      <FormField label="Tipo" htmlFor="account-type" error={errors.type?.message}>
+      <FormField
+        label="Tipo"
+        htmlFor="account-type"
+        error={errors.type?.message}
+        hint={
+          watch('type') === 'INVESTMENT'
+            ? 'Aplicações e resgates são transferências; o rendimento vem do valor de mercado que você informar.'
+            : undefined
+        }
+      >
         <Select id="account-type" {...register('type')}>
           {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>

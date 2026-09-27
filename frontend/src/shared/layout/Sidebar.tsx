@@ -12,6 +12,7 @@ import {
   TagIcon,
   TargetIcon,
   TransferIcon,
+  TrendingUpIcon,
   UploadIcon,
   UsersIcon,
   WalletIcon,
@@ -37,6 +38,7 @@ const NAV_SECTIONS = [
       { to: '/importacoes', label: 'Importações', icon: UploadIcon },
       { to: '/orcamentos', label: 'Orçamentos', icon: TargetIcon },
       { to: '/metas', label: 'Metas', icon: PiggyBankIcon },
+      { to: '/patrimonio', label: 'Patrimônio', icon: TrendingUpIcon },
     ],
   },
   {

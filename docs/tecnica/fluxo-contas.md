@@ -12,7 +12,7 @@ Contas (`Account`) são a base de tudo: toda transação e toda transferência p
 
 - Cabeçalho com título e botão "+" que abre um modal com `AccountForm` vazio (criação).
 - `AccountList` abaixo, com filtros colapsáveis (nome, tipo) via `CollapsibleFilters`.
-- Cada conta aparece num card com: nome, tipo (rótulo em português — "Conta corrente", "Poupança", "Carteira"), saldo inicial e **saldo atual** em destaque, e dois ícones de ação (editar, remover).
+- Cada conta aparece num card com: nome, tipo (rótulo em português — "Conta corrente", "Poupança", "Carteira", "Investimento"), saldo inicial e **saldo atual** em destaque, e dois ícones de ação (editar, remover).
 - Editar abre o mesmo `AccountForm`, agora em modo edição, num modal separado.
 
 **Estados:**
@@ -149,6 +149,8 @@ flowchart LR
 ```
 
 Recalculado **a cada requisição** (`list`, `getById`, e depois de `create`/`update`) — nunca fica em cache no banco. O custo é uma agregação SQL por conta a cada leitura, aceitável para o volume de dados do sistema; o ganho é nunca precisar de uma rotina de "recalcular saldo" quando uma transação passada é editada ou apagada.
+
+**Conta de investimento** (tipo `INVESTMENT`): quando há valor de mercado informado (`account_valuations`), o saldo atual é o **último valor informado mais as movimentações pagas posteriores a ele** (`AccountBalances.balance`). Assim o resgate de tudo, rendimento incluído, não é barrado por "saldo insuficiente" na transferência. Sem valor informado, vale a regra comum acima. Uma conta com valores informados não pode deixar de ser de investimento (409). Detalhes em [`fluxo-patrimonio.md`](./fluxo-patrimonio.md).
 
 ## 8. Onde cada peça vive no repositório
 
