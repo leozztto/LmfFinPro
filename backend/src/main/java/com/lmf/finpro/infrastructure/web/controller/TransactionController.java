@@ -1,9 +1,12 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.application.transaction.TransactionApplicationService;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
+import com.lmf.finpro.infrastructure.web.dto.tag.TagNamesRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionStatusRequest;
@@ -25,32 +28,23 @@ public class TransactionController {
     private final TransactionApplicationService transactionApplicationService;
     private final TransactionWebMapper mapper;
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
+    private final TagApplicationService tagApplicationService;
 
+    /**
+     * Cada transação vem com a quantidade de anexos e as tags — uma consulta agrupada de cada, para
+     * a lista toda.
+     */
     @GetMapping
-    /** Cada transação vem com a quantidade de anexos (uma consulta agrupada para a lista toda). */
     public List<TransactionResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
         List<Transaction> transactions = transactionApplicationService.list(currentUser.userId());
-        Map<Long, Long> attachmentCounts =
-                transactionAttachmentApplicationService.countByTransactionIds(
-                        transactions.stream().map(Transaction::id).toList());
-        return transactions.stream()
-                .map(
-                        transaction ->
-                                mapper.toResponse(
-                                        transaction,
-                                        attachmentCounts.getOrDefault(transaction.id(), 0L)))
-                .toList();
+        return toResponses(currentUser.userId(), transactions);
     }
 
     @GetMapping("/{id}")
     public TransactionResponse getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         Transaction transaction = transactionApplicationService.getById(currentUser.userId(), id);
-        return mapper.toResponse(
-                transaction,
-                transactionAttachmentApplicationService
-                        .countByTransactionIds(List.of(id))
-                        .getOrDefault(id, 0L));
+        return toResponses(currentUser.userId(), List.of(transaction)).get(0);
     }
 
     @PostMapping
@@ -67,8 +61,10 @@ public class TransactionController {
                         request.amount(),
                         request.transactionDate(),
                         request.type(),
-                        request.status());
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
+                        request.status(),
+                        request.tagNames());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(toResponses(currentUser.userId(), List.of(created)).get(0));
     }
 
     @PutMapping("/{id}")
@@ -86,8 +82,9 @@ public class TransactionController {
                         request.amount(),
                         request.transactionDate(),
                         request.type(),
-                        request.status());
-        return mapper.toResponse(updated);
+                        request.status(),
+                        request.tagNames());
+        return toResponses(currentUser.userId(), List.of(updated)).get(0);
     }
 
     @PatchMapping("/{id}/status")
@@ -95,9 +92,22 @@ public class TransactionController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long id,
             @Valid @RequestBody TransactionStatusRequest request) {
-        return mapper.toResponse(
+        Transaction updated =
                 transactionApplicationService.updateStatus(
-                        currentUser.userId(), id, request.status()));
+                        currentUser.userId(), id, request.status());
+        return toResponses(currentUser.userId(), List.of(updated)).get(0);
+    }
+
+    /** Troca só as tags (inclusive de transação paga, importada ou de transferência). */
+    @PutMapping("/{id}/tags")
+    public TransactionResponse updateTags(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody TagNamesRequest request) {
+        Transaction transaction =
+                transactionApplicationService.updateTags(
+                        currentUser.userId(), id, request.tagNames());
+        return toResponses(currentUser.userId(), List.of(transaction)).get(0);
     }
 
     @DeleteMapping("/{id}")
@@ -105,5 +115,20 @@ public class TransactionController {
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         transactionApplicationService.delete(currentUser.userId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    private List<TransactionResponse> toResponses(Long userId, List<Transaction> transactions) {
+        List<Long> ids = transactions.stream().map(Transaction::id).toList();
+        Map<Long, Long> attachmentCounts =
+                transactionAttachmentApplicationService.countByTransactionIds(ids);
+        Map<Long, List<Tag>> tags = tagApplicationService.tagsByTransactionIds(userId, ids);
+        return transactions.stream()
+                .map(
+                        transaction ->
+                                mapper.toResponse(
+                                        transaction,
+                                        attachmentCounts.getOrDefault(transaction.id(), 0L),
+                                        tags.getOrDefault(transaction.id(), List.of())))
+                .toList();
     }
 }

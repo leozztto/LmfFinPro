@@ -7,6 +7,7 @@ import type {
   ClientReceiptInput,
   IncomeStatementInput,
   ReportFormat,
+  TagTotalsReportFilters,
   TransactionExportInput,
   TransactionReportFilters,
   TransactionReportKind,
@@ -43,8 +44,15 @@ export const reportsApi = {
       `/reports/transaction-export?referenceMonth=${input.referenceMonth}&format=${input.format}`,
     ),
   downloadAttachmentsArchive: (year: string) => httpClient.getBlob(`/reports/attachments-archive?year=${year}`),
-  downloadTransactionReport: (kind: TransactionReportKind, filters: TransactionReportFilters, format: ReportFormat) =>
+  downloadTransactionReport: (
+    kind: TransactionReportKind,
+    filters: TransactionReportFilters,
+    format: ReportFormat,
+    tagIds: number[] = [],
+  ) =>
     httpClient.getBlob(
-      `/reports/${kind === 'INCOME' ? 'incomes' : 'expenses'}?${buildTransactionReportQuery(filters, format)}`,
+      `/reports/${kind === 'INCOME' ? 'incomes' : 'expenses'}?${buildTransactionReportQuery(filters, format, tagIds)}`,
     ),
+  downloadTagTotalsReport: (filters: TagTotalsReportFilters, format: ReportFormat, tagIds: number[]) =>
+    httpClient.getBlob(`/reports/tag-totals?${buildTransactionReportQuery(filters, format, tagIds)}`),
 }

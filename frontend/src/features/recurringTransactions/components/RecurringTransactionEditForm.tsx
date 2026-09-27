@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Checkbox, FormField, Input, Select } from '@/shared/ui'
@@ -11,6 +12,7 @@ import { TRANSACTION_TYPE_LABELS } from '@/features/transactions/types'
 import { useUpdateRecurringTransaction } from '../hooks/useUpdateRecurringTransaction'
 import { recurringTransactionUpdateSchema, type RecurringTransactionUpdateFormValues } from '../schemas'
 import { RECURRENCE_FREQUENCY_LABELS, type RecurringTransaction } from '../types'
+import { TagInput } from '@/features/tags/components/TagInput'
 
 interface RecurringTransactionEditFormProps {
   recurrence: RecurringTransaction
@@ -24,6 +26,7 @@ export function RecurringTransactionEditForm({ recurrence, onSuccess }: Recurrin
   const { data: clients } = useClients()
   const updateRecurringTransaction = useUpdateRecurringTransaction()
   const { showToast } = useToast()
+  const [tagNames, setTagNames] = useState(() => (recurrence.tags ?? []).map((tag) => tag.name))
 
   const {
     register,
@@ -48,7 +51,7 @@ export function RecurringTransactionEditForm({ recurrence, onSuccess }: Recurrin
 
   async function onSubmit(values: RecurringTransactionUpdateFormValues) {
     try {
-      await updateRecurringTransaction.mutateAsync({ id: recurrence.id, input: values })
+      await updateRecurringTransaction.mutateAsync({ id: recurrence.id, input: { ...values, tagNames } })
       showToast('Recorrência atualizada com sucesso.', 'success')
       onSuccess?.()
     } catch (error) {
@@ -57,7 +60,7 @@ export function RecurringTransactionEditForm({ recurrence, onSuccess }: Recurrin
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg bg-zinc-100 p-3 text-sm dark:bg-zinc-800 sm:col-span-2 sm:grid-cols-4">
         <div>
           <dt className="text-xs text-zinc-500 dark:text-zinc-400">Tipo</dt>
@@ -116,6 +119,11 @@ export function RecurringTransactionEditForm({ recurrence, onSuccess }: Recurrin
           </span>
         </span>
       </label>
+      <div className="min-w-0 sm:col-span-2">
+        <FormField label="Tags" htmlFor="recurring-edit-tags">
+          <TagInput id="recurring-edit-tags" value={tagNames} onChange={setTagNames} placeholder="Digite uma tag" />
+        </FormField>
+      </div>
       <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-2">
         As alterações valem para as próximas ocorrências; transações já lançadas não mudam.
       </p>

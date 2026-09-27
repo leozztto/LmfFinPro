@@ -13,9 +13,11 @@ import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
+import com.lmf.finpro.domain.exception.InvalidTagException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
+import com.lmf.finpro.domain.exception.TagAlreadyExistsException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -135,6 +137,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAttachmentInvalid(
             AttachmentInvalidException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidTagException.class)
+    public ResponseEntity<ApiError> handleInvalidTag(
+            InvalidTagException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(TagAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleTagAlreadyExists(
+            TagAlreadyExistsException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     /** Arquivo acima do limite de upload do Spring (spring.servlet.multipart.max-file-size). */

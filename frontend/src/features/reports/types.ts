@@ -8,6 +8,7 @@ export type ReportType =
   | 'TRANSACTION_EXPORT'
   | 'INCOME_REPORT'
   | 'EXPENSE_REPORT'
+  | 'TAG_TOTALS'
   | 'ATTACHMENTS_ARCHIVE'
 
 export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
@@ -63,6 +64,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   TRANSACTION_EXPORT: 'Exportação de transações',
   INCOME_REPORT: 'Receitas (com filtros)',
   EXPENSE_REPORT: 'Despesas (com filtros)',
+  TAG_TOTALS: 'Totais por tag',
   ATTACHMENTS_ARCHIVE: 'Comprovantes do ano (ZIP)',
 }
 
@@ -108,3 +110,18 @@ export const EMPTY_TRANSACTION_REPORT_FILTERS: TransactionReportFilters = {
 }
 
 export type TransactionReportKind = 'INCOME' | 'EXPENSE'
+
+/** Filtros do relatório de totais por tag (as tags vão à parte, como ids). Todos opcionais. */
+export interface TagTotalsReportFilters {
+  startDate: string
+  endDate: string
+  accountScope: string
+  status: string
+}
+
+export const EMPTY_TAG_TOTALS_REPORT_FILTERS: TagTotalsReportFilters = {
+  startDate: '',
+  endDate: '',
+  accountScope: '',
+  status: '',
+}

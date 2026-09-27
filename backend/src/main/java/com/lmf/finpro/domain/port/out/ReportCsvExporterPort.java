@@ -6,6 +6,7 @@ import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.TagTotalsReportData;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionReportData;
 
@@ -25,4 +26,6 @@ public interface ReportCsvExporterPort {
     byte[] exportTransactions(TransactionExportData data);
 
     byte[] exportTransactionReport(TransactionReportData data);
+
+    byte[] exportTagTotalsReport(TagTotalsReportData data);
 }

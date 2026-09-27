@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.TagTotalsReportData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionReportData;
@@ -168,7 +169,8 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                     "Descrição",
                     "Tipo",
                     "Situação",
-                    "Valor"
+                    "Valor",
+                    "Tags"
                 });
         for (TransactionExportData.TransactionExportRow row : data.rows()) {
             rows.add(
@@ -180,19 +182,30 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                         row.description(),
                         row.type() == CategoryType.INCOME ? "Receita" : "Despesa",
                         row.status() == TransactionStatus.PAID ? "Paga" : "Pendente",
-                        row.amount().toPlainString()
+                        row.amount().toPlainString(),
+                        row.tags()
                     });
         }
         return CsvWriter.write(rows);
     }
 
-    /** Uma linha por transação e, ao final, os totais geral, pago e pendente. */
+    /**
+     * Uma linha por transação e, ao final, os totais geral, pago e pendente. As tags vão na última
+     * coluna, para o valor continuar na mesma posição de antes.
+     */
     @Override
     public byte[] exportTransactionReport(TransactionReportData data) {
         List<String[]> rows = new ArrayList<>();
         rows.add(
                 new String[] {
-                    "Data", "Descrição", "Conta", "Categoria", "Cliente", "Situação", "Valor"
+                    "Data",
+                    "Descrição",
+                    "Conta",
+                    "Categoria",
+                    "Cliente",
+                    "Situação",
+                    "Valor",
+                    "Tags"
                 });
         for (TransactionReportData.Row row : data.rows()) {
             rows.add(
@@ -203,15 +216,44 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                         row.categoryName(),
                         row.clientName(),
                         row.status() == TransactionStatus.PAID ? "Paga" : "Pendente",
-                        row.amount().toPlainString()
+                        row.amount().toPlainString(),
+                        row.tags()
                     });
         }
-        rows.add(new String[] {"", "TOTAL", "", "", "", "", data.total().toPlainString()});
-        rows.add(new String[] {"", "Total pago", "", "", "", "", data.paidTotal().toPlainString()});
+        rows.add(new String[] {"", "TOTAL", "", "", "", "", data.total().toPlainString(), ""});
         rows.add(
                 new String[] {
-                    "", "Total pendente", "", "", "", "", data.pendingTotal().toPlainString()
+                    "", "Total pago", "", "", "", "", data.paidTotal().toPlainString(), ""
                 });
+        rows.add(
+                new String[] {
+                    "", "Total pendente", "", "", "", "", data.pendingTotal().toPlainString(), ""
+                });
+        return CsvWriter.write(rows);
+    }
+
+    /**
+     * Uma linha por tag e, sem filtro de tag, a linha "Sem tag". Sem linha de total: uma transação
+     * com duas tags entra nas duas.
+     */
+    @Override
+    public byte[] exportTagTotalsReport(TagTotalsReportData data) {
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] {"Tag", "Lançamentos", "Receitas", "Despesas", "Resultado"});
+        List<TagTotalsReportData.Row> lines = new ArrayList<>(data.rows());
+        if (data.untagged() != null) {
+            lines.add(data.untagged());
+        }
+        for (TagTotalsReportData.Row row : lines) {
+            rows.add(
+                    new String[] {
+                        row.label(),
+                        String.valueOf(row.count()),
+                        row.income().toPlainString(),
+                        row.expense().toPlainString(),
+                        row.result().toPlainString()
+                    });
+        }
         return CsvWriter.write(rows);
     }
 

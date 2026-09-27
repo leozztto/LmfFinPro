@@ -1,4 +1,5 @@
 import type { TransactionType } from '@/features/transactions/types'
+import type { TagSummary } from '@/features/tags/types'
 
 export type RecurrenceFrequency = 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 
@@ -18,6 +19,8 @@ export interface RecurringTransaction {
   /** Calculada no backend; null quando pausada ou encerrada. */
   nextOccurrenceDate: string | null
   createdAt: string
+  /** Copiadas para cada transação gerada. */
+  tags: TagSummary[]
 }
 
 export interface RecurringTransactionInput {
@@ -30,6 +33,7 @@ export interface RecurringTransactionInput {
   frequency: RecurrenceFrequency
   startDate: string
   endDate?: string
+  tagNames?: string[]
 }
 
 export interface RecurringTransactionUpdateInput {
@@ -39,6 +43,7 @@ export interface RecurringTransactionUpdateInput {
   amount: number
   endDate?: string
   active: boolean
+  tagNames?: string[]
 }
 
 export const RECURRENCE_FREQUENCY_LABELS: Record<RecurrenceFrequency, string> = {

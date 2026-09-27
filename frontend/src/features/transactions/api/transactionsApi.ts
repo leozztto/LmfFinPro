@@ -6,5 +6,7 @@ export const transactionsApi = {
   create: (input: TransactionInput) => httpClient.post<Transaction, TransactionInput>('/transactions', input),
   updateStatus: (id: number, status: TransactionStatus) =>
     httpClient.patch<Transaction, { status: TransactionStatus }>(`/transactions/${id}/status`, { status }),
+  updateTags: (id: number, tagNames: string[]) =>
+    httpClient.put<Transaction, { tagNames: string[] }>(`/transactions/${id}/tags`, { tagNames }),
   remove: (id: number) => httpClient.delete(`/transactions/${id}`),
 }

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountScope;
@@ -47,6 +48,8 @@ class TransactionReportApplicationServiceTest {
     @Mock private ClientRepositoryPort clientRepositoryPort;
     @Mock private ReceiptGeneratorPort receiptGeneratorPort;
     @Mock private ReportCsvExporterPort reportCsvExporterPort;
+
+    @Mock private TagApplicationService tagApplicationService;
 
     @InjectMocks private TransactionReportApplicationService service;
 

@@ -293,9 +293,9 @@ class ReportCsvExporterTest {
 
         assertThat(content)
                 .isEqualTo(
-                        "Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor\r\n"
-                                + "2026-09-05;Conta Corrente;Aluguel;;Aluguel escritório;Despesa;Paga;1500.00\r\n"
-                                + "2026-09-20;Conta Corrente;Serviços;Cliente X;Mensalidade;Receita;Pendente;3000.00\r\n");
+                        "Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor;Tags\r\n"
+                                + "2026-09-05;Conta Corrente;Aluguel;;Aluguel escritório;Despesa;Paga;1500.00;\r\n"
+                                + "2026-09-20;Conta Corrente;Serviços;Cliente X;Mensalidade;Receita;Pendente;3000.00;\r\n");
     }
 
     @Test
@@ -347,11 +347,11 @@ class ReportCsvExporterTest {
 
         assertThat(content)
                 .isEqualTo(
-                        "Data;Descrição;Conta;Categoria;Cliente;Situação;Valor\r\n"
-                                + "2026-09-05;Aluguel;Conta PJ;Moradia;;Paga;1500.00\r\n"
-                                + "2026-09-28;Internet;Conta PJ;Serviços;;Pendente;120.00\r\n"
-                                + ";TOTAL;;;;;1620.00\r\n"
-                                + ";Total pago;;;;;1500.00\r\n"
-                                + ";Total pendente;;;;;120.00\r\n");
+                        "Data;Descrição;Conta;Categoria;Cliente;Situação;Valor;Tags\r\n"
+                                + "2026-09-05;Aluguel;Conta PJ;Moradia;;Paga;1500.00;\r\n"
+                                + "2026-09-28;Internet;Conta PJ;Serviços;;Pendente;120.00;\r\n"
+                                + ";TOTAL;;;;;1620.00;\r\n"
+                                + ";Total pago;;;;;1500.00;\r\n"
+                                + ";Total pendente;;;;;120.00;\r\n");
     }
 }

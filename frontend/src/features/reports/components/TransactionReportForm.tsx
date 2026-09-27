@@ -7,6 +7,8 @@ import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { ACCOUNT_SCOPE_LABELS } from '@/features/accounts/types'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
+import { useTags } from '@/features/tags/hooks/useTags'
+import { TagInput } from '@/features/tags/components/TagInput'
 import { useDownloadTransactionReport } from '../hooks/useDownloadTransactionReport'
 import {
   EMPTY_TRANSACTION_REPORT_FILTERS,
@@ -28,12 +30,14 @@ export function TransactionReportForm({ kind, format }: TransactionReportFormPro
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const { data: clients } = useClients()
+  const { data: tags } = useTags()
   const [filters, setFilters] = useState<TransactionReportFilters>(EMPTY_TRANSACTION_REPORT_FILTERS)
+  const [tagNames, setTagNames] = useState<string[]>([])
 
   const isIncome = kind === 'INCOME'
   const noun = isIncome ? 'receitas' : 'despesas'
   const validationError = validateTransactionReportFilters(filters)
-  const hasFilters = Object.values(filters).some((value) => value.trim() !== '')
+  const hasFilters = Object.values(filters).some((value) => value.trim() !== '') || tagNames.length > 0
   const categoriesOfKind = (categories ?? []).filter((category) => category.type === kind)
   const idPrefix = `${noun}-report`
 
@@ -48,7 +52,8 @@ export function TransactionReportForm({ kind, format }: TransactionReportFormPro
     const fileName = `${noun}-${getCurrentIsoDate()}.${extension}`
 
     try {
-      await downloadReport.mutateAsync({ kind, filters, format, fileName })
+      const tagIds = (tags ?? []).filter((tag) => tagNames.includes(tag.name)).map((tag) => tag.id)
+      await downloadReport.mutateAsync({ kind, filters, format, fileName, tagIds })
       showToast('Relatório gerado com sucesso.', 'success')
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível gerar o relatório.')
@@ -62,7 +67,7 @@ export function TransactionReportForm({ kind, format }: TransactionReportFormPro
         entram no relatório.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <FormField label="De" htmlFor={`${idPrefix}-start`}>
           <Input
             id={`${idPrefix}-start`}
@@ -160,6 +165,17 @@ export function TransactionReportForm({ kind, format }: TransactionReportFormPro
             onChange={(e) => update('maxAmount', e.target.value)}
           />
         </FormField>
+        <div className="min-w-0 sm:col-span-2 lg:col-span-3">
+          <FormField label="Tags (qualquer uma)" htmlFor={`${idPrefix}-tags`}>
+            <TagInput
+              id={`${idPrefix}-tags`}
+              value={tagNames}
+              onChange={setTagNames}
+              allowCreate={false}
+              placeholder="Todas"
+            />
+          </FormField>
+        </div>
         <div className="sm:col-span-2 lg:col-span-3">
           <FormField label="Descrição contém" htmlFor={`${idPrefix}-description`}>
             <Input
@@ -179,7 +195,10 @@ export function TransactionReportForm({ kind, format }: TransactionReportFormPro
           type="button"
           variant="secondary"
           className="w-full sm:w-auto"
-          onClick={() => setFilters(EMPTY_TRANSACTION_REPORT_FILTERS)}
+          onClick={() => {
+            setFilters(EMPTY_TRANSACTION_REPORT_FILTERS)
+            setTagNames([])
+          }}
           disabled={!hasFilters}
         >
           Limpar filtros

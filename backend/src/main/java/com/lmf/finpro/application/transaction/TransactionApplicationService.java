@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.transaction;
 
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,10 +33,9 @@ public class TransactionApplicationService {
     private final ClientRepositoryPort clientRepositoryPort;
     private final Clock clock;
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
+    private final TagApplicationService tagApplicationService;
 
-    /**
-     * {@code status} nulo usa o padrão pela data: data futura fica pendente, o resto já nasce pago.
-     */
+    /** Sem tags. */
     public Transaction create(
             Long currentUserId,
             Long accountId,
@@ -45,6 +46,36 @@ public class TransactionApplicationService {
             LocalDate transactionDate,
             CategoryType type,
             TransactionStatus status) {
+        return create(
+                currentUserId,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                status,
+                List.of());
+    }
+
+    /**
+     * {@code status} nulo usa o padrão pela data: data futura fica pendente, o resto já nasce pago.
+     * As tags (por nome) são criadas se ainda não existirem, na mesma transação de banco — uma tag
+     * inválida desfaz o lançamento inteiro.
+     */
+    @Transactional
+    public Transaction create(
+            Long currentUserId,
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionStatus status,
+            List<String> tagNames) {
         requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -52,16 +83,19 @@ public class TransactionApplicationService {
                 status != null
                         ? status
                         : TransactionStatus.defaultFor(transactionDate, LocalDate.now(clock));
-        return transactionRepositoryPort.save(
-                Transaction.create(
-                        accountId,
-                        categoryId,
-                        clientId,
-                        description,
-                        amount,
-                        transactionDate,
-                        type,
-                        resolvedStatus));
+        Transaction saved =
+                transactionRepositoryPort.save(
+                        Transaction.create(
+                                accountId,
+                                categoryId,
+                                clientId,
+                                description,
+                                amount,
+                                transactionDate,
+                                type,
+                                resolvedStatus));
+        tagApplicationService.replaceTransactionTags(currentUserId, saved.id(), tagNames);
+        return saved;
     }
 
     public List<Transaction> list(Long currentUserId) {
@@ -76,6 +110,8 @@ public class TransactionApplicationService {
         return findOwnedOrThrow(currentUserId, transactionId);
     }
 
+    /** {@code tagNames} nulo mantém as tags atuais. */
+    @Transactional
     public Transaction update(
             Long currentUserId,
             Long transactionId,
@@ -85,7 +121,8 @@ public class TransactionApplicationService {
             BigDecimal amount,
             LocalDate transactionDate,
             CategoryType type,
-            TransactionStatus status) {
+            TransactionStatus status,
+            List<String> tagNames) {
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -96,7 +133,21 @@ public class TransactionApplicationService {
             requireStatusChangeAllowed(existing, status);
             updated = updated.withStatus(status);
         }
-        return transactionRepositoryPort.save(updated);
+        Transaction saved = transactionRepositoryPort.save(updated);
+        if (tagNames != null) {
+            tagApplicationService.replaceTransactionTags(currentUserId, transactionId, tagNames);
+        }
+        return saved;
+    }
+
+    /**
+     * Troca só as tags. Vale para qualquer transação — paga, pendente, importada ou de
+     * transferência —, porque tag é classificação e não mexe em valor nem em saldo.
+     */
+    public Transaction updateTags(Long currentUserId, Long transactionId, List<String> tagNames) {
+        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
+        tagApplicationService.replaceTransactionTags(currentUserId, transactionId, tagNames);
+        return existing;
     }
 
     /** Marca como paga — a ação rápida da lista de transações. Paga não volta a pendente. */

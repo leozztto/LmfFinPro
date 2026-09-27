@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ExpandableText, IconButton } from '@/shared/ui'
-import { CheckCircleIcon, ChevronDownIcon, ClockIcon, PaperclipIcon, TrashIcon } from '@/shared/ui/icons'
+import { CheckCircleIcon, ChevronDownIcon, ClockIcon, PaperclipIcon, TagIcon, TrashIcon } from '@/shared/ui/icons'
+import { TagBadge } from '@/features/tags/components/TagBadge'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import type { Transaction } from '../types'
@@ -15,6 +16,7 @@ interface TransactionCardProps {
   onMarkAsPaid: () => void
   isMarkingAsPaid: boolean
   onOpenAttachments: () => void
+  onEditTags: () => void
 }
 
 const NEUTRAL_BADGE_CLASS =
@@ -32,6 +34,7 @@ export function TransactionCard({
   onMarkAsPaid,
   isMarkingAsPaid,
   onOpenAttachments,
+  onEditTags,
 }: TransactionCardProps) {
   const [open, setOpen] = useState(false)
   const isTransfer = transaction.transferId != null
@@ -48,8 +51,14 @@ export function TransactionCard({
       {isPending && <span className={PENDING_BADGE_CLASS}>{isIncome ? 'A receber' : 'A pagar'}</span>}
       {isTransfer && <span className={NEUTRAL_BADGE_CLASS}>Transferência</span>}
       {transaction.origin === 'RECURRING' && <span className={NEUTRAL_BADGE_CLASS}>Recorrente</span>}
+      {(transaction.tags ?? []).map((tag) => (
+        <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+      ))}
     </>
   )
+
+  // Tag é classificação: dá para mudar em qualquer transação, inclusive paga ou de transferência.
+  const tagsButton = <IconButton icon={TagIcon} label="Editar tags" onClick={onEditTags} />
 
   // Só transação pendente tem o botão: marcar como paga é definitivo (não volta a pendente) e
   // transferência já nasce paga.
@@ -132,6 +141,7 @@ export function TransactionCard({
             <div className="flex items-end justify-between gap-2">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{metaLine}</p>
               <div className="flex shrink-0 items-center gap-1">
+                {tagsButton}
                 {attachmentsButton}
                 {statusButton}
                 {removeButton}
@@ -152,6 +162,7 @@ export function TransactionCard({
         <div className="flex shrink-0 items-center gap-3">
           <span className={amountClassName}>{amountLabel}</span>
           <div className="flex items-center gap-1">
+            {tagsButton}
             {attachmentsButton}
             {statusButton}
             {removeButton}

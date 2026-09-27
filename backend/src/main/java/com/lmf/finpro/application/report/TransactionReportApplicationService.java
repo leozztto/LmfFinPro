@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.report;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountScope;
@@ -7,6 +8,7 @@ import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ReportFormat;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionReportData;
 import com.lmf.finpro.domain.model.TransactionReportData.CategoryTotal;
@@ -52,6 +54,7 @@ public class TransactionReportApplicationService {
     private final ClientRepositoryPort clientRepositoryPort;
     private final ReceiptGeneratorPort receiptGeneratorPort;
     private final ReportCsvExporterPort reportCsvExporterPort;
+    private final TagApplicationService tagApplicationService;
 
     public byte[] generate(
             Long currentUserId,
@@ -89,6 +92,12 @@ public class TransactionReportApplicationService {
         if (filters.clientId() != null && !clientNameById.containsKey(filters.clientId())) {
             throw new ResourceNotFoundException("Cliente não encontrado: " + filters.clientId());
         }
+        Map<Long, Tag> tagById = tagApplicationService.tagsById(currentUserId);
+        for (Long tagId : filters.tagIds()) {
+            if (!tagById.containsKey(tagId)) {
+                throw new ResourceNotFoundException("Tag não encontrada: " + tagId);
+            }
+        }
 
         List<Transaction> transactions =
                 transactionRepositoryPort.search(
@@ -105,7 +114,11 @@ public class TransactionReportApplicationService {
                                 filters.minAmount(),
                                 filters.maxAmount(),
                                 filters.description(),
-                                true));
+                                true,
+                                filters.tagIds()));
+        Map<Long, List<Tag>> tagsByTransaction =
+                tagApplicationService.tagsByTransactionIds(
+                        currentUserId, transactions.stream().map(Transaction::id).toList());
 
         List<Row> rows =
                 transactions.stream()
@@ -123,13 +136,16 @@ public class TransactionReportApplicationService {
                                                                 transaction.clientId(),
                                                                 "Cliente removido"),
                                                 transaction.status(),
-                                                transaction.amount()))
+                                                transaction.amount(),
+                                                Tag.joinLabels(
+                                                        tagsByTransaction.getOrDefault(
+                                                                transaction.id(), List.of()))))
                         .toList();
 
         return new TransactionReportData(
                 type,
                 periodLabel(filters),
-                describeFilters(filters, accountById, categoryNameById, clientNameById),
+                describeFilters(filters, accountById, categoryNameById, clientNameById, tagById),
                 rows,
                 sum(rows, null),
                 sum(rows, TransactionStatus.PAID),
@@ -158,8 +174,11 @@ public class TransactionReportApplicationService {
     }
 
     private static String periodLabel(TransactionReportFilters filters) {
-        LocalDate start = filters.startDate();
-        LocalDate end = filters.endDate();
+        return periodLabel(filters.startDate(), filters.endDate());
+    }
+
+    /** Período para o cabeçalho, com qualquer uma das datas opcional. */
+    static String periodLabel(LocalDate start, LocalDate end) {
         if (start != null && end != null) {
             return start.format(DATE_FORMAT) + " a " + end.format(DATE_FORMAT);
         }
@@ -177,7 +196,8 @@ public class TransactionReportApplicationService {
             TransactionReportFilters filters,
             Map<Long, Account> accountById,
             Map<Long, String> categoryNameById,
-            Map<Long, String> clientNameById) {
+            Map<Long, String> clientNameById,
+            Map<Long, Tag> tagById) {
         List<String> labels = new ArrayList<>();
         if (filters.accountId() != null) {
             labels.add("Conta: " + accountById.get(filters.accountId()).name());
@@ -208,6 +228,11 @@ public class TransactionReportApplicationService {
         }
         if (filters.description() != null && !filters.description().isBlank()) {
             labels.add("Descrição contém: \"" + filters.description().trim() + "\"");
+        }
+        if (!filters.tagIds().isEmpty()) {
+            labels.add(
+                    (filters.tagIds().size() == 1 ? "Tag: " : "Tags (qualquer uma): ")
+                            + Tag.joinLabels(filters.tagIds().stream().map(tagById::get).toList()));
         }
         return labels;
     }
