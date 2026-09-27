@@ -43,6 +43,10 @@ services:
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
       # Resumo diário de alertas; para testar, "0 * * * * *" dispara a cada minuto.
       FINPRO_ALERTS_CRON: ${FINPRO_ALERTS_CRON:-0 0 8 * * *}
+      # Anexos de transação (comprovantes, notas fiscais): guardados no volume abaixo.
+      FINPRO_ATTACHMENTS_STORAGE_DIR: /app/data/attachments
+    volumes:
+      - finpro_attachments:/app/data/attachments
     ports:
       - "8080:8080"
 
@@ -69,3 +73,4 @@ services:
 
 volumes:
   finpro_postgres_data:
+  finpro_attachments:

@@ -4,3 +4,6 @@ target/
 *.log
 .idea/
 *.iml
+
+# Anexos gravados ao rodar o backend fora do Docker (finpro.attachments.storage-dir)
+data/

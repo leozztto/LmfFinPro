@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/ui'
+import { Button, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
+import { TransactionAttachmentsPanel } from '@/features/attachments/components/TransactionAttachmentsPanel'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
@@ -24,6 +25,7 @@ interface Filters {
   clientId: string
   type: TransactionType | ''
   status: TransactionStatus | ''
+  attachment: 'WITH' | 'WITHOUT' | ''
   startDate: string
   endDate: string
 }
@@ -34,6 +36,7 @@ const EMPTY_FILTERS: Filters = {
   clientId: '',
   type: '',
   status: '',
+  attachment: '',
   startDate: '',
   endDate: '',
 }
@@ -48,6 +51,7 @@ export function TransactionList() {
   const { showToast } = useToast()
   const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [attachmentsFor, setAttachmentsFor] = useState<Transaction | null>(null)
 
   async function handleDelete(transactionId: number, description: string) {
     const confirmed = await confirm({
@@ -65,13 +69,22 @@ export function TransactionList() {
     })
   }
 
-  function handleToggleStatus(transaction: Transaction) {
-    const status: TransactionStatus = transaction.status === 'PENDING' ? 'PAID' : 'PENDING'
+  /** Marcar como paga (ou recebida) é definitivo — o backend recusa a volta para pendente —, por isso confirma antes. */
+  async function handleMarkAsPaid(transaction: Transaction) {
+    const isIncome = transaction.type === 'INCOME'
+    const paidWord = isIncome ? 'recebida' : 'paga'
+    const confirmed = await confirm({
+      title: `Marcar como ${paidWord}`,
+      message: `Confirmar que "${transaction.description}" foi ${paidWord}? Depois de confirmada, a transação não poderá voltar para pendente.`,
+      confirmLabel: `Marcar como ${paidWord}`,
+      variant: 'brand',
+    })
+    if (!confirmed) return
+
     updateTransactionStatus.mutate(
-      { id: transaction.id, status },
+      { id: transaction.id, status: 'PAID' },
       {
-        onSuccess: () =>
-          showToast(status === 'PAID' ? 'Transação marcada como paga.' : 'Transação marcada como pendente.', 'success'),
+        onSuccess: () => showToast(`Transação marcada como ${paidWord}.`, 'success'),
         onError: (error) =>
           showToast(error instanceof ApiError ? error.message : 'Não foi possível alterar a situação da transação.'),
       },
@@ -90,6 +103,9 @@ export function TransactionList() {
       if (filters.clientId && transaction.clientId !== Number(filters.clientId)) return false
       if (filters.type && transaction.type !== filters.type) return false
       if (filters.status && transaction.status !== filters.status) return false
+      const hasAttachment = (transaction.attachmentCount ?? 0) > 0
+      if (filters.attachment === 'WITH' && !hasAttachment) return false
+      if (filters.attachment === 'WITHOUT' && hasAttachment) return false
       if (filters.startDate && transaction.transactionDate < filters.startDate) return false
       if (filters.endDate && transaction.transactionDate > filters.endDate) return false
       return true
@@ -115,7 +131,7 @@ export function TransactionList() {
   return (
     <div className="space-y-4">
       <CollapsibleFilters activeCount={activeFiltersCount}>
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           <FormField label="Conta" htmlFor="filter-account">
             <Select
               id="filter-account"
@@ -186,6 +202,17 @@ export function TransactionList() {
               ))}
             </Select>
           </FormField>
+          <FormField label="Comprovante" htmlFor="filter-attachment">
+            <Select
+              id="filter-attachment"
+              value={filters.attachment}
+              onChange={(e) => setFilters((f) => ({ ...f, attachment: e.target.value as Filters['attachment'] }))}
+            >
+              <option value="">Todas</option>
+              <option value="WITH">Com comprovante</option>
+              <option value="WITHOUT">Sem comprovante</option>
+            </Select>
+          </FormField>
           <FormField label="De" htmlFor="filter-start-date">
             <Input
               id="filter-start-date"
@@ -203,7 +230,7 @@ export function TransactionList() {
             />
           </FormField>
           {hasActiveFilters && (
-            <div className="sm:col-span-3 lg:col-span-4 xl:col-span-7">
+            <div className="sm:col-span-2 md:col-span-3 lg:col-span-4">
               <Button variant="secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
                 Limpar filtros
               </Button>
@@ -227,12 +254,21 @@ export function TransactionList() {
               clientName={transaction.clientId ? clientNameById.get(transaction.clientId) : undefined}
               onDelete={() => handleDelete(transaction.id, transaction.description)}
               isDeleting={deleteTransaction.isPending}
-              onToggleStatus={() => handleToggleStatus(transaction)}
-              isTogglingStatus={updateTransactionStatus.isPending}
+              onMarkAsPaid={() => handleMarkAsPaid(transaction)}
+              isMarkingAsPaid={updateTransactionStatus.isPending}
+              onOpenAttachments={() => setAttachmentsFor(transaction)}
             />
           ))}
         </div>
       )}
+
+      <Modal
+        open={attachmentsFor !== null}
+        onClose={() => setAttachmentsFor(null)}
+        title={attachmentsFor ? `Comprovantes · ${attachmentsFor.description}` : 'Comprovantes'}
+      >
+        {attachmentsFor && <TransactionAttachmentsPanel transactionId={attachmentsFor.id} />}
+      </Modal>
     </div>
   )
 }

@@ -91,7 +91,13 @@ Paga é dinheiro que já entrou ou saiu da conta; pendente é algo **a receber**
 No campo "Situação" do formulário, a opção **Automática** deixa pendente o que tem data futura e marca como paga o que é de hoje ou do passado; você também pode escolher Paga ou Pendente manualmente. Transações importadas de extrato e transferências são sempre pagas. As ocorrências de lançamentos recorrentes entram como pendentes até você confirmar.
 
 **Como marco uma transação como paga?**
-Pelo botão com ícone de check no próprio card da transação (no celular, abra os detalhes do card). O mesmo botão, numa transação paga, volta ela para pendente. Transações de transferência não têm esse botão, porque são sempre pagas.
+Pelo botão com ícone de check no card da transação pendente (no celular, abra os detalhes do card). O sistema pede uma confirmação, porque **marcar como paga (ou recebida) é definitivo**: depois disso a transação não volta para pendente — o pagamento já entrou no saldo e nos relatórios. Se marcou por engano, exclua a transação e lance de novo. Transações pagas e de transferência não têm esse botão.
+
+**Como anexo um comprovante, nota fiscal ou recibo a uma transação?**
+Pelo botão com ícone de clipe no card da transação (no celular, abra os detalhes do card). Escolha o tipo de documento (comprovante de pagamento, nota fiscal, recibo ou outro) e o arquivo. Dá pra anexar até 10 arquivos por transação, de até 10 MB cada, em **PDF, JPG, PNG ou WEBP** — no celular, dá pra tirar a foto do recibo na hora. O formato é conferido pelo conteúdo do arquivo, não pela extensão. No mesmo lugar você vê, baixa ou exclui os anexos; o clipe no card mostra quantos a transação já tem, e o filtro "Comprovante" da lista mostra só as transações com ou sem anexo.
+
+**O que acontece com os anexos se eu excluir a transação?**
+Eles são excluídos junto — os arquivos também, não só o registro. O mesmo vale ao excluir uma transferência: os anexos das duas transações dela saem juntos.
 ___
 
 ## Transferências
@@ -248,7 +254,10 @@ ___
 ## Relatórios
 
 **Quais relatórios o sistema gera?**
-Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real), **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente) e **Receitas (com filtros)** / **Despesas (com filtros)**.
+Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real), **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente) **Receitas (com filtros)** / **Despesas (com filtros)** e **Comprovantes do ano (ZIP)**.
+
+**O que vem no pacote "Comprovantes do ano (ZIP)"?**
+Todos os comprovantes, notas fiscais e recibos anexados às transações do ano escolhido (pela data da transação), em pastas por mês e com nomes que já dizem a data e a descrição (ex.: `2026-03/2026-03-15_aluguel-escritorio_42.pdf`). Junto vai uma planilha `comprovantes-AAAA.csv` que liga cada arquivo à transação — data, descrição, tipo, valor, situação, conta, categoria, cliente e tipo de documento —, pronta pra abrir no Excel. É o pacote pra entregar ao contador na declaração de IR. Se o ano não tiver nenhum comprovante anexado, o sistema avisa em vez de gerar um arquivo vazio.
 
 **Como funcionam os relatórios de receitas e de despesas com filtros?**
 Você pode filtrar por período (de/até), situação (paga ou pendente), conta, uso da conta (pessoal ou empresa), categoria, cliente, valor mínimo e máximo e por um trecho da descrição (sem diferenciar maiúsculas de minúsculas). Todos os filtros são opcionais: o que ficar em branco simplesmente não é aplicado — sem nenhum filtro, o relatório traz todas as receitas (ou despesas). O documento lista os filtros usados, cada lançamento, os totais pago, pendente e geral e o subtotal por categoria.

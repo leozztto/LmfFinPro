@@ -1,6 +1,8 @@
 package com.lmf.finpro.application.transaction;
 
+import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
+import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import com.lmf.finpro.domain.model.Account;
@@ -28,6 +30,7 @@ public class TransactionApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
     private final Clock clock;
+    private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
 
     /**
      * {@code status} nulo usa o padrão pela data: data futura fica pendente, o resto já nasce pago.
@@ -96,7 +99,7 @@ public class TransactionApplicationService {
         return transactionRepositoryPort.save(updated);
     }
 
-    /** Marca como paga ou pendente — a ação rápida da lista de transações. */
+    /** Marca como paga — a ação rápida da lista de transações. Paga não volta a pendente. */
     public Transaction updateStatus(
             Long currentUserId, Long transactionId, TransactionStatus status) {
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
@@ -105,12 +108,27 @@ public class TransactionApplicationService {
     }
 
     /**
-     * Transferência já movimentou o dinheiro nas duas contas: não existe transferência pendente.
+     * Regras de mudança de situação, valendo tanto para a ação rápida quanto para a edição:
+     *
+     * <ul>
+     *   <li>transferência já movimentou o dinheiro nas duas contas: não existe transferência
+     *       pendente;
+     *   <li>marcar como paga é definitivo: uma transação paga não volta a pendente (o pagamento já
+     *       afetou o saldo e os relatórios; se foi um engano, o caminho é excluir e lançar de
+     *       novo).
+     * </ul>
      */
     private void requireStatusChangeAllowed(Transaction transaction, TransactionStatus status) {
-        if (transaction.transferId() != null && status != TransactionStatus.PAID) {
+        if (status != TransactionStatus.PENDING) {
+            return;
+        }
+        if (transaction.transferId() != null) {
             throw new TransactionLinkedToTransferException(
                     "Transações de transferência são sempre pagas e não podem ficar pendentes.");
+        }
+        if (transaction.isPaid()) {
+            throw new PaidTransactionLockedException(
+                    "Esta transação já foi marcada como paga e não pode voltar a pendente.");
         }
     }
 
@@ -120,7 +138,11 @@ public class TransactionApplicationService {
             throw new TransactionLinkedToTransferException(
                     "Esta transação faz parte de uma transferência. Exclua a transferência inteira na tela de Transferências.");
         }
+        // Os registros dos anexos saem em cascata no banco; os arquivos, só apagando do disco.
+        List<String> attachmentKeys =
+                transactionAttachmentApplicationService.storageKeysOf(List.of(transactionId));
         transactionRepositoryPort.deleteById(transactionId);
+        transactionAttachmentApplicationService.deleteStoredFiles(attachmentKeys);
     }
 
     private Transaction findOwnedOrThrow(Long currentUserId, Long transactionId) {

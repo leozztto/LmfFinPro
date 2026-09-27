@@ -42,6 +42,7 @@ export const reportsApi = {
     httpClient.getBlob(
       `/reports/transaction-export?referenceMonth=${input.referenceMonth}&format=${input.format}`,
     ),
+  downloadAttachmentsArchive: (year: string) => httpClient.getBlob(`/reports/attachments-archive?year=${year}`),
   downloadTransactionReport: (kind: TransactionReportKind, filters: TransactionReportFilters, format: ReportFormat) =>
     httpClient.getBlob(
       `/reports/${kind === 'INCOME' ? 'incomes' : 'expenses'}?${buildTransactionReportQuery(filters, format)}`,

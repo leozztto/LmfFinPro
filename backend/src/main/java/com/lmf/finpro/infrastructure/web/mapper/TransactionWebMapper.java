@@ -7,7 +7,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TransactionWebMapper {
 
+    /** Sem contagem de anexos (telas que não mostram o indicador de anexo). */
     public TransactionResponse toResponse(Transaction transaction) {
+        return toResponse(transaction, 0);
+    }
+
+    public TransactionResponse toResponse(Transaction transaction, long attachmentCount) {
         return new TransactionResponse(
                 transaction.id(),
                 transaction.accountId(),
@@ -22,6 +27,7 @@ public class TransactionWebMapper {
                 transaction.transferId(),
                 transaction.importBatchId(),
                 transaction.recurringTransactionId(),
-                transaction.status());
+                transaction.status(),
+                attachmentCount);
     }
 }

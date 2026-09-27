@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.config;
 
 import com.lmf.finpro.infrastructure.security.JwtAuthenticationFilter;
 import com.lmf.finpro.infrastructure.web.exception.RestAuthenticationEntryPoint;
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +45,13 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(
                         auth ->
-                                auth.requestMatchers(
+                                // Respostas em streaming (ex.: ZIP de comprovantes) terminam num
+                                // dispatch ASYNC; a requisição já foi autenticada e autorizada no
+                                // dispatch original, e o filtro JWT não roda de novo nele — sem
+                                // isso, o acesso seria negado com a resposta já em andamento.
+                                auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
+                                        .permitAll()
+                                        .requestMatchers(
                                                 "/api/auth/**",
                                                 "/api/cep/**",
                                                 "/swagger-ui/**",
