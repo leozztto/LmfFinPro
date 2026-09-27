@@ -11,6 +11,7 @@ import { TransactionsPage } from '@/features/transactions/components/Transaction
 import { RecurringTransactionsPage } from '@/features/recurringTransactions/components/RecurringTransactionsPage'
 import { TransfersPage } from '@/features/transfers/components/TransfersPage'
 import { CalendarPage } from '@/features/calendar/components/CalendarPage'
+import { NetWorthPage } from '@/features/net-worth/components/NetWorthPage'
 import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
 import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimatesPage'
 import { BudgetsPage } from '@/features/budgets/components/BudgetsPage'
@@ -47,6 +48,7 @@ export function AppRouter() {
           <Route path="/impostos" element={<TaxEstimatesPage />} />
           <Route path="/orcamentos" element={<BudgetsPage />} />
           <Route path="/metas" element={<SavingsGoalsPage />} />
+          <Route path="/patrimonio" element={<NetWorthPage />} />
           <Route path="/pro-labore" element={<ProLaborePage />} />
           <Route path="/relatorios" element={<ReportsPage />} />
           <Route path="/faq" element={<FaqPage />} />

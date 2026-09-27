@@ -12,12 +12,17 @@ import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.AccountValuation;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +40,7 @@ class AccountApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private TransferRepositoryPort transferRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
+    @Mock private AccountValuationRepositoryPort accountValuationRepositoryPort;
 
     @InjectMocks private AccountApplicationService service;
 
@@ -138,6 +144,51 @@ class AccountApplicationServiceTest {
         Account updated = service.update(10L, 1L, "Renomeada", AccountType.SAVINGS, null);
 
         assertThat(updated.scope()).isEqualTo(AccountScope.BUSINESS);
+    }
+
+    @Test
+    void investmentBalanceFollowsTheLatestMarketValue() {
+        Account investment =
+                new Account(3L, 10L, "Corretora", AccountType.INVESTMENT, BigDecimal.ZERO, null);
+        when(accountValuationRepositoryPort.findAllByAccountId(3L))
+                .thenReturn(
+                        List.of(
+                                new AccountValuation(
+                                        1L,
+                                        3L,
+                                        LocalDate.of(2026, 9, 1),
+                                        new BigDecimal("1100"),
+                                        null)));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(3L)))
+                .thenReturn(
+                        List.of(
+                                new Transaction(
+                                        null,
+                                        3L,
+                                        null,
+                                        null,
+                                        "Aplicação",
+                                        new BigDecimal("1000"),
+                                        LocalDate.of(2026, 8, 10),
+                                        CategoryType.INCOME,
+                                        TransactionOrigin.MANUAL,
+                                        null,
+                                        50L,
+                                        null)));
+
+        assertThat(service.calculateCurrentBalance(investment)).isEqualByComparingTo("1100");
+    }
+
+    @Test
+    void investmentWithMarketValuesCannotChangeItsType() {
+        Account investment =
+                new Account(1L, 10L, "Corretora", AccountType.INVESTMENT, BigDecimal.ZERO, null);
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(investment));
+        when(accountValuationRepositoryPort.existsByAccountId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.update(10L, 1L, "Corretora", AccountType.CHECKING, null))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(accountRepositoryPort, never()).save(any());
     }
 
     @Test

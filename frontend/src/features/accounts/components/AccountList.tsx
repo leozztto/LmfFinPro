@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, CollapsibleFilters, FormField, IconButton, Input, Modal, Select } from '@/shared/ui'
-import { PencilIcon, TrashIcon } from '@/shared/ui/icons'
+import { PencilIcon, TrashIcon, TrendingUpIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
@@ -9,6 +9,7 @@ import { useDeleteAccount } from '../hooks/useDeleteAccount'
 import { ACCOUNT_SCOPE_LABELS, ACCOUNT_TYPE_LABELS, type Account, type AccountType } from '../types'
 import { formatCurrency } from '@/shared/format/currency'
 import { AccountForm } from './AccountForm'
+import { AccountValuationsPanel } from './AccountValuationsPanel'
 
 interface Filters {
   name: string
@@ -24,6 +25,7 @@ export function AccountList() {
   const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
+  const [valuingAccount, setValuingAccount] = useState<Account | null>(null)
 
   async function handleDelete(accountId: number, accountName: string) {
     const confirmed = await confirm({
@@ -131,6 +133,13 @@ export function AccountList() {
                 </p>
               </div>
               <div className="flex shrink-0 gap-1.5">
+                {account.type === 'INVESTMENT' && (
+                  <IconButton
+                    icon={TrendingUpIcon}
+                    label="Valor de mercado"
+                    onClick={() => setValuingAccount(account)}
+                  />
+                )}
                 <IconButton icon={PencilIcon} label="Editar" onClick={() => setEditingAccount(account)} />
                 <IconButton
                   icon={TrashIcon}
@@ -148,6 +157,14 @@ export function AccountList() {
         {editingAccount && (
           <AccountForm key={editingAccount.id} account={editingAccount} onSuccess={() => setEditingAccount(null)} />
         )}
+      </Modal>
+
+      <Modal
+        open={valuingAccount != null}
+        onClose={() => setValuingAccount(null)}
+        title={valuingAccount ? `Valor de mercado · ${valuingAccount.name}` : 'Valor de mercado'}
+      >
+        {valuingAccount && <AccountValuationsPanel key={valuingAccount.id} accountId={valuingAccount.id} />}
       </Modal>
     </div>
   )

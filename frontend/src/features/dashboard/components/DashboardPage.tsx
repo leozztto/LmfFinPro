@@ -9,6 +9,8 @@ import { CLIENTS_ANALYSIS_PATH } from '../routes'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
+import { useNetWorth } from '@/features/net-worth/hooks/useNetWorth'
+import { formatSignedCurrency } from '@/features/net-worth/utils'
 import { useDashboardOverview } from '../hooks/useDashboardOverview'
 import { useMonthlyFlow } from '../hooks/useMonthlyFlow'
 import { useBalanceEvolution } from '../hooks/useBalanceEvolution'
@@ -59,6 +61,34 @@ export function DashboardPage() {
         ]}
       />
     </div>
+  )
+}
+
+/**
+ * Resumo do patrimônio com atalho para a tela. Só aparece com investimento ou dívida cadastrados:
+ * sem eles, o patrimônio é o próprio saldo atual.
+ */
+function NetWorthSummary() {
+  const { data } = useNetWorth(2)
+  if (!data || (data.investments.length === 0 && data.debts.length === 0)) return null
+
+  return (
+    <Link
+      to="/patrimonio"
+      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-zinc-200 bg-zinc-50 p-3 shadow-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700/60"
+    >
+      <span className="min-w-0">
+        <span className="block text-sm text-zinc-500 dark:text-zinc-400">Patrimônio líquido</span>
+        <span className="block text-xl font-semibold text-zinc-800 dark:text-zinc-100">
+          {formatCurrency(data.current.netWorth)}
+        </span>
+      </span>
+      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        Investimentos {formatCurrency(data.current.investments)} · Dívidas {formatCurrency(data.current.debts)}
+        {data.changeFromPreviousMonth != null && ` · ${formatSignedCurrency(data.changeFromPreviousMonth)} no mês`}
+      </span>
+      <span className="text-xs font-medium text-[#1ea883] dark:text-[#2ad6a5]">Ver patrimônio →</span>
+    </Link>
   )
 }
 
@@ -117,6 +147,8 @@ function OverviewTab() {
           className="col-span-2 sm:col-span-1"
         />
       </div>
+
+      <NetWorthSummary />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {monthlyFlow.data ? (

@@ -825,6 +825,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
             case CHECKING -> "Conta corrente";
             case SAVINGS -> "Poupança";
             case WALLET -> "Carteira";
+            case INVESTMENT -> "Investimento";
         };
     }
 
