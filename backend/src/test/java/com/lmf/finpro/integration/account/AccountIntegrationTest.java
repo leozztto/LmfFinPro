@@ -14,6 +14,7 @@ import com.lmf.finpro.integration.support.TestDataFactory;
 import com.lmf.finpro.integration.support.TestUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
@@ -130,7 +131,13 @@ class AccountIntegrationTest extends AbstractIntegrationTest {
             TestUser user, Long accountId, BigDecimal amount, CategoryType type) {
         TransactionRequest request =
                 new TransactionRequest(
-                        accountId, null, null, "Movimento", amount, LocalDate.now(), type);
+                        accountId,
+                        null,
+                        null,
+                        "Movimento",
+                        amount,
+                        LocalDate.now(ZoneId.of("America/Sao_Paulo")),
+                        type);
         ResponseEntity<TransactionResponse> response =
                 restTemplate.exchange(
                         "/api/transactions",

@@ -13,6 +13,7 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,13 @@ public class DashboardApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
+    private final Clock clock;
 
     public DashboardOverview getOverview(Long userId) {
         List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
         List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal initialBalanceTotal = sumInitialBalance(accounts);
+        YearMonth thisMonth = currentMonth();
 
         // Saldo atual só com o que já foi pago; pendentes (a receber/a pagar) formam o previsto.
         List<Transaction> paid = paidOnly(transactions);
@@ -44,12 +47,14 @@ public class DashboardApplicationService {
         BigDecimal pendingExpense = sumByType(pending, CategoryType.EXPENSE);
 
         // Receita/despesa do mês seguem por competência (pagas e pendentes).
-        List<MonthlyFlowPoint> flow = DashboardAggregator.monthlyFlow(transactions, 2);
+        List<MonthlyFlowPoint> flow = DashboardAggregator.monthlyFlow(transactions, thisMonth, 2);
         MonthlyFlowPoint previousMonth = flow.get(0);
         MonthlyFlowPoint currentMonth = flow.get(1);
 
         BigDecimal previousBalance =
-                DashboardAggregator.balanceOverTime(paid, initialBalanceTotal, 2).get(0).balance();
+                DashboardAggregator.balanceOverTime(paid, initialBalanceTotal, thisMonth, 2)
+                        .get(0)
+                        .balance();
 
         return new DashboardOverview(
                 currentBalance,
@@ -64,7 +69,8 @@ public class DashboardApplicationService {
     }
 
     public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount) {
-        return DashboardAggregator.monthlyFlow(ownedNonTransferTransactions(userId), monthsCount);
+        return DashboardAggregator.monthlyFlow(
+                ownedNonTransferTransactions(userId), currentMonth(), monthsCount);
     }
 
     public List<BalancePoint> getBalanceEvolution(Long userId, int monthsCount) {
@@ -72,6 +78,7 @@ public class DashboardApplicationService {
         return DashboardAggregator.balanceOverTime(
                 paidOnly(ownedNonTransferTransactions(userId)),
                 sumInitialBalance(userId),
+                currentMonth(),
                 monthsCount);
     }
 
@@ -82,12 +89,14 @@ public class DashboardApplicationService {
     public List<CashFlowProjectionPoint> getCashFlowProjection(Long userId, int monthsAhead) {
         List<Transaction> transactions = ownedNonTransferTransactions(userId);
         BigDecimal anchorBalance =
-                DashboardAggregator.balanceOverTime(transactions, sumInitialBalance(userId), 1)
+                DashboardAggregator.balanceOverTime(
+                                transactions, sumInitialBalance(userId), currentMonth(), 1)
                         .get(0)
                         .balance();
         return DashboardAggregator.cashFlowProjection(
                 transactions,
                 anchorBalance,
+                currentMonth(),
                 monthsAhead,
                 recurringTransactionRepositoryPort.findAllByUserId(userId));
     }
@@ -111,6 +120,10 @@ public class DashboardApplicationService {
         return transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
                 .filter(transaction -> transaction.transferId() == null)
                 .toList();
+    }
+
+    private YearMonth currentMonth() {
+        return YearMonth.now(clock);
     }
 
     private List<Transaction> paidOnly(List<Transaction> transactions) {

@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 
 class DashboardAggregatorTest {
 
+    private static final YearMonth CURRENT_MONTH = YearMonth.now();
+
     private static Transaction transaction(BigDecimal amount, LocalDate date, CategoryType type) {
         return Transaction.create(1L, null, null, "desc", amount, date, type);
     }
@@ -23,25 +25,25 @@ class DashboardAggregatorTest {
 
     @Test
     void lastMonthsEndsOnCurrentMonthAndIsOldestFirst() {
-        List<YearMonth> months = DashboardAggregator.lastMonths(3);
+        List<YearMonth> months = DashboardAggregator.lastMonths(CURRENT_MONTH, 3);
 
         assertThat(months).hasSize(3);
-        assertThat(months.get(2)).isEqualTo(YearMonth.now());
-        assertThat(months.get(1)).isEqualTo(YearMonth.now().minusMonths(1));
-        assertThat(months.get(0)).isEqualTo(YearMonth.now().minusMonths(2));
+        assertThat(months.get(2)).isEqualTo(CURRENT_MONTH);
+        assertThat(months.get(1)).isEqualTo(CURRENT_MONTH.minusMonths(1));
+        assertThat(months.get(0)).isEqualTo(CURRENT_MONTH.minusMonths(2));
     }
 
     @Test
     void nextMonthsStartsRightAfterCurrentMonth() {
-        List<YearMonth> months = DashboardAggregator.nextMonths(2);
+        List<YearMonth> months = DashboardAggregator.nextMonths(CURRENT_MONTH, 2);
 
         assertThat(months)
-                .containsExactly(YearMonth.now().plusMonths(1), YearMonth.now().plusMonths(2));
+                .containsExactly(CURRENT_MONTH.plusMonths(1), CURRENT_MONTH.plusMonths(2));
     }
 
     @Test
     void monthlyFlowSumsIncomeAndExpensePerMonthIgnoringOutOfWindowTransactions() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         YearMonth twoMonthsAgo = currentMonth.minusMonths(2);
         List<Transaction> transactions =
                 List.of(
@@ -59,7 +61,8 @@ class DashboardAggregatorTest {
                                 twoMonthsAgo.atDay(1),
                                 CategoryType.INCOME));
 
-        List<MonthlyFlowPoint> flow = DashboardAggregator.monthlyFlow(transactions, 1);
+        List<MonthlyFlowPoint> flow =
+                DashboardAggregator.monthlyFlow(transactions, CURRENT_MONTH, 1);
 
         assertThat(flow).hasSize(1);
         assertThat(flow.get(0).month()).isEqualTo(currentMonth);
@@ -69,7 +72,7 @@ class DashboardAggregatorTest {
 
     @Test
     void monthlyFlowReturnsZeroForMonthsWithoutTransactions() {
-        List<MonthlyFlowPoint> flow = DashboardAggregator.monthlyFlow(List.of(), 3);
+        List<MonthlyFlowPoint> flow = DashboardAggregator.monthlyFlow(List.of(), CURRENT_MONTH, 3);
 
         assertThat(flow).hasSize(3);
         assertThat(flow)
@@ -82,7 +85,7 @@ class DashboardAggregatorTest {
 
     @Test
     void balanceOverTimeAccumulatesUpToEachMonthInclusive() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         YearMonth previousMonth = currentMonth.minusMonths(1);
         List<Transaction> transactions =
                 List.of(
@@ -100,7 +103,8 @@ class DashboardAggregatorTest {
                                 CategoryType.INCOME));
 
         List<BalancePoint> points =
-                DashboardAggregator.balanceOverTime(transactions, BigDecimal.valueOf(1000), 2);
+                DashboardAggregator.balanceOverTime(
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 2);
 
         assertThat(points.get(0).month()).isEqualTo(previousMonth);
         assertThat(points.get(0).balance()).isEqualByComparingTo("1200"); // 1000 + 300 - 100
@@ -110,7 +114,7 @@ class DashboardAggregatorTest {
 
     @Test
     void balanceOverTimeExcludesTransactionsDatedAfterTheGivenMonth() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         YearMonth nextMonth = currentMonth.plusMonths(1);
         List<Transaction> transactions =
                 List.of(
@@ -118,21 +122,23 @@ class DashboardAggregatorTest {
                                 BigDecimal.valueOf(500), nextMonth.atDay(1), CategoryType.INCOME));
 
         List<BalancePoint> points =
-                DashboardAggregator.balanceOverTime(transactions, BigDecimal.valueOf(1000), 1);
+                DashboardAggregator.balanceOverTime(
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1);
 
         assertThat(points.get(0).balance()).isEqualByComparingTo("1000");
     }
 
     @Test
     void cashFlowProjectionUsesRealNetWhenFutureMonthAlreadyHasTransactions() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         List<Transaction> transactions =
                 List.of(
                         transaction(
                                 BigDecimal.valueOf(900), nextMonth.atDay(5), CategoryType.INCOME));
 
         List<CashFlowProjectionPoint> points =
-                DashboardAggregator.cashFlowProjection(transactions, BigDecimal.valueOf(1000), 1);
+                DashboardAggregator.cashFlowProjection(
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1);
 
         assertThat(points).hasSize(1);
         assertThat(points.get(0).month()).isEqualTo(nextMonth);
@@ -142,21 +148,22 @@ class DashboardAggregatorTest {
 
     @Test
     void cashFlowProjectionSubtractsExpensesAlreadyScheduledForAFutureMonth() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         List<Transaction> transactions =
                 List.of(
                         transaction(
                                 BigDecimal.valueOf(300), nextMonth.atDay(5), CategoryType.EXPENSE));
 
         List<CashFlowProjectionPoint> points =
-                DashboardAggregator.cashFlowProjection(transactions, BigDecimal.valueOf(1000), 1);
+                DashboardAggregator.cashFlowProjection(
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1);
 
         assertThat(points.get(0).balance()).isEqualByComparingTo("700");
     }
 
     @Test
     void cashFlowProjectionUsesAverageOfLastThreeMonthsWhenFutureMonthHasNoTransactions() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         // líquido dos últimos 3 meses: mês atual +400, os outros dois sem lançamento (média =
         // 400/3)
         List<Transaction> transactions =
@@ -167,7 +174,8 @@ class DashboardAggregatorTest {
                                 CategoryType.INCOME));
 
         List<CashFlowProjectionPoint> points =
-                DashboardAggregator.cashFlowProjection(transactions, BigDecimal.valueOf(1000), 1);
+                DashboardAggregator.cashFlowProjection(
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1);
 
         BigDecimal expectedAverageNet =
                 BigDecimal.valueOf(400)
@@ -180,7 +188,7 @@ class DashboardAggregatorTest {
 
     @Test
     void categoryBreakdownGroupsByCategoryAndSortsDescending() {
-        YearMonth month = YearMonth.now();
+        YearMonth month = CURRENT_MONTH;
         List<Transaction> transactions =
                 List.of(
                         transaction(
@@ -229,7 +237,7 @@ class DashboardAggregatorTest {
 
     @Test
     void clientBreakdownOnlyConsidersIncomeInGivenMonth() {
-        YearMonth month = YearMonth.now();
+        YearMonth month = CURRENT_MONTH;
         List<Transaction> transactions =
                 List.of(
                         transaction(
@@ -325,7 +333,7 @@ class DashboardAggregatorTest {
 
     @Test
     void cashFlowProjectionAddsRecurringOccurrencesOfEachFutureMonth() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         List<RecurringTransaction> recurrences =
                 List.of(
                         recurrence(
@@ -339,7 +347,7 @@ class DashboardAggregatorTest {
 
         List<CashFlowProjectionPoint> points =
                 DashboardAggregator.cashFlowProjection(
-                        List.of(), BigDecimal.valueOf(1000), 2, recurrences);
+                        List.of(), BigDecimal.valueOf(1000), CURRENT_MONTH, 2, recurrences);
 
         assertThat(points)
                 .extracting(CashFlowProjectionPoint::balance)
@@ -349,7 +357,7 @@ class DashboardAggregatorTest {
 
     @Test
     void cashFlowProjectionCountsEveryWeeklyOccurrenceInTheMonth() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         int occurrencesInMonth = nextMonth.lengthOfMonth() >= 29 ? 5 : 4;
         List<RecurringTransaction> recurrences =
                 List.of(
@@ -364,7 +372,7 @@ class DashboardAggregatorTest {
 
         List<CashFlowProjectionPoint> points =
                 DashboardAggregator.cashFlowProjection(
-                        List.of(), BigDecimal.valueOf(1000), 1, recurrences);
+                        List.of(), BigDecimal.valueOf(1000), CURRENT_MONTH, 1, recurrences);
 
         assertThat(points.get(0).balance())
                 .isEqualByComparingTo(BigDecimal.valueOf(1000 - 10L * occurrencesInMonth));
@@ -372,7 +380,7 @@ class DashboardAggregatorTest {
 
     @Test
     void cashFlowProjectionLeavesActiveRecurrenceTransactionsOutOfTheAverage() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         // salário recorrente já lançado no mês atual: sem a exclusão, entraria na média (+1000) e
         // de novo como ocorrência do próximo mês (+3000)
         List<Transaction> transactions =
@@ -395,14 +403,14 @@ class DashboardAggregatorTest {
 
         List<CashFlowProjectionPoint> points =
                 DashboardAggregator.cashFlowProjection(
-                        transactions, BigDecimal.valueOf(1000), 1, recurrences);
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1, recurrences);
 
         assertThat(points.get(0).balance()).isEqualByComparingTo("4000");
     }
 
     @Test
     void cashFlowProjectionIgnoresPausedRecurrenceAndKeepsItsTransactionsInTheAverage() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         List<Transaction> transactions =
                 List.of(
                         launchedByRecurrence(
@@ -423,7 +431,7 @@ class DashboardAggregatorTest {
 
         List<CashFlowProjectionPoint> points =
                 DashboardAggregator.cashFlowProjection(
-                        transactions, BigDecimal.valueOf(1000), 1, recurrences);
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1, recurrences);
 
         // média de 300/3 = 100, nenhuma ocorrência projetada
         assertThat(points.get(0).balance()).isEqualByComparingTo("1100");
@@ -431,7 +439,7 @@ class DashboardAggregatorTest {
 
     @Test
     void cashFlowProjectionAddsOccurrencesStillPendingInTheCurrentMonthToTheStartingBalance() {
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = CURRENT_MONTH;
         List<RecurringTransaction> recurrences =
                 List.of(
                         recurrence(
@@ -445,7 +453,7 @@ class DashboardAggregatorTest {
 
         List<CashFlowProjectionPoint> points =
                 DashboardAggregator.cashFlowProjection(
-                        List.of(), BigDecimal.valueOf(1000), 1, recurrences);
+                        List.of(), BigDecimal.valueOf(1000), CURRENT_MONTH, 1, recurrences);
 
         // -100 ainda neste mês (saldo de partida) e -100 no próximo
         assertThat(points.get(0).balance()).isEqualByComparingTo("800");
@@ -453,7 +461,7 @@ class DashboardAggregatorTest {
 
     @Test
     void cashFlowProjectionCombinesScheduledOneOffTransactionsWithRecurringOccurrences() {
-        YearMonth nextMonth = YearMonth.now().plusMonths(1);
+        YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
         List<Transaction> transactions =
                 List.of(
                         transaction(
@@ -471,7 +479,7 @@ class DashboardAggregatorTest {
 
         List<CashFlowProjectionPoint> points =
                 DashboardAggregator.cashFlowProjection(
-                        transactions, BigDecimal.valueOf(1000), 1, recurrences);
+                        transactions, BigDecimal.valueOf(1000), CURRENT_MONTH, 1, recurrences);
 
         assertThat(points.get(0).balance()).isEqualByComparingTo("1800");
     }
