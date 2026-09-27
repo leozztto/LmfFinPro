@@ -34,6 +34,7 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.YearMonth;
@@ -41,6 +42,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -51,6 +53,7 @@ import org.springframework.stereotype.Component;
  * cabeçalhos em azul-claro, formada por tabelas de largura total empilhadas sem espaço entre si.
  */
 @Component
+@RequiredArgsConstructor
 public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
 
     private static final Locale PT_BR = Locale.of("pt", "BR");
@@ -70,6 +73,9 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
     private static final Font FOOTER_FONT = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 7);
     private static final Font EXCEEDED_FONT =
             FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new Color(178, 34, 34));
+
+    /** Relógio de São Paulo: a data de emissão e o rodapé não podem sair no fuso do servidor. */
+    private final Clock clock;
 
     @Override
     public byte[] generateClientReceipt(ClientReceiptData data) {
@@ -362,7 +368,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         Paragraph footer =
                 new Paragraph(
                         "Documento gerado automaticamente pelo FinPro em "
-                                + LocalDateTime.now().format(TIMESTAMP_FORMAT)
+                                + LocalDateTime.now(clock).format(TIMESTAMP_FORMAT)
                                 + ". Este "
                                 + documentNoun
                                 + " não possui validade fiscal.",
@@ -387,7 +393,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         table.addCell(headerCell("REFERÊNCIA"));
         table.addCell(headerCell("EMISSÃO"));
         table.addCell(centeredValueCell(monthLabel));
-        table.addCell(centeredValueCell(LocalDateTime.now().format(DATE_FORMAT)));
+        table.addCell(centeredValueCell(LocalDateTime.now(clock).format(DATE_FORMAT)));
         return table;
     }
 

@@ -21,8 +21,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
+      max-file-size: 10MB
+      max-request-size: 11MB
 
 server:
   port: 8080
@@ -47,6 +47,9 @@ finpro:
     cron: ${FINPRO_ALERTS_CRON:0 0 8 * * *}
     frontend-url: ${FRONTEND_URL:http://localhost:5173}
     mail-from: ${ALERTS_MAIL_FROM:${PASSWORD_RESET_MAIL_FROM:FinPro <no-reply@finpro.local>}}
+  # Pasta dos anexos de transação (no Docker, o volume finpro_attachments).
+  attachments:
+    storage-dir: ${FINPRO_ATTACHMENTS_STORAGE_DIR:./data/attachments}
   viacep:
     base-url: ${VIACEP_BASE_URL:https://viacep.com.br/ws}
     timeout-ms: ${VIACEP_TIMEOUT_MS:5000}

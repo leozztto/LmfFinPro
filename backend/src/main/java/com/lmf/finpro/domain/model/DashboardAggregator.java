@@ -17,14 +17,16 @@ import java.util.stream.Collectors;
  * Cálculos puros do dashboard (sem dependência de repositório) — a partir de uma lista de
  * transações já filtrada (do usuário, sem transferências), devolve os pontos prontos para cada
  * gráfico. Espelha fielmente o que antes vivia em {@code frontend/src/features/dashboard/utils.ts}.
+ *
+ * <p>O mês atual sempre chega por parâmetro (vindo do {@code Clock} de São Paulo), nunca de {@code
+ * YearMonth.now()}: com o servidor em UTC, a virada do mês cairia às 21h de Brasília.
  */
 public final class DashboardAggregator {
 
     private DashboardAggregator() {}
 
-    /** Últimos {@code count} meses (do mais antigo ao atual, inclusive). */
-    public static List<YearMonth> lastMonths(int count) {
-        YearMonth current = YearMonth.now();
+    /** Últimos {@code count} meses até {@code current} (do mais antigo ao atual, inclusive). */
+    public static List<YearMonth> lastMonths(YearMonth current, int count) {
         List<YearMonth> result = new ArrayList<>();
         for (int i = count - 1; i >= 0; i--) {
             result.add(current.minusMonths(i));
@@ -32,9 +34,8 @@ public final class DashboardAggregator {
         return result;
     }
 
-    /** Próximos {@code count} meses após o atual (do mais próximo ao mais distante). */
-    public static List<YearMonth> nextMonths(int count) {
-        YearMonth current = YearMonth.now();
+    /** Próximos {@code count} meses após {@code current} (do mais próximo ao mais distante). */
+    public static List<YearMonth> nextMonths(YearMonth current, int count) {
         List<YearMonth> result = new ArrayList<>();
         for (int i = 1; i <= count; i++) {
             result.add(current.plusMonths(i));
@@ -44,8 +45,8 @@ public final class DashboardAggregator {
 
     /** Receita e despesa somadas por mês, para os últimos {@code monthsCount} meses. */
     public static List<MonthlyFlowPoint> monthlyFlow(
-            List<Transaction> transactions, int monthsCount) {
-        List<YearMonth> months = lastMonths(monthsCount);
+            List<Transaction> transactions, YearMonth currentMonth, int monthsCount) {
+        List<YearMonth> months = lastMonths(currentMonth, monthsCount);
         Map<YearMonth, BigDecimal> income = new LinkedHashMap<>();
         Map<YearMonth, BigDecimal> expense = new LinkedHashMap<>();
         for (YearMonth month : months) {
@@ -72,8 +73,11 @@ public final class DashboardAggregator {
 
     /** Saldo consolidado ao final de cada um dos últimos {@code monthsCount} meses. */
     public static List<BalancePoint> balanceOverTime(
-            List<Transaction> transactions, BigDecimal initialBalanceTotal, int monthsCount) {
-        List<YearMonth> months = lastMonths(monthsCount);
+            List<Transaction> transactions,
+            BigDecimal initialBalanceTotal,
+            YearMonth currentMonth,
+            int monthsCount) {
+        List<YearMonth> months = lastMonths(currentMonth, monthsCount);
         return months.stream()
                 .map(
                         month ->
@@ -101,8 +105,12 @@ public final class DashboardAggregator {
 
     /** Projeção sem lançamentos recorrentes — ver a sobrecarga completa. */
     public static List<CashFlowProjectionPoint> cashFlowProjection(
-            List<Transaction> transactions, BigDecimal currentBalance, int monthsAhead) {
-        return cashFlowProjection(transactions, currentBalance, monthsAhead, List.of());
+            List<Transaction> transactions,
+            BigDecimal currentBalance,
+            YearMonth currentMonth,
+            int monthsAhead) {
+        return cashFlowProjection(
+                transactions, currentBalance, currentMonth, monthsAhead, List.of());
     }
 
     /**
@@ -124,6 +132,7 @@ public final class DashboardAggregator {
     public static List<CashFlowProjectionPoint> cashFlowProjection(
             List<Transaction> transactions,
             BigDecimal currentBalance,
+            YearMonth currentMonth,
             int monthsAhead,
             List<RecurringTransaction> recurrences) {
         List<RecurringTransaction> activeRecurrences =
@@ -141,7 +150,7 @@ public final class DashboardAggregator {
                                                         transaction.recurringTransactionId()))
                         .toList();
 
-        List<MonthlyFlowPoint> recentFlow = monthlyFlow(variableTransactions, 3);
+        List<MonthlyFlowPoint> recentFlow = monthlyFlow(variableTransactions, currentMonth, 3);
         BigDecimal totalNet = BigDecimal.ZERO;
         for (MonthlyFlowPoint point : recentFlow) {
             totalNet = totalNet.add(point.income()).subtract(point.expense());
@@ -149,7 +158,6 @@ public final class DashboardAggregator {
         BigDecimal averageNet =
                 totalNet.divide(BigDecimal.valueOf(recentFlow.size()), 10, RoundingMode.HALF_UP);
 
-        YearMonth currentMonth = YearMonth.now();
         Map<YearMonth, BigDecimal> recurringNetByMonth =
                 pendingRecurringNetByMonth(
                         activeRecurrences, currentMonth.plusMonths(monthsAhead).atEndOfMonth());
@@ -164,7 +172,7 @@ public final class DashboardAggregator {
         }
 
         List<CashFlowProjectionPoint> result = new ArrayList<>();
-        for (YearMonth month : nextMonths(monthsAhead)) {
+        for (YearMonth month : nextMonths(currentMonth, monthsAhead)) {
             List<Transaction> monthTransactions =
                     variableTransactions.stream()
                             .filter(

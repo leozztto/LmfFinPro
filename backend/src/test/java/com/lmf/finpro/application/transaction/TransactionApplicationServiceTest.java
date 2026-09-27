@@ -7,7 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
+import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
 import com.lmf.finpro.domain.model.Account;
@@ -47,6 +49,8 @@ class TransactionApplicationServiceTest {
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private ClientRepositoryPort clientRepositoryPort;
 
+    @Mock private TransactionAttachmentApplicationService transactionAttachmentApplicationService;
+
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
 
     private TransactionApplicationService service;
@@ -61,7 +65,8 @@ class TransactionApplicationServiceTest {
                         accountRepositoryPort,
                         categoryRepositoryPort,
                         clientRepositoryPort,
-                        fixedClock);
+                        fixedClock,
+                        transactionAttachmentApplicationService);
     }
 
     private static Account ownedAccount() {
@@ -348,9 +353,10 @@ class TransactionApplicationServiceTest {
     }
 
     @Test
-    void updateCanChangeStatusTogetherWithDetails() {
+    void updateCanMarkAsPaidTogetherWithDetails() {
         when(transactionRepositoryPort.findById(7L))
-                .thenReturn(Optional.of(ownedTransaction(null)));
+                .thenReturn(
+                        Optional.of(ownedTransaction(null).withStatus(TransactionStatus.PENDING)));
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -365,8 +371,44 @@ class TransactionApplicationServiceTest {
                         BigDecimal.TEN,
                         TODAY,
                         CategoryType.EXPENSE,
-                        TransactionStatus.PENDING);
+                        TransactionStatus.PAID);
 
-        assertThat(updated.status()).isEqualTo(TransactionStatus.PENDING);
+        assertThat(updated.status()).isEqualTo(TransactionStatus.PAID);
+    }
+
+    @Test
+    void paidTransactionCannotGoBackToPendingByEditOrQuickAction() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(Optional.of(ownedTransaction(null)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+
+        assertThatThrownBy(() -> service.updateStatus(10L, 7L, TransactionStatus.PENDING))
+                .isInstanceOf(PaidTransactionLockedException.class);
+        assertThatThrownBy(
+                        () ->
+                                service.update(
+                                        10L,
+                                        7L,
+                                        null,
+                                        null,
+                                        "Desc",
+                                        BigDecimal.TEN,
+                                        TODAY,
+                                        CategoryType.EXPENSE,
+                                        TransactionStatus.PENDING))
+                .isInstanceOf(PaidTransactionLockedException.class);
+        verify(transactionRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void markingAPaidTransactionAsPaidAgainIsHarmless() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(Optional.of(ownedTransaction(null)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service.updateStatus(10L, 7L, TransactionStatus.PAID).status())
+                .isEqualTo(TransactionStatus.PAID);
     }
 }

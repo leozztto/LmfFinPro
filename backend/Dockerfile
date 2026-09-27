@@ -8,4 +8,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# A imagem roda em UTC. O fuso de São Paulo vale para os LocalDateTime.now() das datas de criação
+# (ex.: envio de anexo, importação de extrato), que a tela mostra; as regras de "hoje" já usam o
+# Clock de SchedulingConfig.
+ENTRYPOINT ["java", "-Duser.timezone=America/Sao_Paulo", "-jar", "app.jar"]

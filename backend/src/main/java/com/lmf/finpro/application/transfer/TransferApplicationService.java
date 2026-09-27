@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.transfer;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
+import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -29,6 +30,7 @@ public class TransferApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
     private final AccountApplicationService accountApplicationService;
+    private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
 
     @Transactional
     public TransferResult create(
@@ -117,7 +119,15 @@ public class TransferApplicationService {
                                 () ->
                                         new ResourceNotFoundException(
                                                 "Transferência não encontrada: " + transferId));
+        // As duas transações da transferência saem em cascata no banco, com os registros dos
+        // anexos; os arquivos dos anexos precisam ser apagados do disco à parte.
+        List<Long> legIds =
+                transactionRepositoryPort.findAllByTransferIds(List.of(transfer.id())).stream()
+                        .map(Transaction::id)
+                        .toList();
+        List<String> attachmentKeys = transactionAttachmentApplicationService.storageKeysOf(legIds);
         transferRepositoryPort.deleteById(transfer.id());
+        transactionAttachmentApplicationService.deleteStoredFiles(attachmentKeys);
     }
 
     private TransferResult toResult(Transfer transfer, List<Transaction> legs) {

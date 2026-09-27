@@ -7,6 +7,8 @@ interface ConfirmOptions {
   message: string
   confirmLabel?: string
   cancelLabel?: string
+  /** Estilo do botão de confirmar: vermelho para remoções (padrão), da marca para ações positivas. */
+  variant?: 'danger' | 'brand'
 }
 
 interface ConfirmContextValue {
@@ -38,11 +40,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       <Modal open={options != null} onClose={() => respond(false)} title={options?.title ?? 'Confirmar remoção'}>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">{options?.message}</p>
-        <div className="mt-5 flex justify-end gap-3">
+        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={() => respond(false)}>
             {options?.cancelLabel ?? 'Cancelar'}
           </Button>
-          <Button variant="danger" onClick={() => respond(true)}>
+          <Button variant={options?.variant ?? 'danger'} onClick={() => respond(true)}>
             {options?.confirmLabel ?? 'Remover'}
           </Button>
         </div>

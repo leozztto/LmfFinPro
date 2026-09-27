@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ExpandableText, IconButton } from '@/shared/ui'
-import { CheckCircleIcon, ChevronDownIcon, ClockIcon, TrashIcon } from '@/shared/ui/icons'
+import { CheckCircleIcon, ChevronDownIcon, ClockIcon, PaperclipIcon, TrashIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import type { Transaction } from '../types'
@@ -12,8 +12,9 @@ interface TransactionCardProps {
   clientName?: string
   onDelete: () => void
   isDeleting: boolean
-  onToggleStatus: () => void
-  isTogglingStatus: boolean
+  onMarkAsPaid: () => void
+  isMarkingAsPaid: boolean
+  onOpenAttachments: () => void
 }
 
 const NEUTRAL_BADGE_CLASS =
@@ -28,8 +29,9 @@ export function TransactionCard({
   clientName,
   onDelete,
   isDeleting,
-  onToggleStatus,
-  isTogglingStatus,
+  onMarkAsPaid,
+  isMarkingAsPaid,
+  onOpenAttachments,
 }: TransactionCardProps) {
   const [open, setOpen] = useState(false)
   const isTransfer = transaction.transferId != null
@@ -49,15 +51,36 @@ export function TransactionCard({
     </>
   )
 
-  // Transferência é sempre paga: não há o que alternar.
-  const statusLabel = isPending ? `Marcar como ${isIncome ? 'recebida' : 'paga'}` : 'Marcar como pendente'
-  const statusButton = !isTransfer && (
+  // Só transação pendente tem o botão: marcar como paga é definitivo (não volta a pendente) e
+  // transferência já nasce paga.
+  const statusButton = isPending && !isTransfer && (
     <IconButton
-      icon={isPending ? CheckCircleIcon : ClockIcon}
-      label={statusLabel}
-      onClick={onToggleStatus}
-      disabled={isTogglingStatus}
+      icon={CheckCircleIcon}
+      label={`Marcar como ${isIncome ? 'recebida' : 'paga'}`}
+      onClick={onMarkAsPaid}
+      disabled={isMarkingAsPaid}
     />
+  )
+
+  const attachmentCount = transaction.attachmentCount ?? 0
+  const attachmentsLabel =
+    attachmentCount === 0 ? 'Anexar comprovante' : `Comprovantes (${attachmentCount})`
+  // Com anexo, o botão mostra o clipe + a contagem; sem anexo, só o clipe.
+  const attachmentsButton = (
+    <button
+      type="button"
+      onClick={onOpenAttachments}
+      aria-label={attachmentsLabel}
+      title={attachmentsLabel}
+      className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1.5 text-xs font-medium transition-colors ${
+        attachmentCount > 0
+          ? 'border-[#2ad6a5]/50 bg-[#2ad6a5]/10 text-[#1ea883] dark:text-[#2ad6a5]'
+          : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600'
+      }`}
+    >
+      <PaperclipIcon className="h-3.5 w-3.5" />
+      {attachmentCount > 0 && <span>{attachmentCount}</span>}
+    </button>
   )
 
   const removeButton = (
@@ -93,6 +116,13 @@ export function TransactionCard({
           {isPending && (
             <ClockIcon className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-label="Pendente" role="img" />
           )}
+          {attachmentCount > 0 && (
+            <PaperclipIcon
+              className="h-4 w-4 shrink-0 text-[#1ea883] dark:text-[#2ad6a5]"
+              aria-label={`${attachmentCount} comprovante(s)`}
+              role="img"
+            />
+          )}
           <span className={`shrink-0 ${amountClassName}`}>{amountLabel}</span>
         </div>
         {open && (
@@ -102,6 +132,7 @@ export function TransactionCard({
             <div className="flex items-end justify-between gap-2">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{metaLine}</p>
               <div className="flex shrink-0 items-center gap-1">
+                {attachmentsButton}
                 {statusButton}
                 {removeButton}
               </div>
@@ -121,6 +152,7 @@ export function TransactionCard({
         <div className="flex shrink-0 items-center gap-3">
           <span className={amountClassName}>{amountLabel}</span>
           <div className="flex items-center gap-1">
+            {attachmentsButton}
             {statusButton}
             {removeButton}
           </div>

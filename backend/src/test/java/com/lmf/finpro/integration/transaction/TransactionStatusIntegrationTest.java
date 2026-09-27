@@ -197,6 +197,29 @@ class TransactionStatusIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void paidTransactionCannotGoBackToPending() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user, BigDecimal.ZERO);
+        TransactionResponse pending =
+                createTransaction(
+                        user,
+                        accountId,
+                        BigDecimal.TEN,
+                        TODAY,
+                        CategoryType.EXPENSE,
+                        TransactionStatus.PENDING);
+
+        ResponseEntity<TransactionResponse> paid =
+                patchStatus(user, pending.id(), TransactionStatus.PAID, TransactionResponse.class);
+        assertThat(paid.getBody().status()).isEqualTo(TransactionStatus.PAID);
+
+        ResponseEntity<ApiError> backToPending =
+                patchStatus(user, pending.id(), TransactionStatus.PENDING, ApiError.class);
+        assertThat(backToPending.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(backToPending.getBody().message()).contains("não pode voltar a pendente");
+    }
+
+    @Test
     void userCannotChangeStatusOfAnotherUsersTransaction() {
         TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
         TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);

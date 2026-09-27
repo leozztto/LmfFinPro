@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
+import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.application.transaction.TransactionApplicationService;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
@@ -9,6 +10,7 @@ import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionStatusReques
 import com.lmf.finpro.infrastructure.web.mapper.TransactionWebMapper;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,18 +24,33 @@ public class TransactionController {
 
     private final TransactionApplicationService transactionApplicationService;
     private final TransactionWebMapper mapper;
+    private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
 
     @GetMapping
+    /** Cada transação vem com a quantidade de anexos (uma consulta agrupada para a lista toda). */
     public List<TransactionResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return transactionApplicationService.list(currentUser.userId()).stream()
-                .map(mapper::toResponse)
+        List<Transaction> transactions = transactionApplicationService.list(currentUser.userId());
+        Map<Long, Long> attachmentCounts =
+                transactionAttachmentApplicationService.countByTransactionIds(
+                        transactions.stream().map(Transaction::id).toList());
+        return transactions.stream()
+                .map(
+                        transaction ->
+                                mapper.toResponse(
+                                        transaction,
+                                        attachmentCounts.getOrDefault(transaction.id(), 0L)))
                 .toList();
     }
 
     @GetMapping("/{id}")
     public TransactionResponse getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return mapper.toResponse(transactionApplicationService.getById(currentUser.userId(), id));
+        Transaction transaction = transactionApplicationService.getById(currentUser.userId(), id);
+        return mapper.toResponse(
+                transaction,
+                transactionAttachmentApplicationService
+                        .countByTransactionIds(List.of(id))
+                        .getOrDefault(id, 0L));
     }
 
     @PostMapping

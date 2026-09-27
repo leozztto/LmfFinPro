@@ -5,6 +5,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.report.TransactionReportRequest;
+import java.time.Clock;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransactionReportController {
 
     private final TransactionReportApplicationService transactionReportApplicationService;
+    private final Clock clock;
 
     @GetMapping("/incomes")
     public ResponseEntity<byte[]> incomes(
@@ -50,7 +52,10 @@ public class TransactionReportController {
                 transactionReportApplicationService.generate(
                         currentUser.userId(), type, request.toFilters(), format);
         String filename =
-                filePrefix + "-" + LocalDate.now() + (format == ReportFormat.CSV ? ".csv" : ".pdf");
+                filePrefix
+                        + "-"
+                        + LocalDate.now(clock)
+                        + (format == ReportFormat.CSV ? ".csv" : ".pdf");
         return ResponseEntity.ok()
                 .contentType(
                         format == ReportFormat.CSV

@@ -21,4 +21,5 @@ public record TransactionResponse(
         Long transferId,
         Long importBatchId,
         Long recurringTransactionId,
-        TransactionStatus status) {}
+        TransactionStatus status,
+        long attachmentCount) {}
