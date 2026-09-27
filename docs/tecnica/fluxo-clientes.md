@@ -110,15 +110,42 @@ sequenceDiagram
 - **Exclusão bloqueada com vínculo**: `delete()` verifica `transactionRepositoryPort.existsByClientId(clientId)` antes de remover; se houver qualquer transação vinculada, lança `EntityHasLinkedRecordsException` (HTTP 409) com a mensagem "Este cliente possui transações vinculadas. Exclua-as ou desvincule-as antes de remover o cliente."
 - **Campo `active`**: cliente inativo continua existindo e pode ser filtrado na lista, mas não há restrição de negócio no backend impedindo lançar transações para um cliente inativo — o filtro de status é só de UI.
 
+## 5.1 Análise de clientes (aba "Clientes" do Dashboard)
+
+A análise é leitura de dados (compara todos os clientes), então mora no **Dashboard**, na aba **Clientes** (`/?aba=clientes`), e não na tela de cadastro. A tela de Clientes (`/clientes`) é só o cadastro, com o link "Ver análise de clientes". Detalhes das abas em [`fluxo-dashboard.md`](./fluxo-dashboard.md).
+
+`GET /api/clients/analytics?months=12&onlyReceived=false` (`ClientAnalyticsController` → `ClientAnalyticsApplicationService` → `ClientAnalytics`, puro) devolve tudo de uma vez. A tela só desenha.
+
+- **Período**: os últimos N meses, contando o atual (de 1 a 36; a tela oferece 3, 6, 12 e 24). Fora desse intervalo, a resposta é 400.
+- **Transações consideradas**: todas as contas do usuário, sem transferências. Por padrão entram pagas e pendentes (competência); com `onlyReceived=true`, só as pagas.
+- **Ranking**: clientes com receita ou despesa vinculada no período, do maior para o menor em receita. Cada um traz:
+  - receita, despesa e líquido;
+  - número de recebimentos e ticket médio (receita ÷ recebimentos);
+  - participação na receita total;
+  - meses com receita e último recebimento;
+  - a série mensal de receita e despesa.
+- **Concentração**:
+  - As participações são calculadas sobre **toda** a receita do período, inclusive a sem cliente (`unassignedIncome`, mostrada à parte).
+  - O percentual do maior cliente e o dos 3 maiores (este calculado a partir dos valores, não das participações arredondadas) definem o `ConcentrationRisk`: `HIGH` a partir de 50%, `MODERATE` a partir de 30%, `LOW` abaixo disso e `NONE` sem receita.
+- **Gráfico** (`ClientRevenueHistoryChart`):
+  - Barras empilhadas com os 5 maiores clientes com receita, mais "Outros" em cinza neutro.
+  - A cor de cada cliente é a cadastrada nele; sem cor, uma da paleta categórica compartilhada (`shared/chart/palette.ts`, validada com a skill de dataviz), na ordem do ranking.
+  - Legenda sempre visível; o ranking funciona como a tabela com os mesmos dados.
+- **Histórico do cliente**: seção própria abaixo do ranking, com um seletor de cliente no cabeçalho (o maior, por padrão). Mostra o `MonthlyFlowChart` do Dashboard (receita e despesa por mês) e um card de resumo: receita, participação, despesas, líquido, recebimentos/ticket, meses com receita e último recebimento. Escolher um cliente no ranking rola a tela até essa seção.
+- **Responsividade** (conferida em 360, 390, 768, 1024 e 1440 px, sem rolagem horizontal):
+  - **Ranking**: cards (1 coluna no celular, 2 no tablet) até 1024 px. Daí em diante vira tabela: 6 colunas no desktop pequeno (com a barra lateral sobram ~720 px) e 8 em telas largas (Despesas e Último recebimento). Essas duas colunas continuam no card de resumo em qualquer largura.
+  - **Indicadores**: 2 colunas no celular e 4 a partir do tablet.
+  - **Histórico do cliente**: gráfico e resumo empilhados até 1024 px; depois, lado a lado (2/3 + 1/3).
+
 ## 6. Onde cada peça vive no repositório
 
 | Camada | Arquivo |
 |---|---|
-| Domínio | `domain/model/{Client,ClientWorkType,DocumentType}.java` |
+| Domínio | `domain/model/{Client,ClientWorkType,DocumentType,ClientAnalytics,ConcentrationRisk}.java` |
 | Validação | `infrastructure/web/validation/{HasDocument,ValidDocumentNumber,DocumentNumberConstraintValidator}.java` |
 | Port/Adapter | `domain/port/out/ClientRepositoryPort.java` + `infrastructure/persistence/adapter/ClientRepositoryAdapter.java` |
-| Aplicação | `application/client/ClientApplicationService.java` |
-| API | `infrastructure/web/controller/ClientController.java` (`/api/clients`) |
+| Aplicação | `application/client/{ClientApplicationService,ClientAnalyticsApplicationService}.java` |
+| API | `infrastructure/web/controller/ClientController.java` (`/api/clients`), `ClientAnalyticsController.java` (`/api/clients/analytics`) |
 | Migrations | `db/migration/V7__add_client_details.sql`, `V8__add_work_type_to_clients.sql` |
-| Frontend | `frontend/src/features/clients/**` (`ClientsPage`, `ClientForm`, `ClientList`, `ClientDetails`, hooks, `clientsApi`, `schemas.ts`, `types.ts`) |
-| Testes | `backend/src/test/java/.../integration/client/ClientIntegrationTest.java`, `application/client/ClientApplicationServiceTest.java` |
+| Frontend | `frontend/src/features/clients/**` (`ClientsPage` — só cadastro, com link para a análise —, `ClientForm`, `ClientList`, `ClientDetails`, `ClientAnalyticsPanel`, `ClientRevenueHistoryChart`, `analytics.ts`, hooks, `clientsApi`, `schemas.ts`, `types.ts`) |
+| Testes | `integration/client/{ClientIntegrationTest,ClientAnalyticsIntegrationTest}.java`, `application/client/{ClientApplicationServiceTest,ClientAnalyticsApplicationServiceTest}.java`, `domain/model/ClientAnalyticsTest.java`, `frontend/src/features/clients/analytics.test.ts` |
