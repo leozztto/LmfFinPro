@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Card, Modal } from '@/shared/ui'
+import { ChevronDownIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr, getCurrentYearMonth } from '@/shared/format/date'
 import { TransferForm } from '@/features/transfers/components/TransferForm'
 import { formatPercent } from '@/features/savings-goals/utils'
 import { useProLabore } from '../hooks/useProLabore'
-import type { ProLaboreSummary } from '../types'
+import { CALCULATION_BASE_LABELS, type ProLaboreSummary } from '../types'
 import { ProLaboreSettingsForm } from './ProLaboreSettingsForm'
 
 export function ProLaborePage() {
@@ -40,17 +41,12 @@ export function ProLaborePage() {
 
       {summary?.hasBusinessAccounts && (
         <>
+          <SettingsCard summary={summary} />
           <div className="grid gap-4 lg:grid-cols-2">
             <AvailableCard summary={summary} onPay={() => setIsPaying(true)} />
             <BreakdownCard summary={summary} />
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <h3 className="mb-4 text-base font-semibold text-zinc-800 dark:text-zinc-100">Configuração do cálculo</h3>
-              {/* key: ao salvar, o formulário recomeça dos valores devolvidos pelo backend. */}
-              <ProLaboreSettingsForm key={JSON.stringify(summary.settings)} settings={summary.settings} />
-            </Card>
             <WithdrawalsCard summary={summary} />
+            <BusinessExpensesCard summary={summary} />
           </div>
         </>
       )}
@@ -277,6 +273,104 @@ function BreakdownRow({ label, value, detail, neutral = false }: BreakdownRowPro
         {value < 0 ? `− ${formatCurrency(-value)}` : formatCurrency(value)}
       </dd>
     </div>
+  )
+}
+
+/**
+ * Configuração do cálculo em largura total, recolhida por padrão. Fechar só esconde o formulário
+ * (não desmonta), para não perder o que foi digitado e ainda não salvo.
+ */
+function SettingsCard({ summary }: { summary: ProLaboreSummary }) {
+  const [open, setOpen] = useState(false)
+  const { settings } = summary
+  const taxLabel =
+    settings.taxMode === 'MANUAL' && settings.manualTaxRate != null
+      ? `imposto ${formatPercent(settings.manualTaxRate)}`
+      : 'imposto automático'
+
+  return (
+    <Card>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls="pro-labore-settings"
+        className="flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span className="min-w-0">
+          <span className="block text-base font-semibold text-zinc-800 dark:text-zinc-100">Configuração do cálculo</span>
+          {!open && (
+            <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
+              {CALCULATION_BASE_LABELS[settings.calculationBase]} · {taxLabel}
+              {settings.fixedAmount != null && ` · fixo ${formatCurrency(settings.fixedAmount)}`}
+            </span>
+          )}
+        </span>
+        <ChevronDownIcon
+          className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform dark:text-zinc-400 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      <div id="pro-labore-settings" className={open ? 'mt-4' : 'hidden'}>
+        {/* key: ao salvar, o formulário recomeça dos valores devolvidos pelo backend. */}
+        <ProLaboreSettingsForm key={JSON.stringify(settings)} settings={settings} />
+      </div>
+    </Card>
+  )
+}
+
+const EXPENSE_STATUS_BADGE_CLASSES = {
+  paid: 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300',
+  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+  overdue: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+}
+
+/**
+ * Pagamentos feitos pelas contas PJ que entraram no cálculo como despesa do mês. Não são
+ * retiradas: pró-labore é só a transferência de PJ para PF.
+ */
+function BusinessExpensesCard({ summary }: { summary: ProLaboreSummary }) {
+  return (
+    <Card>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Despesas PJ do mês</h3>
+        {summary.businessExpenses.length > 0 && (
+          <span className="text-sm font-semibold text-[#f06464]">{formatCurrency(summary.monthBusinessExpenses)}</span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        Pagamentos das contas PJ que já entram no cálculo: pagos no mês e pendentes até o fim dele. Não contam como
+        retirada.
+      </p>
+      {summary.businessExpenses.length === 0 ? (
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Nenhuma despesa PJ este mês.</p>
+      ) : (
+        <ul className="mt-3 max-h-80 divide-y divide-zinc-200 overflow-y-auto pr-1 dark:divide-zinc-700">
+          {summary.businessExpenses.map((expense) => {
+            const status = expense.paid ? 'paid' : expense.overdue ? 'overdue' : 'pending'
+            const statusLabel = expense.paid ? 'Paga' : expense.overdue ? 'Atrasada' : 'A pagar'
+            const details = [formatDateOnlyBr(expense.date), expense.accountName, expense.categoryName]
+              .filter(Boolean)
+              .join(' · ')
+            return (
+              <li key={expense.transactionId} className="flex items-start justify-between gap-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="break-words text-zinc-800 dark:text-zinc-100">{expense.description}</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className={`rounded-full px-2 py-0.5 font-medium ${EXPENSE_STATUS_BADGE_CLASSES[status]}`}>
+                      {statusLabel}
+                    </span>
+                    <span className="min-w-0 break-words">{details}</span>
+                  </div>
+                </div>
+                <span className="shrink-0 font-medium text-zinc-800 dark:text-zinc-100">
+                  {formatCurrency(expense.amount)}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Card>
   )
 }
 

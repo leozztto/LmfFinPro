@@ -37,6 +37,19 @@ export interface ProLaboreWithdrawal {
   toAccountName: string
 }
 
+/** Despesa de conta PJ que entrou em `monthBusinessExpenses` (o total da lista bate com ele). */
+export interface ProLaboreBusinessExpense {
+  transactionId: number
+  date: string
+  description: string
+  amount: number
+  paid: boolean
+  /** Pendente com data anterior a hoje. */
+  overdue: boolean
+  accountName: string
+  categoryName: string | null
+}
+
 /** Todas as parcelas vêm calculadas do backend; a tela só explica o número. */
 export interface ProLaboreSummary {
   hasBusinessAccounts: boolean
@@ -73,6 +86,7 @@ export interface ProLaboreSummary {
   fixedCovered: boolean
   withdrawnThisMonth: number
   withdrawals: ProLaboreWithdrawal[]
+  businessExpenses: ProLaboreBusinessExpense[]
   suggestedFromAccountId: number | null
   suggestedToAccountId: number | null
 }

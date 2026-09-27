@@ -1,8 +1,10 @@
 package com.lmf.finpro.application.prolabore;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
+import com.lmf.finpro.application.prolabore.ProLaboreSummary.BusinessExpense;
 import com.lmf.finpro.application.prolabore.ProLaboreSummary.Withdrawal;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ProLaboreCalculationBase;
 import com.lmf.finpro.domain.model.ProLaboreCalculator;
@@ -18,6 +20,7 @@ import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.GoalContributionRepositoryPort;
 import com.lmf.finpro.domain.port.out.ProLaboreSettingsRepositoryPort;
 import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
@@ -58,6 +61,7 @@ public class ProLaboreApplicationService {
     private final GoalContributionRepositoryPort goalContributionRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
     private final ProLaboreSettingsRepositoryPort proLaboreSettingsRepositoryPort;
+    private final CategoryRepositoryPort categoryRepositoryPort;
     private final Clock clock;
 
     public ProLaboreSummary summary(Long currentUserId) {
@@ -94,22 +98,21 @@ public class ProLaboreApplicationService {
                 businessTransactions.stream()
                         .filter(transaction -> transaction.type() == CategoryType.EXPENSE)
                         .toList();
-        // Contas PJ a pagar até o fim do mês, inclusive as atrasadas.
-        BigDecimal pendingExpenses =
-                sum(
-                        expenses.stream()
-                                .filter(transaction -> !transaction.isPaid())
-                                .filter(
-                                        transaction ->
-                                                !transaction
+        // Custo do mês: o que já foi pago no mês mais o que ainda falta pagar até o fim dele,
+        // inclusive as contas atrasadas.
+        List<Transaction> monthExpenseTransactions =
+                expenses.stream()
+                        .filter(
+                                transaction ->
+                                        transaction.isPaid()
+                                                ? inMonth(transaction, currentMonth)
+                                                : !transaction
                                                         .transactionDate()
-                                                        .isAfter(currentMonth.atEndOfMonth())));
-        // Custo do mês: o que já foi pago no mês mais o que ainda falta pagar até o fim dele.
-        BigDecimal monthExpenses =
-                sum(expenses.stream()
-                                .filter(Transaction::isPaid)
-                                .filter(transaction -> inMonth(transaction, currentMonth)))
-                        .add(pendingExpenses);
+                                                        .isAfter(currentMonth.atEndOfMonth()))
+                        .toList();
+        BigDecimal pendingExpenses =
+                sum(monthExpenseTransactions.stream().filter(transaction -> !transaction.isPaid()));
+        BigDecimal monthExpenses = sum(monthExpenseTransactions.stream());
         BigDecimal monthIncome =
                 sum(
                         businessTransactions.stream()
@@ -182,6 +185,7 @@ public class ProLaboreApplicationService {
                 averageMonthlyExpense,
                 withdrawnThisMonth,
                 withdrawals,
+                businessExpenses(currentUserId, monthExpenseTransactions, accounts, today),
                 businessAccounts.stream()
                         .max(Comparator.comparing(account -> balanceByAccount.get(account.id())))
                         .map(Account::id)
@@ -254,6 +258,39 @@ public class ProLaboreApplicationService {
                                         transfer.amount(),
                                         accountById.get(transfer.fromAccountId()).name(),
                                         accountById.get(transfer.toAccountId()).name()))
+                .toList();
+    }
+
+    /** As despesas que entraram no custo do mês, com conta e categoria resolvidas. */
+    private List<BusinessExpense> businessExpenses(
+            Long userId, List<Transaction> transactions, List<Account> accounts, LocalDate today) {
+        if (transactions.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, String> accountNames =
+                accounts.stream().collect(Collectors.toMap(Account::id, Account::name));
+        Map<Long, String> categoryNames =
+                categoryRepositoryPort.findAllVisibleToUser(userId).stream()
+                        .collect(Collectors.toMap(Category::id, Category::name));
+        return transactions.stream()
+                .sorted(
+                        Comparator.comparing(Transaction::transactionDate)
+                                .reversed()
+                                .thenComparing(Transaction::amount, Comparator.reverseOrder()))
+                .map(
+                        transaction ->
+                                new BusinessExpense(
+                                        transaction.id(),
+                                        transaction.transactionDate(),
+                                        transaction.description(),
+                                        transaction.amount(),
+                                        transaction.isPaid(),
+                                        !transaction.isPaid()
+                                                && transaction.transactionDate().isBefore(today),
+                                        accountNames.get(transaction.accountId()),
+                                        transaction.categoryId() == null
+                                                ? null
+                                                : categoryNames.get(transaction.categoryId())))
                 .toList();
     }
 

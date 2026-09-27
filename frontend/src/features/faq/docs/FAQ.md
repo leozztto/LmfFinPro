@@ -148,6 +148,21 @@ Descrição, valor, categoria, cliente e data final podem ser alterados, e a mud
 Não. Só o modelo é removido; as transações já lançadas continuam no extrato e podem ser excluídas individualmente na tela de Transações. Uma conta com recorrência vinculada não pode ser excluída: remova a recorrência antes.
 ___
 
+## Calendário
+
+**O que aparece no Calendário?**
+Tudo o que cai em cada dia do mês: transações pendentes (a pagar e a receber), as próximas ocorrências dos lançamentos recorrentes que ainda não foram lançadas (marcadas como **Prevista**) e, para MEI e Simples Nacional, o vencimento do **DAS** no dia 20, com o valor da estimativa de imposto da competência, se você tiver cadastrado. Transferências entre suas contas não aparecem. Marcando "Mostrar pagas e recebidas", entram também as que já foram quitadas no mês.
+
+**O que conta como "em atraso"?**
+Qualquer transação ainda pendente com data anterior a hoje, de qualquer mês. Elas ficam num aviso no topo do Calendário, com o total a pagar e a receber em atraso, e aparecem em vermelho nos dias. Dá para marcar como paga ou recebida ali mesmo.
+
+**Por que uma recorrência aparece como "Prevista" e não como pendente?**
+Porque ela ainda não virou transação: o sistema lança cada ocorrência no próprio dia. Até lá, o Calendário mostra a previsão para você se planejar; no dia, ela vira uma transação pendente como as outras. Recorrências pausadas não geram previsão.
+
+**O que entra nos totais "A receber no mês" e "A pagar no mês"?**
+Tudo o que ainda está em aberto no mês escolhido: pendentes, atrasadas desse mês, previsões das recorrências e o DAS. "Já recebido" e "Já pago" somam o que já foi quitado no mês, mesmo com as pagas escondidas.
+___
+
 ## Clientes
 
 **Pra que serve cadastrar clientes?**
@@ -264,6 +279,9 @@ Porque o que você já guardou nas caixinhas do imposto continua no saldo das co
 
 **Como registro o pagamento do pró-labore?**
 Pelo botão **Pagar**, que abre uma transferência já preenchida da conta PJ com mais saldo para uma conta PF (dá pra ajustar tudo antes de confirmar). Qualquer transferência de conta PJ para conta PF no mês conta como retirada.
+
+**Paguei uma conta pela conta PJ. Por que ela não aparece nas retiradas?**
+Porque um pagamento feito pela conta da empresa é despesa da empresa, não pró-labore. Ele não fica de fora: entra no cálculo como despesa PJ e já diminui o disponível. Você o vê no box **Despesas PJ do mês**, junto com as outras despesas pagas no mês e as que ainda vão vencer até o fim dele. Se era uma conta pessoal, o ideal é transferir o valor da PJ para a PF e pagar pela PF: aí sim ele conta como retirada.
 
 **O valor já retirado é descontado do disponível?**
 Sim: o disponível é o líquido do pró-labore do mês menos o que você já transferiu de contas PJ para contas PF no mês. Na base **saldo atual**, essas transferências já tinham saído do saldo, então elas voltam para compor o orçamento do mês antes de serem descontadas — assim a mesma retirada não é contada duas vezes.

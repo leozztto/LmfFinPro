@@ -1,0 +1,108 @@
+package com.lmf.finpro.application.calendar;
+
+import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.Category;
+import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.DasSchedule;
+import com.lmf.finpro.domain.model.FinancialCalendar;
+import com.lmf.finpro.domain.model.TaxEstimate;
+import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.User;
+import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
+import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
+import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
+import com.lmf.finpro.domain.port.out.UserRepositoryPort;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+/**
+ * Calendário financeiro do mês: transações (sem transferências), ocorrências previstas das
+ * recorrências, vencimento do DAS (MEI e Simples Nacional) e tudo o que está atrasado.
+ */
+@Service
+@RequiredArgsConstructor
+public class CalendarApplicationService {
+
+    /** Até quantos anos para trás ou para frente do mês atual o calendário pode ser consultado. */
+    public static final int MAX_YEARS_AWAY = 5;
+
+    private final UserRepositoryPort userRepositoryPort;
+    private final AccountRepositoryPort accountRepositoryPort;
+    private final TransactionRepositoryPort transactionRepositoryPort;
+    private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
+    private final TaxEstimateRepositoryPort taxEstimateRepositoryPort;
+    private final CategoryRepositoryPort categoryRepositoryPort;
+    private final ClientRepositoryPort clientRepositoryPort;
+    private final Clock clock;
+
+    /** Calendário com os nomes de conta, categoria e cliente de cada lançamento já resolvidos. */
+    public record Result(
+            FinancialCalendar.Report report,
+            Map<Long, String> accountNames,
+            Map<Long, String> categoryNames,
+            Map<Long, String> clientNames) {}
+
+    public Result build(Long currentUserId, YearMonth month, boolean includePaid) {
+        LocalDate today = LocalDate.now(clock);
+        YearMonth referenceMonth = month == null ? YearMonth.from(today) : month;
+        YearMonth current = YearMonth.from(today);
+        if (referenceMonth.isBefore(current.minusYears(MAX_YEARS_AWAY))
+                || referenceMonth.isAfter(current.plusYears(MAX_YEARS_AWAY))) {
+            throw new IllegalArgumentException(
+                    "O mês deve estar a até " + MAX_YEARS_AWAY + " anos do mês atual");
+        }
+
+        List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
+        List<Long> accountIds = accounts.stream().map(Account::id).toList();
+        List<Transaction> transactions =
+                accountIds.isEmpty()
+                        ? List.of()
+                        : transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
+                                .filter(transaction -> transaction.transferId() == null)
+                                .toList();
+
+        FinancialCalendar.Report report =
+                FinancialCalendar.build(
+                        referenceMonth,
+                        today,
+                        transactions,
+                        recurringTransactionRepositoryPort.findAllByUserId(currentUserId),
+                        dasDue(currentUserId, referenceMonth),
+                        includePaid);
+
+        return new Result(
+                report,
+                accounts.stream().collect(Collectors.toMap(Account::id, Account::name)),
+                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                        .collect(Collectors.toMap(Category::id, Category::name)),
+                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                        .collect(Collectors.toMap(Client::id, Client::name)));
+    }
+
+    /** O DAS que vence no mês (dia 20) é o da competência anterior. */
+    private FinancialCalendar.DasDue dasDue(Long userId, YearMonth month) {
+        User user = userRepositoryPort.findById(userId).orElse(null);
+        if (user == null || !DasSchedule.appliesTo(user.taxRegime())) {
+            return null;
+        }
+        YearMonth competence = month.minusMonths(1);
+        BigDecimal estimatedValue =
+                taxEstimateRepositoryPort.findAllByUserId(userId).stream()
+                        .filter(estimate -> estimate.referenceMonth().equals(competence))
+                        .map(TaxEstimate::estimatedValue)
+                        .findFirst()
+                        .orElse(null);
+        return new FinancialCalendar.DasDue(
+                competence, DasSchedule.dueDateFor(competence), estimatedValue);
+    }
+}
