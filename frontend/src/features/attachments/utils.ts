@@ -26,3 +26,25 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
   return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`
 }
+
+/**
+ * Separa os arquivos escolhidos entre os que podem entrar na fila e os recusados (com o motivo).
+ * {@code currentCount} é o que a transação já tem somado ao que já está na fila, para respeitar o
+ * limite de anexos.
+ */
+export function splitValidFiles(
+  files: File[],
+  currentCount: number,
+): { accepted: File[]; rejected: string[] } {
+  const accepted: File[] = []
+  const rejected: string[] = []
+  for (const file of files) {
+    const error = validateAttachmentFile(file, currentCount + accepted.length)
+    if (error) {
+      rejected.push(`${file.name}: ${error}`)
+    } else {
+      accepted.push(file)
+    }
+  }
+  return { accepted, rejected }
+}
