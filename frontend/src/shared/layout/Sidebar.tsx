@@ -23,7 +23,7 @@ const NAV_SECTIONS = [
     label: 'Cadastros',
     items: [
       { to: '/contas', label: 'Contas', icon: WalletIcon },
-      { to: '/categorias', label: 'Categorias', icon: TagIcon },
+      { to: '/categorias', label: 'Categorias e tags', icon: TagIcon },
     ],
   },
   {

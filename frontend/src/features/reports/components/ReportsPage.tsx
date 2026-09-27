@@ -10,6 +10,7 @@ import { BudgetVsActualReportForm } from './BudgetVsActualReportForm'
 import { TransactionExportForm } from './TransactionExportForm'
 import { TransactionReportForm } from './TransactionReportForm'
 import { AttachmentsArchiveForm } from './AttachmentsArchiveForm'
+import { TagTotalsReportForm } from './TagTotalsReportForm'
 
 export function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('CLIENT_RECEIPT')
@@ -65,6 +66,7 @@ export function ReportsPage() {
       {reportType === 'TRANSACTION_EXPORT' && <TransactionExportForm format={format} />}
       {reportType === 'INCOME_REPORT' && <TransactionReportForm key="INCOME" kind="INCOME" format={format} />}
       {reportType === 'EXPENSE_REPORT' && <TransactionReportForm key="EXPENSE" kind="EXPENSE" format={format} />}
+      {reportType === 'TAG_TOTALS' && <TagTotalsReportForm format={format} />}
       {reportType === 'ATTACHMENTS_ARCHIVE' && <AttachmentsArchiveForm />}
     </div>
   )

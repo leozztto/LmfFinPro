@@ -1,3 +1,4 @@
+import { TagBadge } from '@/features/tags/components/TagBadge'
 import { useState } from 'react'
 import { Card, IconButton, Modal } from '@/shared/ui'
 import { PencilIcon, TrashIcon } from '@/shared/ui/icons'
@@ -91,6 +92,9 @@ export function RecurringTransactionList() {
                     {badge && (
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
                     )}
+                    {(recurrence.tags ?? []).map((tag) => (
+                      <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                    ))}
                   </div>
                   {details && <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{details}</p>}
                 </div>

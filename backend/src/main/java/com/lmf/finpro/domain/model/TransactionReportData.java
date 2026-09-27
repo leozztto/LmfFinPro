@@ -21,6 +21,10 @@ public record TransactionReportData(
         BigDecimal pendingTotal,
         List<CategoryTotal> categoryTotals) {
 
+    /**
+     * @param tags tags da transação já formatadas para exibição (ex.: "#site-acme #dedutível"); ""
+     *     quando não há
+     */
     public record Row(
             LocalDate date,
             String description,
@@ -28,7 +32,21 @@ public record TransactionReportData(
             String categoryName,
             String clientName,
             TransactionStatus status,
-            BigDecimal amount) {}
+            BigDecimal amount,
+            String tags) {
+
+        /** Sem tags. */
+        public Row(
+                LocalDate date,
+                String description,
+                String accountName,
+                String categoryName,
+                String clientName,
+                TransactionStatus status,
+                BigDecimal amount) {
+            this(date, description, accountName, categoryName, clientName, status, amount, "");
+        }
+    }
 
     public record CategoryTotal(String categoryName, int count, BigDecimal total) {}
 }

@@ -6,11 +6,13 @@ import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * Parâmetros de query dos relatórios de receitas/despesas. Todos opcionais: o que não vier na URL
- * fica nulo e não é aplicado na busca.
+ * fica nulo e não é aplicado na busca. Tags vão repetidas: {@code ?tagIds=3&tagIds=7} (qualquer uma
+ * das duas).
  */
 public record TransactionReportRequest(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -23,6 +25,7 @@ public record TransactionReportRequest(
         BigDecimal minAmount,
         BigDecimal maxAmount,
         String description,
+        List<Long> tagIds,
         ReportFormat format) {
 
     public TransactionReportFilters toFilters() {
@@ -36,7 +39,8 @@ public record TransactionReportRequest(
                 status,
                 minAmount,
                 maxAmount,
-                description);
+                description,
+                tagIds);
     }
 
     public ReportFormat formatOrDefault() {

@@ -13,6 +13,7 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportGranularity;
+import com.lmf.finpro.domain.model.TagTotalsReportData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.TransactionReportData;
@@ -40,6 +41,7 @@ import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
@@ -271,6 +273,68 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         return output.toByteArray();
     }
 
+    @Override
+    public byte[] generateTagTotalsReport(TagTotalsReportData data) {
+        Document document = new Document(PageSize.A4, 36, 36, 40, 36);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            PdfWriter.getInstance(document, output);
+            document.open();
+
+            document.add(titleBlock("TOTAIS POR TAG", data.periodLabel()));
+            document.add(appliedFiltersBlock(data.appliedFilters()));
+            document.add(tagTotalsBlock(data));
+            Paragraph note =
+                    new Paragraph(
+                            "Uma transação com mais de uma tag entra no total de cada uma delas,"
+                                    + " por isso as linhas não somam o total geral.",
+                            FOOTER_FONT);
+            note.setSpacingBefore(4);
+            document.add(note);
+            document.add(footer("relatório"));
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Falha ao gerar o PDF do relatório.", e);
+        } finally {
+            document.close();
+        }
+        return output.toByteArray();
+    }
+
+    private PdfPTable tagTotalsBlock(TagTotalsReportData data) {
+        PdfPTable table = gridTable(new float[] {2.4f, 1f, 1.4f, 1.4f, 1.4f});
+
+        PdfPCell section = headerCell("RESULTADO POR TAG");
+        section.setColspan(5);
+        table.addCell(section);
+
+        table.addCell(labelCell("Tag"));
+        table.addCell(labelCell("Lançamentos"));
+        for (String header : List.of("Receitas", "Despesas", "Resultado")) {
+            PdfPCell cell = labelCell(header);
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(cell);
+        }
+
+        List<TagTotalsReportData.Row> rows = new ArrayList<>(data.rows());
+        if (data.untagged() != null && data.untagged().count() > 0) {
+            rows.add(data.untagged());
+        }
+        if (rows.isEmpty()) {
+            PdfPCell empty = valueCell("Nenhuma transação com tag encontrada nesse período.");
+            empty.setColspan(5);
+            table.addCell(empty);
+        } else {
+            for (TagTotalsReportData.Row row : rows) {
+                table.addCell(valueCell(row.label()));
+                table.addCell(centeredValueCell(String.valueOf(row.count())));
+                table.addCell(amountCell(formatCurrency(row.income()), BODY_FONT));
+                table.addCell(amountCell(formatCurrency(row.expense()), BODY_FONT));
+                table.addCell(amountCell(formatCurrency(row.result()), BODY_BOLD_FONT));
+            }
+        }
+        return table;
+    }
+
     private PdfPTable appliedFiltersBlock(List<String> appliedFilters) {
         PdfPTable table = gridTable(new float[] {1f});
         table.addCell(headerCell("FILTROS APLICADOS"));
@@ -310,7 +374,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         } else {
             for (TransactionReportData.Row row : data.rows()) {
                 table.addCell(valueCell(row.date().format(DATE_FORMAT)));
-                table.addCell(valueCell(row.description()));
+                table.addCell(descriptionWithTagsCell(row.description(), row.tags()));
                 table.addCell(valueCell(row.accountName()));
                 table.addCell(valueCell(row.categoryName()));
                 table.addCell(valueCell(row.clientName()));
@@ -734,7 +798,7 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
                 table.addCell(valueCell(row.accountName()));
                 table.addCell(valueCell(row.categoryName()));
                 table.addCell(valueCell(row.clientName()));
-                table.addCell(valueCell(row.description()));
+                table.addCell(descriptionWithTagsCell(row.description(), row.tags()));
                 table.addCell(valueCell(isIncome ? "Receita" : "Despesa"));
                 table.addCell(
                         valueCell(row.status() == TransactionStatus.PAID ? "Paga" : "Pendente"));
@@ -850,6 +914,18 @@ public class OpenPdfReceiptGenerator implements ReceiptGeneratorPort {
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cell.setBorderColor(BORDER_COLOR);
         cell.setPadding(5);
+        return cell;
+    }
+
+    /** Descrição e, logo abaixo e em fonte menor, as tags — sem ocupar mais uma coluna. */
+    private PdfPCell descriptionWithTagsCell(String description, String tags) {
+        PdfPCell cell = valueCell(description);
+        if (tags != null && !tags.isBlank()) {
+            Paragraph tagsLine = new Paragraph(tags, LABEL_FONT);
+            tagsLine.setSpacingBefore(1);
+            cell.addElement(new Paragraph(description == null ? "" : description, BODY_FONT));
+            cell.addElement(tagsLine);
+        }
         return cell;
     }
 

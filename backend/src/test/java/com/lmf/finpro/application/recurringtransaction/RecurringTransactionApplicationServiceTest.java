@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -50,6 +51,7 @@ class RecurringTransactionApplicationServiceTest {
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private ClientRepositoryPort clientRepositoryPort;
+    @Mock private TagApplicationService tagApplicationService;
 
     private RecurringTransactionApplicationService service;
 
@@ -64,7 +66,8 @@ class RecurringTransactionApplicationServiceTest {
                         accountRepositoryPort,
                         categoryRepositoryPort,
                         clientRepositoryPort,
-                        fixedClock);
+                        fixedClock,
+                        tagApplicationService);
     }
 
     private Account ownedAccount() {
@@ -106,7 +109,8 @@ class RecurringTransactionApplicationServiceTest {
                         CategoryType.EXPENSE,
                         RecurrenceFrequency.MONTHLY,
                         LocalDate.of(2026, 7, 5),
-                        null);
+                        null,
+                        List.of());
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepositoryPort, times(3)).save(captor.capture());
@@ -145,7 +149,8 @@ class RecurringTransactionApplicationServiceTest {
                         CategoryType.EXPENSE,
                         RecurrenceFrequency.MONTHLY,
                         LocalDate.of(2026, 10, 1),
-                        null);
+                        null,
+                        List.of());
 
         verify(transactionRepositoryPort, never()).save(any());
         assertThat(created.generatedOccurrences()).isZero();
@@ -167,7 +172,8 @@ class RecurringTransactionApplicationServiceTest {
                                         CategoryType.EXPENSE,
                                         RecurrenceFrequency.MONTHLY,
                                         TODAY,
-                                        null))
+                                        null,
+                                        List.of()))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(recurringTransactionRepositoryPort, never()).save(any());
     }
@@ -192,7 +198,8 @@ class RecurringTransactionApplicationServiceTest {
                                         CategoryType.EXPENSE,
                                         RecurrenceFrequency.MONTHLY,
                                         TODAY,
-                                        null))
+                                        null,
+                                        List.of()))
                 .isInstanceOf(CategoryTypeMismatchException.class);
     }
 
@@ -212,7 +219,8 @@ class RecurringTransactionApplicationServiceTest {
                                         CategoryType.EXPENSE,
                                         RecurrenceFrequency.MONTHLY,
                                         TODAY,
-                                        TODAY.minusDays(1)))
+                                        TODAY.minusDays(1),
+                                        List.of()))
                 .isInstanceOf(InvalidRecurrencePeriodException.class);
     }
 
@@ -234,7 +242,15 @@ class RecurringTransactionApplicationServiceTest {
 
         RecurringTransaction updated =
                 service.update(
-                        10L, 1L, null, null, "Aluguel novo", BigDecimal.valueOf(1600), null, true);
+                        10L,
+                        1L,
+                        null,
+                        null,
+                        "Aluguel novo",
+                        BigDecimal.valueOf(1600),
+                        null,
+                        true,
+                        null);
 
         assertThat(updated.description()).isEqualTo("Aluguel novo");
         assertThat(updated.amount()).isEqualByComparingTo("1600");
@@ -247,7 +263,17 @@ class RecurringTransactionApplicationServiceTest {
                 .thenReturn(Optional.of(existing(0, true)));
 
         assertThatThrownBy(
-                        () -> service.update(999L, 1L, null, null, "X", BigDecimal.TEN, null, true))
+                        () ->
+                                service.update(
+                                        999L,
+                                        1L,
+                                        null,
+                                        null,
+                                        "X",
+                                        BigDecimal.TEN,
+                                        null,
+                                        true,
+                                        null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

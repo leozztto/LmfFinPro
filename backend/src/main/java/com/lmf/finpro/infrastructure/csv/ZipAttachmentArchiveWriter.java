@@ -61,7 +61,8 @@ public class ZipAttachmentArchiveWriter implements AttachmentArchiveWriterPort {
                     "Categoria",
                     "Cliente",
                     "Documento",
-                    "Nome original"
+                    "Nome original",
+                    "Tags"
                 });
         for (AttachmentArchiveData.Entry entry : data.entries()) {
             rows.add(
@@ -76,7 +77,8 @@ public class ZipAttachmentArchiveWriter implements AttachmentArchiveWriterPort {
                         entry.categoryName(),
                         entry.clientName(),
                         entry.documentType().label(),
-                        entry.originalFileName()
+                        entry.originalFileName(),
+                        entry.tags()
                     });
         }
         return rows;

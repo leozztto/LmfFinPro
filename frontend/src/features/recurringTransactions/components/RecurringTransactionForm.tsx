@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
@@ -12,6 +12,7 @@ import { TRANSACTION_TYPE_LABELS } from '@/features/transactions/types'
 import { useCreateRecurringTransaction } from '../hooks/useCreateRecurringTransaction'
 import { recurringTransactionSchema, type RecurringTransactionFormValues } from '../schemas'
 import { RECURRENCE_FREQUENCY_LABELS } from '../types'
+import { TagInput } from '@/features/tags/components/TagInput'
 
 interface RecurringTransactionFormProps {
   onSuccess?: () => void
@@ -23,6 +24,7 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
   const { data: clients } = useClients()
   const createRecurringTransaction = useCreateRecurringTransaction()
   const { showToast } = useToast()
+  const [tagNames, setTagNames] = useState<string[]>([])
 
   const {
     register,
@@ -57,7 +59,7 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
 
   async function onSubmit(values: RecurringTransactionFormValues) {
     try {
-      const created = await createRecurringTransaction.mutateAsync(values)
+      const created = await createRecurringTransaction.mutateAsync({ ...values, tagNames })
       showToast(
         created.generatedOccurrences > 0
           ? `Recorrência criada. ${created.generatedOccurrences} lançamento(s) já vencido(s) foram registrados.`
@@ -77,7 +79,7 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <FormField label="Descrição" htmlFor="recurring-description" error={errors.description?.message}>
           <Input id="recurring-description" placeholder="Aluguel, assinatura, mensalidade do cliente X" {...register('description')} />
@@ -139,6 +141,11 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
       <FormField label="Termina em (opcional)" htmlFor="recurring-end-date" error={errors.endDate?.message}>
         <Input id="recurring-end-date" type="date" {...register('endDate')} />
       </FormField>
+      <div className="min-w-0 sm:col-span-2">
+        <FormField label="Tags (opcional)" htmlFor="recurring-tags" hint="Vão para cada transação que a recorrência gerar.">
+          <TagInput id="recurring-tags" value={tagNames} onChange={setTagNames} placeholder="Digite uma tag" />
+        </FormField>
+      </div>
       <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-2">
         Ocorrências com data até hoje são lançadas assim que a recorrência é criada; as próximas entram
         automaticamente como transações no dia de cada uma. Cada ocorrência entra como pendente até você

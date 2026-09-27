@@ -8,10 +8,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * {@code status} é opcional: na criação, ausente usa o padrão pela data (futura = pendente); na
- * edição, ausente mantém a situação atual.
+ * edição, ausente mantém a situação atual. {@code tagNames} também: na criação, ausente = sem tags;
+ * na edição, ausente mantém as tags atuais. Tag nova é criada na hora.
  */
 public record TransactionRequest(
         Long accountId,
@@ -23,12 +25,35 @@ public record TransactionRequest(
                 BigDecimal amount,
         @NotNull(message = "data é obrigatória") LocalDate transactionDate,
         @NotNull(message = "tipo é obrigatório") CategoryType type,
-        TransactionStatus status) {
+        TransactionStatus status,
+        List<String> tagNames) {
 
     @JsonCreator
     public TransactionRequest {}
 
-    /** Sem situação informada. */
+    /** Sem tags informadas. */
+    public TransactionRequest(
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionStatus status) {
+        this(
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                status,
+                null);
+    }
+
+    /** Sem situação nem tags informadas. */
     public TransactionRequest(
             Long accountId,
             Long categoryId,

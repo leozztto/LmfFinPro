@@ -122,8 +122,7 @@ export function TransactionAttachmentsPanel({ transactionId }: TransactionAttach
                       {formatFileSize(attachment.sizeBytes)} · {formatDateOnlyBr(attachment.createdAt.slice(0, 10))}
                     </p>
                   </div>
-                  {/* Desktop: ícones ao lado do nome. */}
-                  <div className="hidden shrink-0 items-center gap-1 sm:flex">
+                  <div className="flex shrink-0 items-center gap-1">
                     <IconButton
                       icon={EyeIcon}
                       label={`Ver ${attachment.fileName}`}
@@ -141,23 +140,6 @@ export function TransactionAttachmentsPanel({ transactionId }: TransactionAttach
                       disabled={deleteAttachment.isPending}
                     />
                   </div>
-                </div>
-                {/* Celular: ações numa linha própria, com texto, para o nome ter a largura toda. */}
-                <div className="mt-2 grid grid-cols-3 gap-2 sm:hidden">
-                  <Button variant="secondary" className="gap-1.5 px-2 py-1.5" onClick={() => handleView(attachment)}>
-                    <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Ver
-                  </Button>
-                  <Button variant="secondary" className="gap-1.5 px-2 py-1.5" onClick={() => handleDownload(attachment)}>
-                    <DownloadIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Baixar
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="gap-1.5 px-2 py-1.5"
-                    onClick={() => handleDelete(attachment)}
-                    disabled={deleteAttachment.isPending}
-                  >
-                    <TrashIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Excluir
-                  </Button>
                 </div>
               </li>
             ))}

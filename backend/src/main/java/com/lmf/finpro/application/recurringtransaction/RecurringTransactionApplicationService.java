@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.recurringtransaction;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -31,10 +32,12 @@ public class RecurringTransactionApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
     private final Clock clock;
+    private final TagApplicationService tagApplicationService;
 
     /**
      * Cria a recorrência e já lança as ocorrências vencidas até hoje — uma recorrência com data
-     * inicial no passado (ex.: aluguel desde janeiro) gera na hora as transações que faltam.
+     * inicial no passado (ex.: aluguel desde janeiro) gera na hora as transações que faltam. As
+     * tags (por nome) valem para todas as transações que ela gerar.
      */
     @Transactional
     public RecurringTransaction create(
@@ -47,7 +50,8 @@ public class RecurringTransactionApplicationService {
             CategoryType type,
             RecurrenceFrequency frequency,
             LocalDate startDate,
-            LocalDate endDate) {
+            LocalDate endDate,
+            List<String> tagNames) {
         requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -65,6 +69,8 @@ public class RecurringTransactionApplicationService {
                                 frequency,
                                 startDate,
                                 endDate));
+        // Antes de gerar as ocorrências, para as transações já nascerem com as tags.
+        tagApplicationService.replaceRecurringTransactionTags(currentUserId, saved.id(), tagNames);
         return generateDueOccurrences(saved);
     }
 
@@ -72,6 +78,10 @@ public class RecurringTransactionApplicationService {
         return recurringTransactionRepositoryPort.findAllByUserId(currentUserId);
     }
 
+    /**
+     * {@code tagNames} nulo mantém as tags atuais. Tags novas valem para as próximas ocorrências;
+     * as transações já lançadas não mudam.
+     */
     @Transactional
     public RecurringTransaction update(
             Long currentUserId,
@@ -81,7 +91,8 @@ public class RecurringTransactionApplicationService {
             String description,
             BigDecimal amount,
             LocalDate endDate,
-            boolean active) {
+            boolean active,
+            List<String> tagNames) {
         RecurringTransaction existing = findOwnedOrThrow(currentUserId, recurringTransactionId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, existing.type());
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -96,6 +107,10 @@ public class RecurringTransactionApplicationService {
                                 endDate,
                                 active,
                                 LocalDate.now(clock)));
+        if (tagNames != null) {
+            tagApplicationService.replaceRecurringTransactionTags(
+                    currentUserId, recurringTransactionId, tagNames);
+        }
         return generateDueOccurrences(updated);
     }
 
@@ -120,9 +135,14 @@ public class RecurringTransactionApplicationService {
         if (dueDates.isEmpty()) {
             return recurrence;
         }
+        List<Long> tagIds = tagApplicationService.tagIdsOfRecurringTransaction(recurrence.id());
         for (LocalDate occurrenceDate : dueDates) {
-            transactionRepositoryPort.save(
-                    Transaction.createFromRecurrence(recurrence, occurrenceDate));
+            Transaction saved =
+                    transactionRepositoryPort.save(
+                            Transaction.createFromRecurrence(recurrence, occurrenceDate));
+            if (!tagIds.isEmpty()) {
+                tagApplicationService.linkTransaction(saved.id(), tagIds);
+            }
         }
         return recurringTransactionRepositoryPort.save(
                 recurrence.withGeneratedOccurrences(
