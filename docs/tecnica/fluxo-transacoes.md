@@ -17,6 +17,11 @@ Rota `/transacoes` (`TransactionsPage`).
 - **Lista** (`TransactionList` → `TransactionCard` por item): descrição, valor (verde para receita, vermelho para despesa, com sinal `+`/`-`), conta e categoria na linha de meta-informação, e uma etiqueta "Transferência" quando `transferId` está preenchido. No mobile, o card é expansível (`ChevronDownIcon`) para mostrar a descrição completa e a ação de remover.
 - **Estados**: `isLoading` → "Carregando transações..."; erro de exclusão → toast com a mensagem do backend.
 - **Ações do usuário**: criar e remover. **Não há edição pela tela de Transações** — embora o backend exponha `PUT /api/transactions/{id}` (`TransactionApplicationService.update`), o frontend não tem formulário de edição nem hook `useUpdateTransaction` conectados a essa rota; hoje o endpoint de update só é exercitado por teste de integração, não pela UI.
+- **Tags**:
+  - campo "Tags" no formulário de lançamento;
+  - etiquetas no card, e um botão de etiqueta que abre o modal para trocá-las (inclusive em transação paga ou de transferência);
+  - filtro "Tags (qualquer uma)" na lista.
+  - Detalhes em [`fluxo-tags.md`](fluxo-tags.md).
 - **Transação de transferência**: o botão de remover fica desabilitado com uma dica ("Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.") — a exclusão de fato acontece na tela de Transferências, que remove as duas pernas de uma vez.
 
 ## 3. Arquitetura (hexagonal)

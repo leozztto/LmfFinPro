@@ -25,5 +25,37 @@ public record AttachmentArchiveData(Year year, List<Entry> entries) {
             String categoryName,
             String clientName,
             AttachmentDocumentType documentType,
-            String originalFileName) {}
+            String originalFileName,
+            String tags) {
+
+        /** Sem tags. */
+        public Entry(
+                String path,
+                String storageKey,
+                LocalDate date,
+                String description,
+                CategoryType type,
+                BigDecimal amount,
+                TransactionStatus status,
+                String accountName,
+                String categoryName,
+                String clientName,
+                AttachmentDocumentType documentType,
+                String originalFileName) {
+            this(
+                    path,
+                    storageKey,
+                    date,
+                    description,
+                    type,
+                    amount,
+                    status,
+                    accountName,
+                    categoryName,
+                    clientName,
+                    documentType,
+                    originalFileName,
+                    "");
+        }
+    }
 }

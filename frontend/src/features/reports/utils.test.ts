@@ -16,6 +16,12 @@ describe('buildTransactionReportQuery', () => {
     expect(query).toBe('startDate=2026-09-01&categoryId=5&description=caf%C3%A9+%26+cia&format=CSV')
   })
 
+  it('repeats tagIds so the backend matches any of the tags', () => {
+    expect(buildTransactionReportQuery(EMPTY_TRANSACTION_REPORT_FILTERS, 'CSV', [3, 7])).toBe(
+      'tagIds=3&tagIds=7&format=CSV',
+    )
+  })
+
   it('ignores filters with only spaces', () => {
     expect(buildTransactionReportQuery({ ...EMPTY_TRANSACTION_REPORT_FILTERS, description: '   ' }, 'PDF')).toBe(
       'format=PDF',

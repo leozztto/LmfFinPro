@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -50,6 +51,7 @@ class TransactionApplicationServiceTest {
     @Mock private ClientRepositoryPort clientRepositoryPort;
 
     @Mock private TransactionAttachmentApplicationService transactionAttachmentApplicationService;
+    @Mock private TagApplicationService tagApplicationService;
 
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
 
@@ -66,7 +68,8 @@ class TransactionApplicationServiceTest {
                         categoryRepositoryPort,
                         clientRepositoryPort,
                         fixedClock,
-                        transactionAttachmentApplicationService);
+                        transactionAttachmentApplicationService,
+                        tagApplicationService);
     }
 
     private static Account ownedAccount() {
@@ -344,7 +347,16 @@ class TransactionApplicationServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         service.update(
-                10L, 7L, null, null, "Novo", BigDecimal.ONE, TODAY, CategoryType.EXPENSE, null);
+                10L,
+                7L,
+                null,
+                null,
+                "Novo",
+                BigDecimal.ONE,
+                TODAY,
+                CategoryType.EXPENSE,
+                null,
+                null);
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepositoryPort).save(captor.capture());
@@ -371,7 +383,8 @@ class TransactionApplicationServiceTest {
                         BigDecimal.TEN,
                         TODAY,
                         CategoryType.EXPENSE,
-                        TransactionStatus.PAID);
+                        TransactionStatus.PAID,
+                        null);
 
         assertThat(updated.status()).isEqualTo(TransactionStatus.PAID);
     }
@@ -395,7 +408,8 @@ class TransactionApplicationServiceTest {
                                         BigDecimal.TEN,
                                         TODAY,
                                         CategoryType.EXPENSE,
-                                        TransactionStatus.PENDING))
+                                        TransactionStatus.PENDING,
+                                        null))
                 .isInstanceOf(PaidTransactionLockedException.class);
         verify(transactionRepositoryPort, never()).save(any());
     }

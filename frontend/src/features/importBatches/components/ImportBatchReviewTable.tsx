@@ -7,6 +7,7 @@ import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { useImportBatchTransactions } from '../hooks/useImportBatchTransactions'
 import { useReviewImportedTransaction } from '../hooks/useReviewImportedTransaction'
+import { ImportReviewTags } from './ImportReviewTags'
 
 interface ImportBatchReviewTableProps {
   batchId: number
@@ -57,7 +58,7 @@ export function ImportBatchReviewTable({ batchId }: ImportBatchReviewTableProps)
         return (
           <div
             key={transaction.id}
-            className="grid gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700 sm:grid-cols-[1fr_auto_9rem_9rem] sm:items-center"
+            className="grid grid-cols-1 gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700 sm:grid-cols-[1fr_auto_9rem_9rem] sm:items-center"
           >
             <div className="min-w-0">
               <p className="truncate font-medium text-zinc-800 dark:text-zinc-100">{transaction.description}</p>
@@ -89,6 +90,9 @@ export function ImportBatchReviewTable({ batchId }: ImportBatchReviewTableProps)
                 </option>
               ))}
             </Select>
+            <div className="min-w-0 sm:col-span-4">
+              <ImportReviewTags transaction={transaction} />
+            </div>
           </div>
         )
       })}

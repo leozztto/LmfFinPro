@@ -70,6 +70,24 @@ Categoria com transações vinculadas não pode ser excluída, pelo mesmo motivo
 Eles são removidos junto. As regras de categorização automática e os orçamentos ligados àquela categoria não impedem a exclusão — são apagados automaticamente com ela.
 ___
 
+## Tags
+
+**Qual a diferença entre tag e categoria?**
+A categoria diz *o que* é o lançamento (Aluguel, Serviços) e cada transação tem uma só. A tag é uma marcação livre que atravessa as categorias, e uma transação pode ter várias (até 10): por exemplo, **#site-acme** num recebimento e também na hospedagem e no domínio desse projeto, ou **#dedutível** em tudo que entra na declaração de IR, seja qual for a categoria.
+
+**Onde coloco tags?**
+Ao lançar a transação, no campo "Tags", ou depois, pelo botão de etiqueta no card da transação — funciona em qualquer uma, inclusive já paga, importada ou de transferência, porque tag não mexe em valor nem em saldo. Também dá para pôr tags num lançamento recorrente (elas vão para cada transação que ele gerar) e na revisão de uma importação de extrato. Tag que ainda não existe é criada na hora.
+
+**"Site Acme" e "site-acme" viram tags diferentes?**
+Não. O sistema guarda toda tag do mesmo jeito: sem o "#", em minúsculas e com espaços trocados por "-". Então "#Site Acme", "site acme" e "SITE-ACME" são a mesma **#site-acme**. O nome aceita letras (com acento), números, "-" e "_", com até 40 caracteres.
+
+**Como vejo quanto um projeto rendeu?**
+Em Relatórios, no tipo **Totais por tag**: para cada tag, a receita, a despesa e o resultado no período, mais uma linha com o que ficou sem tag. Uma transação com duas tags conta nas duas, por isso as linhas não somam o total geral. Os relatórios de Receitas e Despesas (com filtros) também filtram por tag — escolhendo mais de uma, entra a transação que tiver **qualquer uma** delas —, e as tags aparecem numa coluna própria nesses relatórios, na Exportação de transações e no índice do pacote de comprovantes do ano.
+
+**O que acontece se eu renomear ou excluir uma tag?**
+Em Categorias e tags, aba Tags, você renomeia, troca a cor ou exclui. Renomear muda a tag em todas as transações que a usam. Excluir tira a tag das transações e recorrências, mas os lançamentos continuam como estavam.
+___
+
 ## Transações (receitas e despesas)
 
 **Como eu lanço uma receita ou despesa?**
@@ -254,7 +272,7 @@ ___
 ## Relatórios
 
 **Quais relatórios o sistema gera?**
-Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real), **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente) **Receitas (com filtros)** / **Despesas (com filtros)** e **Comprovantes do ano (ZIP)**.
+Na tela de Relatórios você escolhe o tipo de relatório e o formato do arquivo. Os tipos disponíveis são: **Recibo por cliente** (receitas do cliente no mês, com dados de emissor e cliente), **Extrato de conta** (saldo de abertura, movimentações do mês e saldo final), **Demonstrativo anual por cliente** (total recebido do cliente em cada mês do ano), **Despesas por categoria** (total gasto por categoria no mês, somando todas as contas), **Resultado do período (DRE)** (receita, despesa e resultado consolidados por mês, trimestre ou ano), **Orçamento vs. realizado** (limite de cada orçamento do mês comparado ao gasto real), **Exportação de transações** (extrato bruto de todas as transações do mês, com a situação de cada uma: paga ou pendente) **Receitas (com filtros)** / **Despesas (com filtros)**, **Totais por tag** (receita, despesa e resultado de cada tag no período) e **Comprovantes do ano (ZIP)**.
 
 **O que vem no pacote "Comprovantes do ano (ZIP)"?**
 Todos os comprovantes, notas fiscais e recibos anexados às transações do ano escolhido (pela data da transação), em pastas por mês e com nomes que já dizem a data e a descrição (ex.: `2026-03/2026-03-15_aluguel-escritorio_42.pdf`). Junto vai uma planilha `comprovantes-AAAA.csv` que liga cada arquivo à transação — data, descrição, tipo, valor, situação, conta, categoria, cliente e tipo de documento —, pronta pra abrir no Excel. É o pacote pra entregar ao contador na declaração de IR. Se o ano não tiver nenhum comprovante anexado, o sistema avisa em vez de gerar um arquivo vazio.

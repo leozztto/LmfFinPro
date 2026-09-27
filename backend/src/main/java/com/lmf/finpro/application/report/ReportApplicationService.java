@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.report;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountStatementData;
@@ -14,6 +15,7 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.ReportFormat;
 import com.lmf.finpro.domain.model.ReportGranularity;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
 import com.lmf.finpro.domain.model.User;
@@ -58,6 +60,7 @@ public class ReportApplicationService {
     private final BudgetRepositoryPort budgetRepositoryPort;
     private final ReceiptGeneratorPort receiptGeneratorPort;
     private final ReportCsvExporterPort reportCsvExporterPort;
+    private final TagApplicationService tagApplicationService;
 
     public byte[] generateClientReceipt(
             Long currentUserId, Long clientId, YearMonth referenceMonth, ReportFormat format) {
@@ -501,13 +504,20 @@ public class ReportApplicationService {
                 clientRepositoryPort.findAllByUserId(currentUserId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name));
 
-        List<TransactionExportData.TransactionExportRow> rows =
+        List<Transaction> transactionsInMonth =
                 transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
                         .filter(
                                 transaction ->
                                         !transaction.transactionDate().isBefore(start)
                                                 && transaction.transactionDate().isBefore(end))
                         .sorted(Comparator.comparing(Transaction::transactionDate))
+                        .toList();
+        Map<Long, List<Tag>> tagsByTransaction =
+                tagApplicationService.tagsByTransactionIds(
+                        currentUserId, transactionsInMonth.stream().map(Transaction::id).toList());
+
+        List<TransactionExportData.TransactionExportRow> rows =
+                transactionsInMonth.stream()
                         .map(
                                 transaction ->
                                         new TransactionExportData.TransactionExportRow(
@@ -527,7 +537,10 @@ public class ReportApplicationService {
                                                 transaction.description(),
                                                 transaction.type(),
                                                 transaction.status(),
-                                                transaction.amount()))
+                                                transaction.amount(),
+                                                Tag.joinLabels(
+                                                        tagsByTransaction.getOrDefault(
+                                                                transaction.id(), List.of()))))
                         .toList();
 
         return new TransactionExportData(referenceMonth, rows);

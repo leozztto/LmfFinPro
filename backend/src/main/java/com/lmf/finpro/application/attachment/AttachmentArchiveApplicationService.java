@@ -1,11 +1,13 @@
 package com.lmf.finpro.application.attachment;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AttachmentArchiveData;
 import com.lmf.finpro.domain.model.AttachmentFileType;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionAttachment;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
@@ -44,6 +46,7 @@ public class AttachmentArchiveApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
     private final AttachmentArchiveWriterPort attachmentArchiveWriterPort;
+    private final TagApplicationService tagApplicationService;
 
     /**
      * Monta o conteúdo antes de começar a escrever o ZIP, para que um ano sem comprovantes vire um
@@ -78,6 +81,13 @@ public class AttachmentArchiveApplicationService {
         Map<Long, String> clientNameById =
                 clientRepositoryPort.findAllByUserId(currentUserId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name));
+        Map<Long, List<Tag>> tagsByTransaction =
+                tagApplicationService.tagsByTransactionIds(
+                        currentUserId,
+                        attachments.stream()
+                                .map(TransactionAttachment::transactionId)
+                                .distinct()
+                                .toList());
 
         List<AttachmentArchiveData.Entry> entries =
                 attachments.stream()
@@ -95,7 +105,11 @@ public class AttachmentArchiveApplicationService {
                                                 transactionById.get(attachment.transactionId()),
                                                 accountById,
                                                 categoryNameById,
-                                                clientNameById))
+                                                clientNameById,
+                                                Tag.joinLabels(
+                                                        tagsByTransaction.getOrDefault(
+                                                                attachment.transactionId(),
+                                                                List.of()))))
                         .toList();
         return new AttachmentArchiveData(year, entries);
     }
@@ -109,7 +123,8 @@ public class AttachmentArchiveApplicationService {
             Transaction transaction,
             Map<Long, Account> accountById,
             Map<Long, String> categoryNameById,
-            Map<Long, String> clientNameById) {
+            Map<Long, String> clientNameById,
+            String tags) {
         String extension =
                 AttachmentFileType.fromContentType(attachment.contentType())
                         .map(AttachmentFileType::extension)
@@ -142,7 +157,8 @@ public class AttachmentArchiveApplicationService {
                         ? ""
                         : clientNameById.getOrDefault(transaction.clientId(), "Cliente removido"),
                 attachment.documentType(),
-                attachment.fileName());
+                attachment.fileName(),
+                tags);
     }
 
     /** "Café & Cia — março" → "cafe-cia-marco": nome de arquivo seguro em qualquer sistema. */

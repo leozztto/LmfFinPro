@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
@@ -46,6 +47,8 @@ class AttachmentArchiveApplicationServiceTest {
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private ClientRepositoryPort clientRepositoryPort;
     @Mock private AttachmentArchiveWriterPort attachmentArchiveWriterPort;
+
+    @Mock private TagApplicationService tagApplicationService;
 
     @InjectMocks private AttachmentArchiveApplicationService service;
 

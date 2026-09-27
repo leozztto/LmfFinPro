@@ -1,3 +1,5 @@
+import type { TagSummary } from '@/features/tags/types'
+
 export type TransactionType = 'INCOME' | 'EXPENSE'
 export type TransactionOrigin = 'MANUAL' | 'IMPORTED' | 'RECURRING'
 export type TransactionStatus = 'PAID' | 'PENDING'
@@ -19,6 +21,7 @@ export interface Transaction {
   status: TransactionStatus
   /** Quantidade de comprovantes anexados (vem na listagem). */
   attachmentCount?: number
+  tags: TagSummary[]
 }
 
 export interface TransactionInput {
@@ -31,6 +34,8 @@ export interface TransactionInput {
   type: TransactionType
   /** Ausente: o backend decide pela data (futura = pendente). */
   status?: TransactionStatus
+  /** Nomes das tags; as que ainda não existem são criadas pelo backend. */
+  tagNames?: string[]
 }
 
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {

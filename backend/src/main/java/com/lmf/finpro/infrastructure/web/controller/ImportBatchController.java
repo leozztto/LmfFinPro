@@ -1,8 +1,10 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.importbatch.ImportApplicationService;
+import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.ImportFileInvalidException;
 import com.lmf.finpro.domain.model.ImportBatch;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.importbatch.ImportBatchResponse;
@@ -13,6 +15,7 @@ import com.lmf.finpro.infrastructure.web.mapper.TransactionWebMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,6 +32,7 @@ public class ImportBatchController {
     private final ImportApplicationService importApplicationService;
     private final ImportBatchWebMapper mapper;
     private final TransactionWebMapper transactionMapper;
+    private final TagApplicationService tagApplicationService;
 
     @GetMapping
     public List<ImportBatchResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
@@ -53,8 +57,17 @@ public class ImportBatchController {
     @GetMapping("/{id}/transactions")
     public List<TransactionResponse> listTransactions(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return importApplicationService.listTransactions(currentUser.userId(), id).stream()
-                .map(transactionMapper::toResponse)
+        List<Transaction> transactions =
+                importApplicationService.listTransactions(currentUser.userId(), id);
+        Map<Long, List<Tag>> tags =
+                tagApplicationService.tagsByTransactionIds(
+                        currentUser.userId(), transactions.stream().map(Transaction::id).toList());
+        return transactions.stream()
+                .map(
+                        transaction ->
+                                transactionMapper.toResponse(
+                                        transaction,
+                                        tags.getOrDefault(transaction.id(), List.of())))
                 .toList();
     }
 
@@ -89,6 +102,10 @@ public class ImportBatchController {
                         transactionId,
                         request.categoryId(),
                         request.clientId());
-        return transactionMapper.toResponse(updated);
+        return transactionMapper.toResponse(
+                updated,
+                tagApplicationService
+                        .tagsByTransactionIds(currentUser.userId(), List.of(transactionId))
+                        .getOrDefault(transactionId, List.of()));
     }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Label, Select } from '@/shared/ui'
@@ -16,6 +16,7 @@ import { PendingAttachmentList } from '@/features/attachments/components/Pending
 import { usePendingAttachments } from '@/features/attachments/hooks/usePendingAttachments'
 import { useUploadPendingAttachments } from '@/features/attachments/hooks/useTransactionAttachments'
 import { MAX_ATTACHMENTS_PER_TRANSACTION } from '@/features/attachments/utils'
+import { TagInput } from '@/features/tags/components/TagInput'
 
 interface TransactionFormProps {
   onSuccess?: () => void
@@ -28,6 +29,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const createTransaction = useCreateTransaction()
   const uploadPending = useUploadPendingAttachments()
   const pendingAttachments = usePendingAttachments()
+  const [tagNames, setTagNames] = useState<string[]>([])
   const { showToast } = useToast()
   const isSaving = createTransaction.isPending || uploadPending.isPending
 
@@ -61,7 +63,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   async function onSubmit(values: TransactionFormValues) {
     let transactionId: number
     try {
-      transactionId = (await createTransaction.mutateAsync(values)).id
+      transactionId = (await createTransaction.mutateAsync({ ...values, tagNames })).id
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível lançar a transação.')
       return
@@ -82,6 +84,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       transactionDate: getCurrentIsoDate(),
     })
     pendingAttachments.clear()
+    setTagNames([])
     if (failed.length === 0) {
       showToast('Transação lançada com sucesso.', 'success')
     } else {
@@ -163,6 +166,21 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
         <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
       </FormField>
+      <div className="min-w-0 sm:col-span-2">
+        <FormField
+          label="Tags (opcional)"
+          htmlFor="transaction-tags"
+          hint="Ex.: #site-acme, #dedutível. Enter ou vírgula adiciona; tag nova é criada na hora."
+        >
+          <TagInput
+            id="transaction-tags"
+            value={tagNames}
+            onChange={setTagNames}
+            placeholder="Digite uma tag"
+            disabled={isSaving}
+          />
+        </FormField>
+      </div>
       <div className="min-w-0 space-y-2 sm:col-span-2">
         <Label htmlFor="transaction-attachments" className="mb-0">
           Comprovantes (opcional)

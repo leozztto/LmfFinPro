@@ -26,7 +26,7 @@ export function Tabs({ tabs, defaultTabId, activeTabId: controlledTabId, onTabCh
 
   return (
     <div>
-      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-700">
+      <div role="tablist" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-zinc-200 dark:border-zinc-700">
         {tabs.map((tab) => (
           <button
             key={tab.id}

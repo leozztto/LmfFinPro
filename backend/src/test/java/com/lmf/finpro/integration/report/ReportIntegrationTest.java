@@ -448,10 +448,10 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(body).isNotEmpty();
         String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
         assertThat(content)
-                .startsWith("Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor\r\n");
+                .startsWith("Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor;Tags\r\n");
         assertThat(content).contains("Aluguel escritório").contains("Receita do mês");
         // datas passadas sem situação informada entram como pagas
-        assertThat(content).contains("Aluguel escritório;Despesa;Paga;1500.00");
+        assertThat(content).contains("Aluguel escritório;Despesa;Paga;1500.00;");
         assertThat(content).doesNotContain("Receita de agosto");
     }
 
@@ -470,7 +470,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         byte[] body = response.getBody();
         String content = new String(body, 3, body.length - 3, StandardCharsets.UTF_8);
         assertThat(content)
-                .isEqualTo("Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor\r\n");
+                .isEqualTo("Data;Conta;Categoria;Cliente;Descrição;Tipo;Situação;Valor;Tags\r\n");
     }
 
     @Test

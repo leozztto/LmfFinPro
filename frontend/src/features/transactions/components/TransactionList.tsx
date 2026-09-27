@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
 import { TransactionAttachmentsPanel } from '@/features/attachments/components/TransactionAttachmentsPanel'
+import { TagInput } from '@/features/tags/components/TagInput'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
@@ -18,6 +19,7 @@ import {
   type TransactionType,
 } from '../types'
 import { TransactionCard } from './TransactionCard'
+import { TransactionTagsEditor } from './TransactionTagsEditor'
 
 interface Filters {
   accountId: string
@@ -26,6 +28,8 @@ interface Filters {
   type: TransactionType | ''
   status: TransactionStatus | ''
   attachment: 'WITH' | 'WITHOUT' | ''
+  /** Nomes das tags: entra a transação que tiver qualquer uma delas. */
+  tags: string[]
   startDate: string
   endDate: string
 }
@@ -37,6 +41,7 @@ const EMPTY_FILTERS: Filters = {
   type: '',
   status: '',
   attachment: '',
+  tags: [],
   startDate: '',
   endDate: '',
 }
@@ -52,6 +57,7 @@ export function TransactionList() {
   const confirm = useConfirm()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [attachmentsFor, setAttachmentsFor] = useState<Transaction | null>(null)
+  const [tagsFor, setTagsFor] = useState<Transaction | null>(null)
 
   async function handleDelete(transactionId: number, description: string) {
     const confirmed = await confirm({
@@ -106,6 +112,7 @@ export function TransactionList() {
       const hasAttachment = (transaction.attachmentCount ?? 0) > 0
       if (filters.attachment === 'WITH' && !hasAttachment) return false
       if (filters.attachment === 'WITHOUT' && hasAttachment) return false
+      if (filters.tags.length > 0 && !(transaction.tags ?? []).some((tag) => filters.tags.includes(tag.name))) return false
       if (filters.startDate && transaction.transactionDate < filters.startDate) return false
       if (filters.endDate && transaction.transactionDate > filters.endDate) return false
       return true
@@ -113,7 +120,7 @@ export function TransactionList() {
   }, [transactions, filters])
 
   const sorted = [...filtered].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
-  const activeFiltersCount = Object.values(filters).filter(Boolean).length
+  const activeFiltersCount = Object.values(filters).filter((value) => (Array.isArray(value) ? value.length > 0 : Boolean(value))).length
   const hasActiveFilters = activeFiltersCount > 0
 
   if (isLoading) {
@@ -213,6 +220,17 @@ export function TransactionList() {
               <option value="WITHOUT">Sem comprovante</option>
             </Select>
           </FormField>
+          <div className="min-w-0 sm:col-span-2">
+            <FormField label="Tags (qualquer uma)" htmlFor="filter-tags">
+              <TagInput
+                id="filter-tags"
+                value={filters.tags}
+                onChange={(tags) => setFilters((f) => ({ ...f, tags }))}
+                allowCreate={false}
+                placeholder="Todas"
+              />
+            </FormField>
+          </div>
           <FormField label="De" htmlFor="filter-start-date">
             <Input
               id="filter-start-date"
@@ -257,6 +275,7 @@ export function TransactionList() {
               onMarkAsPaid={() => handleMarkAsPaid(transaction)}
               isMarkingAsPaid={updateTransactionStatus.isPending}
               onOpenAttachments={() => setAttachmentsFor(transaction)}
+              onEditTags={() => setTagsFor(transaction)}
             />
           ))}
         </div>
@@ -269,6 +288,14 @@ export function TransactionList() {
         size="lg"
       >
         {attachmentsFor && <TransactionAttachmentsPanel transactionId={attachmentsFor.id} />}
+      </Modal>
+
+      <Modal
+        open={tagsFor !== null}
+        onClose={() => setTagsFor(null)}
+        title={tagsFor ? `Tags · ${tagsFor.description}` : 'Tags'}
+      >
+        {tagsFor && <TransactionTagsEditor key={tagsFor.id} transaction={tagsFor} onDone={() => setTagsFor(null)} />}
       </Modal>
     </div>
   )

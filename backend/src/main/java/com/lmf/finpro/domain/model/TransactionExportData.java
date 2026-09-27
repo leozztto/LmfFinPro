@@ -12,6 +12,9 @@ import java.util.List;
  */
 public record TransactionExportData(YearMonth referenceMonth, List<TransactionExportRow> rows) {
 
+    /**
+     * @param tags tags formatadas para exibição (ex.: "#site-acme #dedutível"); "" sem tags
+     */
     public record TransactionExportRow(
             LocalDate date,
             String accountName,
@@ -20,5 +23,29 @@ public record TransactionExportData(YearMonth referenceMonth, List<TransactionEx
             String description,
             CategoryType type,
             TransactionStatus status,
-            BigDecimal amount) {}
+            BigDecimal amount,
+            String tags) {
+
+        /** Sem tags. */
+        public TransactionExportRow(
+                LocalDate date,
+                String accountName,
+                String categoryName,
+                String clientName,
+                String description,
+                CategoryType type,
+                TransactionStatus status,
+                BigDecimal amount) {
+            this(
+                    date,
+                    accountName,
+                    categoryName,
+                    clientName,
+                    description,
+                    type,
+                    status,
+                    amount,
+                    "");
+        }
+    }
 }
