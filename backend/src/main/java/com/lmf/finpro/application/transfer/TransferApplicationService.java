@@ -2,6 +2,7 @@ package com.lmf.finpro.application.transfer;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -31,8 +32,8 @@ public class TransferApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final AccountApplicationService accountApplicationService;
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
-    @Transactional
     public TransferResult create(
             Long currentUserId,
             Long fromAccountId,
@@ -40,6 +41,24 @@ public class TransferApplicationService {
             BigDecimal amount,
             LocalDate transferDate,
             String description) {
+        return create(
+                currentUserId, fromAccountId, toAccountId, amount, transferDate, description, null);
+    }
+
+    /**
+     * Entre contas de moedas diferentes, {@code receivedAmount} é o valor que entra no destino, na
+     * moeda dele (o câmbio efetivo, com spread e taxas); entre contas da mesma moeda é ignorado. As
+     * duas pernas recebem o mesmo valor em reais, para continuarem se anulando no consolidado.
+     */
+    @Transactional
+    public TransferResult create(
+            Long currentUserId,
+            Long fromAccountId,
+            Long toAccountId,
+            BigDecimal amount,
+            LocalDate transferDate,
+            String description,
+            BigDecimal receivedAmount) {
         if (fromAccountId.equals(toAccountId)) {
             throw new SameAccountTransferException(
                     "A conta de origem e destino não podem ser a mesma.");
@@ -47,6 +66,16 @@ public class TransferApplicationService {
 
         Account fromAccount = findOwnedOrThrow(currentUserId, fromAccountId);
         Account toAccount = findOwnedOrThrow(currentUserId, toAccountId);
+        boolean crossCurrency = fromAccount.currency() != toAccount.currency();
+        if (crossCurrency && (receivedAmount == null || receivedAmount.signum() <= 0)) {
+            throw new IllegalArgumentException(
+                    "As contas têm moedas diferentes: informe o valor recebido em "
+                            + toAccount.currency()
+                            + ".");
+        }
+        BigDecimal creditedAmount = crossCurrency ? receivedAmount : amount;
+        BigDecimal baseAmount =
+                baseAmount(fromAccount, toAccount, amount, creditedAmount, transferDate);
 
         BigDecimal fromAccountBalance =
                 accountApplicationService.calculateCurrentBalance(fromAccount);
@@ -63,6 +92,7 @@ public class TransferApplicationService {
                                 fromAccountId,
                                 toAccountId,
                                 amount,
+                                crossCurrency ? receivedAmount : null,
                                 transferDate,
                                 description));
 
@@ -75,21 +105,23 @@ public class TransferApplicationService {
         Transaction fromTransaction =
                 transactionRepositoryPort.save(
                         Transaction.createForTransfer(
-                                fromAccountId,
-                                outDescription,
-                                amount,
-                                transferDate,
-                                CategoryType.EXPENSE,
-                                saved.id()));
+                                        fromAccountId,
+                                        outDescription,
+                                        amount,
+                                        transferDate,
+                                        CategoryType.EXPENSE,
+                                        saved.id())
+                                .withBaseAmount(baseAmount));
         Transaction toTransaction =
                 transactionRepositoryPort.save(
                         Transaction.createForTransfer(
-                                toAccountId,
-                                inDescription,
-                                amount,
-                                transferDate,
-                                CategoryType.INCOME,
-                                saved.id()));
+                                        toAccountId,
+                                        inDescription,
+                                        creditedAmount,
+                                        transferDate,
+                                        CategoryType.INCOME,
+                                        saved.id())
+                                .withBaseAmount(baseAmount));
 
         return new TransferResult(saved, fromTransaction.id(), toTransaction.id());
     }
@@ -128,6 +160,25 @@ public class TransferApplicationService {
         List<String> attachmentKeys = transactionAttachmentApplicationService.storageKeysOf(legIds);
         transferRepositoryPort.deleteById(transfer.id());
         transactionAttachmentApplicationService.deleteStoredFiles(attachmentKeys);
+    }
+
+    /**
+     * Valor em reais da transferência: o lado em reais, se houver (o câmbio efetivo); senão, a
+     * conversão do valor enviado pela cotação do dia.
+     */
+    private BigDecimal baseAmount(
+            Account fromAccount,
+            Account toAccount,
+            BigDecimal amount,
+            BigDecimal creditedAmount,
+            LocalDate transferDate) {
+        if (fromAccount.currency().isBase()) {
+            return amount;
+        }
+        if (toAccount.currency().isBase()) {
+            return creditedAmount;
+        }
+        return exchangeRateApplicationService.toBrl(fromAccount.currency(), amount, transferDate);
     }
 
     private TransferResult toResult(Transfer transfer, List<Transaction> legs) {

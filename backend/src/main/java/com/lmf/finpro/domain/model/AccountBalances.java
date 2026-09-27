@@ -23,11 +23,21 @@ public final class AccountBalances {
 
     /**
      * Saldo inicial + receitas − despesas pagas com data até {@code asOf}. Com {@code asOf} nulo,
-     * todas as pagas, qualquer que seja a data (o saldo atual da tela de Contas).
+     * todas as pagas, qualquer que seja a data (o saldo atual da tela de Contas). O saldo inicial
+     * só conta a partir da criação da conta: antes dela não há histórico.
      */
     public static BigDecimal bookBalance(
             Account account, List<Transaction> transactions, LocalDate asOf) {
-        return account.initialBalance().add(netFlow(transactions, null, asOf));
+        return openingBalance(account, asOf).add(netFlow(transactions, null, asOf));
+    }
+
+    private static BigDecimal openingBalance(Account account, LocalDate asOf) {
+        if (asOf == null
+                || account.createdAt() == null
+                || !account.createdAt().toLocalDate().isAfter(asOf)) {
+            return account.initialBalance();
+        }
+        return BigDecimal.ZERO;
     }
 
     /** Saldo considerando o valor de mercado nas contas de investimento. */

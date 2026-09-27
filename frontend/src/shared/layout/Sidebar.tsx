@@ -33,7 +33,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/calendario', label: 'Calendário', icon: CalendarIcon },
       { to: '/transacoes', label: 'Transações', icon: SwapIcon },
-      { to: '/recorrentes', label: 'Recorrentes', icon: RepeatIcon },
+      { to: '/recorrencias', label: 'Recorrências', icon: RepeatIcon },
       { to: '/transferencias', label: 'Transferências', icon: TransferIcon },
       { to: '/importacoes', label: 'Importações', icon: UploadIcon },
       { to: '/orcamentos', label: 'Orçamentos', icon: TargetIcon },

@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.Money;
 import com.lmf.finpro.domain.model.TagTotalsReportData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
@@ -43,7 +44,7 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                     new String[] {
                         transaction.transactionDate().format(DATE_FORMAT),
                         transaction.description(),
-                        transaction.amount().toPlainString()
+                        transaction.baseAmount().toPlainString()
                     });
         }
         rows.add(new String[] {"", "TOTAL", data.total().toPlainString()});
@@ -170,7 +171,9 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                     "Tipo",
                     "Situação",
                     "Valor",
-                    "Tags"
+                    "Tags",
+                    "Moeda original",
+                    "Valor original"
                 });
         for (TransactionExportData.TransactionExportRow row : data.rows()) {
             rows.add(
@@ -183,7 +186,9 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                         row.type() == CategoryType.INCOME ? "Receita" : "Despesa",
                         row.status() == TransactionStatus.PAID ? "Paga" : "Pendente",
                         row.amount().toPlainString(),
-                        row.tags()
+                        row.tags(),
+                        foreignCurrency(row.foreignValue()),
+                        foreignAmount(row.foreignValue())
                     });
         }
         return CsvWriter.write(rows);
@@ -205,7 +210,9 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                     "Cliente",
                     "Situação",
                     "Valor",
-                    "Tags"
+                    "Tags",
+                    "Moeda original",
+                    "Valor original"
                 });
         for (TransactionReportData.Row row : data.rows()) {
             rows.add(
@@ -217,17 +224,31 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                         row.clientName(),
                         row.status() == TransactionStatus.PAID ? "Paga" : "Pendente",
                         row.amount().toPlainString(),
-                        row.tags()
+                        row.tags(),
+                        foreignCurrency(row.foreignValue()),
+                        foreignAmount(row.foreignValue())
                     });
         }
-        rows.add(new String[] {"", "TOTAL", "", "", "", "", data.total().toPlainString(), ""});
         rows.add(
                 new String[] {
-                    "", "Total pago", "", "", "", "", data.paidTotal().toPlainString(), ""
+                    "", "TOTAL", "", "", "", "", data.total().toPlainString(), "", "", ""
                 });
         rows.add(
                 new String[] {
-                    "", "Total pendente", "", "", "", "", data.pendingTotal().toPlainString(), ""
+                    "", "Total pago", "", "", "", "", data.paidTotal().toPlainString(), "", "", ""
+                });
+        rows.add(
+                new String[] {
+                    "",
+                    "Total pendente",
+                    "",
+                    "",
+                    "",
+                    "",
+                    data.pendingTotal().toPlainString(),
+                    "",
+                    "",
+                    ""
                 });
         return CsvWriter.write(rows);
     }
@@ -255,6 +276,14 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                     });
         }
         return CsvWriter.write(rows);
+    }
+
+    private String foreignCurrency(Money foreignValue) {
+        return foreignValue == null ? "" : foreignValue.currency().name();
+    }
+
+    private String foreignAmount(Money foreignValue) {
+        return foreignValue == null ? "" : foreignValue.amount().toPlainString();
     }
 
     private String capitalizeMonth(Month month) {

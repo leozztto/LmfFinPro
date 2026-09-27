@@ -1,11 +1,14 @@
 package com.lmf.finpro.application.recurringtransaction;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.RecurrenceFrequency;
 import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.Transaction;
@@ -33,6 +36,7 @@ public class RecurringTransactionApplicationService {
     private final ClientRepositoryPort clientRepositoryPort;
     private final Clock clock;
     private final TagApplicationService tagApplicationService;
+    private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     /**
      * Cria a recorrência e já lança as ocorrências vencidas até hoje — uma recorrência com data
@@ -136,10 +140,21 @@ public class RecurringTransactionApplicationService {
             return recurrence;
         }
         List<Long> tagIds = tagApplicationService.tagIdsOfRecurringTransaction(recurrence.id());
+        // Recorrência de conta em outra moeda: cada ocorrência convertida pela cotação do dia dela.
+        Currency currency =
+                accountRepositoryPort
+                        .findById(recurrence.accountId())
+                        .map(Account::currency)
+                        .orElse(Currency.BRL);
         for (LocalDate occurrenceDate : dueDates) {
-            Transaction saved =
-                    transactionRepositoryPort.save(
-                            Transaction.createFromRecurrence(recurrence, occurrenceDate));
+            Transaction occurrence = Transaction.createFromRecurrence(recurrence, occurrenceDate);
+            if (!currency.isBase()) {
+                occurrence =
+                        occurrence.withBaseAmount(
+                                exchangeRateApplicationService.toBrl(
+                                        currency, occurrence.amount(), occurrenceDate));
+            }
+            Transaction saved = transactionRepositoryPort.save(occurrence);
             if (!tagIds.isEmpty()) {
                 tagApplicationService.linkTransaction(saved.id(), tagIds);
             }

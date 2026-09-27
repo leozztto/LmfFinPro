@@ -8,7 +8,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccountWebMapper {
 
-    public AccountResponse toResponse(Account account, BigDecimal currentBalance) {
+    public AccountResponse toResponse(
+            Account account,
+            BigDecimal currentBalance,
+            BigDecimal currentBalanceInBrl,
+            boolean hasEntries) {
         return new AccountResponse(
                 account.id(),
                 account.name(),
@@ -16,6 +20,9 @@ public class AccountWebMapper {
                 account.initialBalance(),
                 currentBalance,
                 account.createdAt(),
-                account.scope());
+                account.scope(),
+                account.currency(),
+                currentBalanceInBrl,
+                hasEntries);
     }
 }

@@ -73,11 +73,11 @@ public final class ClientAnalytics {
             }
             boolean isIncome = transaction.type() == CategoryType.INCOME;
             if (isIncome) {
-                totalIncome = totalIncome.add(transaction.amount());
+                totalIncome = totalIncome.add(transaction.baseAmount());
             }
             if (transaction.clientId() == null) {
                 if (isIncome) {
-                    unassignedIncome = unassignedIncome.add(transaction.amount());
+                    unassignedIncome = unassignedIncome.add(transaction.baseAmount());
                 }
                 continue;
             }
@@ -144,16 +144,16 @@ public final class ClientAnalytics {
                     byMonth.computeIfAbsent(
                             month, key -> new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO});
             if (isIncome) {
-                income = income.add(transaction.amount());
+                income = income.add(transaction.baseAmount());
                 incomeCount++;
-                values[0] = values[0].add(transaction.amount());
+                values[0] = values[0].add(transaction.baseAmount());
                 if (lastIncomeDate == null
                         || transaction.transactionDate().isAfter(lastIncomeDate)) {
                     lastIncomeDate = transaction.transactionDate();
                 }
             } else {
-                expense = expense.add(transaction.amount());
-                values[1] = values[1].add(transaction.amount());
+                expense = expense.add(transaction.baseAmount());
+                values[1] = values[1].add(transaction.baseAmount());
             }
         }
 

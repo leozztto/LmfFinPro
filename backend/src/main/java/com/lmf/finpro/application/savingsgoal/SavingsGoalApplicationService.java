@@ -229,7 +229,7 @@ public class SavingsGoalApplicationService {
                 .filter(transaction -> transaction.type() == CategoryType.INCOME)
                 .filter(transaction -> transaction.transferId() == null)
                 .filter(filter)
-                .map(Transaction::amount)
+                .map(Transaction::baseAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

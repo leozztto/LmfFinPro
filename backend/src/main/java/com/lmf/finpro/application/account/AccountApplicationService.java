@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.account;
 
+import com.lmf.finpro.domain.exception.CurrencyChangeNotAllowedException;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Account;
@@ -8,6 +9,7 @@ import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.AccountValuation;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
@@ -28,20 +30,31 @@ public class AccountApplicationService {
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     private final AccountValuationRepositoryPort accountValuationRepositoryPort;
 
-    /** Sem uso informado, a conta é pessoal (PF). */
     public Account create(
             Long currentUserId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             AccountScope scope) {
+        return create(currentUserId, name, type, initialBalance, scope, null);
+    }
+
+    /** Sem uso informado, a conta é pessoal (PF); sem moeda, em reais. */
+    public Account create(
+            Long currentUserId,
+            String name,
+            AccountType type,
+            BigDecimal initialBalance,
+            AccountScope scope,
+            Currency currency) {
         return accountRepositoryPort.save(
                 Account.create(
                         currentUserId,
                         name,
                         type,
                         initialBalance,
-                        scope == null ? AccountScope.PERSONAL : scope));
+                        scope == null ? AccountScope.PERSONAL : scope,
+                        currency == null ? Currency.BRL : currency));
     }
 
     public List<Account> list(Long currentUserId) {
@@ -52,13 +65,29 @@ public class AccountApplicationService {
         return findOwnedOrThrow(currentUserId, accountId);
     }
 
-    /**
-     * Saldo inicial só é definido na criação da conta: a edição não pode alterá-lo, para não
-     * distorcer o histórico de saldo. Sem uso informado, mantém o atual.
-     */
     public Account update(
             Long currentUserId, Long accountId, String name, AccountType type, AccountScope scope) {
+        return update(currentUserId, accountId, name, type, scope, null);
+    }
+
+    /**
+     * Saldo inicial só é definido na criação da conta: a edição não pode alterá-lo, para não
+     * distorcer o histórico de saldo. Sem uso ou moeda informados, mantém os atuais. A moeda só
+     * muda enquanto nada foi lançado na conta: os valores já lançados estão na moeda antiga.
+     */
+    public Account update(
+            Long currentUserId,
+            Long accountId,
+            String name,
+            AccountType type,
+            AccountScope scope,
+            Currency currency) {
         Account existing = findOwnedOrThrow(currentUserId, accountId);
+        Currency newCurrency = currency == null ? existing.currency() : currency;
+        if (newCurrency != existing.currency() && hasLinkedRecords(accountId)) {
+            throw new CurrencyChangeNotAllowedException(
+                    "Esta conta já tem lançamentos na moeda atual. Para usar outra moeda, crie uma nova conta.");
+        }
         if (existing.type() == AccountType.INVESTMENT
                 && type != AccountType.INVESTMENT
                 && accountValuationRepositoryPort.existsByAccountId(accountId)) {
@@ -70,7 +99,16 @@ public class AccountApplicationService {
                         name,
                         type,
                         existing.initialBalance(),
-                        scope == null ? existing.scope() : scope));
+                        scope == null ? existing.scope() : scope,
+                        newCurrency));
+    }
+
+    /** Conta com algo lançado: transações, transferências, recorrências ou valores de mercado. */
+    public boolean hasLinkedRecords(Long accountId) {
+        return transactionRepositoryPort.existsByAccountId(accountId)
+                || transferRepositoryPort.existsByAccountId(accountId)
+                || recurringTransactionRepositoryPort.existsByAccountId(accountId)
+                || accountValuationRepositoryPort.existsByAccountId(accountId);
     }
 
     public void delete(Long currentUserId, Long accountId) {

@@ -134,7 +134,7 @@ public class AlertApplicationService {
             bills.add(
                     new BillDue(
                             transaction.description(),
-                            transaction.amount(),
+                            transaction.baseAmount(),
                             transaction.transactionDate()));
             toRecord.add(new SentAlert(userId, AlertType.BILL_DUE, transaction.id().toString()));
         }

@@ -4,6 +4,15 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * @param amount valor na moeda da conta — é o que mexe no saldo dela
+ * @param originalCurrency moeda em que a operação foi feita, quando diferente da moeda da conta
+ *     (ex.: compra em dólar no cartão em reais); {@code null} quando é a mesma
+ * @param originalAmount valor na {@code originalCurrency}; {@code null} junto com ela
+ * @param baseAmount valor em reais, usado em todo total que junta contas (dashboard, relatórios,
+ *     orçamentos). Na conta em reais é o próprio {@code amount}; nas demais, a conversão pela
+ *     cotação do dia da transação, gravada ao salvar
+ */
 public record Transaction(
         Long id,
         Long accountId,
@@ -18,7 +27,46 @@ public record Transaction(
         Long transferId,
         Long importBatchId,
         Long recurringTransactionId,
-        TransactionStatus status) {
+        TransactionStatus status,
+        Currency originalCurrency,
+        BigDecimal originalAmount,
+        BigDecimal baseAmount) {
+
+    /** Transação sem moeda estrangeira: o valor em reais é o próprio {@code amount}. */
+    public Transaction(
+            Long id,
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionOrigin origin,
+            LocalDateTime createdAt,
+            Long transferId,
+            Long importBatchId,
+            Long recurringTransactionId,
+            TransactionStatus status) {
+        this(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                recurringTransactionId,
+                status,
+                null,
+                null,
+                amount);
+    }
 
     /** Transação paga e sem vínculo com recorrência (manual, importada ou de transferência). */
     public Transaction(
@@ -144,6 +192,10 @@ public record Transaction(
                 importBatchId);
     }
 
+    /**
+     * Novos dados. O valor em reais volta a ser o próprio {@code newAmount}: quem salva a transação
+     * de uma conta em outra moeda converte de novo ({@link #withBaseAmount}).
+     */
     public Transaction withDetails(
             Long newCategoryId,
             Long newClientId,
@@ -165,7 +217,10 @@ public record Transaction(
                 transferId,
                 importBatchId,
                 recurringTransactionId,
-                status);
+                status,
+                originalCurrency,
+                originalAmount,
+                newAmount);
     }
 
     public Transaction withStatus(TransactionStatus newStatus) {
@@ -183,7 +238,64 @@ public record Transaction(
                 transferId,
                 importBatchId,
                 recurringTransactionId,
-                newStatus);
+                newStatus,
+                originalCurrency,
+                originalAmount,
+                baseAmount);
+    }
+
+    /** Moeda e valor da operação feita numa moeda diferente da conta; nulos quando não. */
+    public Transaction withOriginal(Currency newOriginalCurrency, BigDecimal newOriginalAmount) {
+        return new Transaction(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                recurringTransactionId,
+                status,
+                newOriginalCurrency,
+                newOriginalAmount,
+                baseAmount);
+    }
+
+    public Transaction withBaseAmount(BigDecimal newBaseAmount) {
+        return new Transaction(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                recurringTransactionId,
+                status,
+                originalCurrency,
+                originalAmount,
+                newBaseAmount);
+    }
+
+    /**
+     * O valor fora do real, para exibir ao lado do valor em reais: a operação feita em outra moeda
+     * ou, sem ela, o valor na moeda da conta estrangeira. {@code null} quando tudo foi em reais.
+     */
+    public Money foreignValue(Currency accountCurrency) {
+        if (originalCurrency != null) {
+            return new Money(originalCurrency, originalAmount);
+        }
+        return accountCurrency.isBase() ? null : new Money(accountCurrency, amount);
     }
 
     public boolean isPaid() {

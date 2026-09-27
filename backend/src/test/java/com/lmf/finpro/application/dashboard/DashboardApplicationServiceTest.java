@@ -3,6 +3,7 @@ package com.lmf.finpro.application.dashboard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.BreakdownPoint;
@@ -32,6 +33,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DashboardApplicationServiceTest {
 
+    @Mock private ExchangeRateApplicationService exchangeRateApplicationService;
+
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
@@ -51,7 +54,8 @@ class DashboardApplicationServiceTest {
                         transactionRepositoryPort,
                         recurringTransactionRepositoryPort,
                         accountValuationRepositoryPort,
-                        CLOCK);
+                        CLOCK,
+                        exchangeRateApplicationService);
     }
 
     private static Account account(BigDecimal initialBalance) {
@@ -194,7 +198,8 @@ class DashboardApplicationServiceTest {
                         transactionRepositoryPort,
                         recurringTransactionRepositoryPort,
                         accountValuationRepositoryPort,
-                        lateNightClock);
+                        lateNightClock,
+                        exchangeRateApplicationService);
         when(accountRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());

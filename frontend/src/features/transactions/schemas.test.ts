@@ -2,6 +2,35 @@ import { describe, expect, it } from 'vitest'
 import { transactionSchema } from './schemas'
 
 describe('transactionSchema', () => {
+  const base = {
+    accountId: '1',
+    description: 'Hospedagem',
+    amount: '118.40',
+    transactionDate: '2026-09-20',
+    type: 'EXPENSE',
+  }
+
+  it('accepts an operation in another currency with its amount', () => {
+    const result = transactionSchema.safeParse({ ...base, originalCurrency: 'USD', originalAmount: '20' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.originalAmount).toBe(20)
+  })
+
+  it('treats a blank operation currency as the account currency', () => {
+    const result = transactionSchema.safeParse({ ...base, originalCurrency: '', originalAmount: '' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.originalCurrency).toBeUndefined()
+  })
+
+  it('requires the amount when the operation is in another currency', () => {
+    const result = transactionSchema.safeParse({ ...base, originalCurrency: 'EUR', originalAmount: '' })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toEqual(['originalAmount'])
+  })
+
   it('accepts valid input without category or client', () => {
     const result = transactionSchema.safeParse({
       accountId: '1',

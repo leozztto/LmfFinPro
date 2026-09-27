@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.persistence.entity;
 
 import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.Currency;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,6 +41,11 @@ public class AccountJpaEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AccountScope scope;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 3)
+    @Builder.Default
+    private Currency currency = Currency.BRL;
 
     @PrePersist
     void onCreate() {

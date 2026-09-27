@@ -11,6 +11,8 @@ import { useCreateTransaction } from '../hooks/useCreateTransaction'
 import { transactionSchema, type TransactionFormValues } from '../schemas'
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '../types'
 import { getCurrentIsoDate } from '@/shared/format/date'
+import { CURRENCIES, CURRENCY_LABELS, formatCurrency, type Currency } from '@/shared/format/currency'
+import { useConversion } from '@/shared/currency/useConversion'
 import { AttachmentDropzone } from '@/features/attachments/components/AttachmentDropzone'
 import { PendingAttachmentList } from '@/features/attachments/components/PendingAttachmentList'
 import { usePendingAttachments } from '@/features/attachments/hooks/usePendingAttachments'
@@ -20,6 +22,16 @@ import { TagInput } from '@/features/tags/components/TagInput'
 
 interface TransactionFormProps {
   onSuccess?: () => void
+}
+
+function conversionHint(conversion: ReturnType<typeof useConversion>, accountCurrency: Currency): string {
+  if (conversion.isError) return 'Cotação indisponível agora: informe o valor cobrado.'
+  if (conversion.data) {
+    const rate = formatCurrency(conversion.data.rate, accountCurrency)
+    return `PTAX: 1 ${conversion.data.from} = ${rate}. Ajuste para o valor que o banco cobrou (spread, IOF).`
+  }
+  if (conversion.isFetching) return 'Buscando a cotação...'
+  return 'Informe o valor na moeda da operação para sugerir a conversão.'
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
@@ -60,10 +72,42 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     }
   }, [selectedCategory, setValue])
 
+  // Operação em outra moeda: o valor na conta é sugerido pela PTAX e pode ser ajustado para o que
+  // o banco realmente cobrou (spread, IOF). Depois de editado à mão, a sugestão não o sobrescreve.
+  const selectedAccountId = watch('accountId')
+  const selectedAccount =
+    accounts?.find((account) => String(account.id) === String(selectedAccountId)) ?? accounts?.[0]
+  const accountCurrency: Currency = selectedAccount?.currency ?? 'BRL'
+  const originalCurrency = watch('originalCurrency') as Currency | '' | undefined
+  const isForeignOperation = !!originalCurrency && originalCurrency !== accountCurrency
+  const transactionDate = watch('transactionDate')
+  const conversion = useConversion(
+    isForeignOperation ? originalCurrency : undefined,
+    accountCurrency,
+    Number(watch('originalAmount')) || 0,
+    transactionDate,
+  )
+  const [amountEditedByHand, setAmountEditedByHand] = useState(false)
+
+  useEffect(() => {
+    if (originalCurrency && originalCurrency === accountCurrency) {
+      setValue('originalCurrency', undefined)
+    }
+  }, [originalCurrency, accountCurrency, setValue])
+
+  useEffect(() => {
+    if (isForeignOperation && conversion.data && !amountEditedByHand) {
+      setValue('amount', conversion.data.amount, { shouldValidate: true })
+    }
+  }, [isForeignOperation, conversion.data, amountEditedByHand, setValue])
+
   async function onSubmit(values: TransactionFormValues) {
+    const foreign = isForeignOperation
+      ? { originalCurrency: values.originalCurrency, originalAmount: values.originalAmount }
+      : { originalCurrency: undefined, originalAmount: undefined }
     let transactionId: number
     try {
-      transactionId = (await createTransaction.mutateAsync({ ...values, tagNames })).id
+      transactionId = (await createTransaction.mutateAsync({ ...values, ...foreign, tagNames })).id
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível lançar a transação.')
       return
@@ -82,7 +126,10 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       amount: 0,
       type: 'EXPENSE',
       transactionDate: getCurrentIsoDate(),
+      originalCurrency: undefined,
+      originalAmount: undefined,
     })
+    setAmountEditedByHand(false)
     pendingAttachments.clear()
     setTagNames([])
     if (failed.length === 0) {
@@ -111,7 +158,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         <Select id="transaction-account" {...register('accountId')}>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.name}
+              {account.currency === 'BRL' ? account.name : `${account.name} (${account.currency})`}
             </option>
           ))}
         </Select>
@@ -163,8 +210,46 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           <Input id="transaction-description" placeholder="Pagamento cliente X" {...register('description')} />
         </FormField>
       </div>
-      <FormField label="Valor" htmlFor="transaction-amount" error={errors.amount?.message}>
-        <Input id="transaction-amount" type="number" step="0.01" {...register('amount')} />
+      <FormField label="Moeda da operação" htmlFor="transaction-original-currency">
+        <Select
+          id="transaction-original-currency"
+          {...register('originalCurrency', { onChange: () => setAmountEditedByHand(false) })}
+        >
+          <option value="">{CURRENCY_LABELS[accountCurrency]} · moeda da conta</option>
+          {CURRENCIES.filter((currency) => currency !== accountCurrency).map((currency) => (
+            <option key={currency} value={currency}>
+              {CURRENCY_LABELS[currency]}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+      {isForeignOperation && (
+        <FormField
+          label={`Valor em ${originalCurrency}`}
+          htmlFor="transaction-original-amount"
+          error={errors.originalAmount?.message}
+        >
+          <Input id="transaction-original-amount" type="number" step="0.01" {...register('originalAmount')} />
+        </FormField>
+      )}
+      <FormField
+        label={
+          isForeignOperation
+            ? `Valor cobrado na conta (${accountCurrency})`
+            : accountCurrency === 'BRL'
+              ? 'Valor'
+              : `Valor (${accountCurrency})`
+        }
+        htmlFor="transaction-amount"
+        error={errors.amount?.message}
+        hint={isForeignOperation ? conversionHint(conversion, accountCurrency) : undefined}
+      >
+        <Input
+          id="transaction-amount"
+          type="number"
+          step="0.01"
+          {...register('amount', { onChange: () => setAmountEditedByHand(true) })}
+        />
       </FormField>
       <div className="min-w-0 sm:col-span-2">
         <FormField

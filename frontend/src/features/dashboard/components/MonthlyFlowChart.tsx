@@ -2,12 +2,10 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  type LegendProps,
   type TooltipProps,
 } from 'recharts'
 import { Card } from '@/shared/ui'
@@ -42,7 +40,7 @@ export function MonthlyFlowChart({ data }: MonthlyFlowChartProps) {
     <Card padding="sm">
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Receita x despesa por mês</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">Últimos {data.length} meses, sem transferências.</p>
-      <div className="mt-3 h-56">
+      <div className="mt-3 h-48">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
             <CartesianGrid vertical={false} stroke={gridColor} />
@@ -60,12 +58,12 @@ export function MonthlyFlowChart({ data }: MonthlyFlowChartProps) {
               tickFormatter={(value: number) => compactCurrencyFormatter.format(value)}
             />
             <Tooltip content={<FlowTooltip />} cursor={{ fill: gridColor, opacity: 0.4 }} />
-            <Legend content={<FlowLegend />} />
             <Bar dataKey="income" name="Receita" fill={INCOME_COLOR} radius={[4, 4, 0, 0]} maxBarSize={24} />
             <Bar dataKey="expense" name="Despesa" fill={EXPENSE_COLOR} radius={[4, 4, 0, 0]} maxBarSize={24} />
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <FlowLegend />
     </Card>
   )
 }
@@ -89,22 +87,23 @@ function FlowTooltip({ active, payload, label }: TooltipProps<number, string>) {
   )
 }
 
-function FlowLegend({ payload }: LegendProps) {
-  if (!payload) return null
-
+/**
+ * Legenda fora do Recharts: a legenda interna fixa a largura do gráfico em que foi desenhada e não
+ * encolhe junto quando a tela diminui (ex.: girar o tablet), estourando a largura da página.
+ */
+function FlowLegend() {
   return (
-    <ul className="mt-2 flex items-center justify-center gap-5 text-sm">
-      {payload.map((entry) => (
-        <li key={entry.dataKey as string} className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: entry.color }} aria-hidden />
-          {entry.dataKey === 'income' ? (
-            <ArrowUpIcon className="h-3.5 w-3.5 text-current" />
-          ) : (
-            <ArrowDownIcon className="h-3.5 w-3.5 text-current" />
-          )}
-          <span>{entry.value}</span>
-        </li>
-      ))}
+    <ul className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm">
+      <li className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+        <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: INCOME_COLOR }} aria-hidden />
+        <ArrowUpIcon className="h-3.5 w-3.5 text-current" />
+        <span>Receita</span>
+      </li>
+      <li className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+        <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: EXPENSE_COLOR }} aria-hidden />
+        <ArrowDownIcon className="h-3.5 w-3.5 text-current" />
+        <span>Despesa</span>
+      </li>
     </ul>
   )
 }

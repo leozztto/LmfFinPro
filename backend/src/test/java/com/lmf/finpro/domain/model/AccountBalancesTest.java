@@ -118,6 +118,35 @@ class AccountBalancesTest {
                 .isEqualByComparingTo("0");
     }
 
+    @Test
+    void initialBalanceCountsOnlyFromTheAccountCreation() {
+        Account createdInSeptember =
+                new Account(
+                        3L,
+                        10L,
+                        "Conta",
+                        AccountType.CHECKING,
+                        new BigDecimal("5000"),
+                        LocalDateTime.of(2026, 9, 27, 15, 0));
+
+        assertThat(
+                        AccountBalances.balance(
+                                createdInSeptember,
+                                List.of(),
+                                List.of(),
+                                LocalDate.of(2026, 8, 31)))
+                .isEqualByComparingTo("0");
+        assertThat(
+                        AccountBalances.balance(
+                                createdInSeptember,
+                                List.of(),
+                                List.of(),
+                                LocalDate.of(2026, 9, 27)))
+                .isEqualByComparingTo("5000");
+        assertThat(AccountBalances.balance(createdInSeptember, List.of(), List.of(), null))
+                .isEqualByComparingTo("5000");
+    }
+
     private static Account account(Long id, AccountType type, String initialBalance) {
         return new Account(id, 10L, "Conta", type, new BigDecimal(initialBalance), null);
     }

@@ -39,6 +39,9 @@ public class TransferJpaEntity {
 
     private String description;
 
+    @Column(name = "received_amount", precision = 14, scale = 2)
+    private BigDecimal receivedAmount;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

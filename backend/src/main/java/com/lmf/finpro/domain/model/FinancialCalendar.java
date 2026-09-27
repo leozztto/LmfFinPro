@@ -200,7 +200,7 @@ public final class FinancialCalendar {
                 EntryKind.TRANSACTION,
                 transaction.transactionDate(),
                 transaction.description(),
-                transaction.amount(),
+                transaction.baseAmount(),
                 transaction.type(),
                 status,
                 transaction.id(),

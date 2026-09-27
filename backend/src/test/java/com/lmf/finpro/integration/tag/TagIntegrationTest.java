@@ -200,7 +200,7 @@ class TagIntegrationTest extends AbstractIntegrationTest {
 
         List<String> lines = csvLines(user, "/api/reports/expenses?format=CSV&" + query);
 
-        assertThat(lines.get(0)).endsWith(";Tags");
+        assertThat(lines.get(0)).endsWith(";Tags;Moeda original;Valor original");
         List<String> rows = lines.subList(1, lines.size() - 3);
         assertThat(rows).hasSize(2);
         assertThat(rows)
@@ -208,7 +208,7 @@ class TagIntegrationTest extends AbstractIntegrationTest {
                         row ->
                                 assertThat(row)
                                         .startsWith(TODAY + ";Servidor;")
-                                        .endsWith(";#infra #site-acme"));
+                                        .endsWith(";#infra #site-acme;;"));
         assertThat(lines.get(lines.size() - 3)).contains(";TOTAL;").contains("150.00");
     }
 

@@ -41,7 +41,7 @@ export function CalendarEntryItem({ entry, showDate = false, onMarkAsPaid, isMar
           </span>
           {details.length > 0 && <span className="min-w-0 break-words">{details.join(' · ')}</span>}
           {entry.kind === 'RECURRING_FORECAST' && (
-            <Link to="/recorrentes" className="font-medium text-[#1ea883] hover:underline dark:text-[#2ad6a5]">
+            <Link to="/recorrencias" className="font-medium text-[#1ea883] hover:underline dark:text-[#2ad6a5]">
               Ver recorrência
             </Link>
           )}

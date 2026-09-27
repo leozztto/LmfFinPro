@@ -1,12 +1,16 @@
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
+import type { Account } from '@/features/accounts/types'
 import { useCreateTransfer } from '../hooks/useCreateTransfer'
 import { transferSchema, type TransferFormValues } from '../schemas'
 import { getCurrentIsoDate } from '@/shared/format/date'
+import { formatCurrency } from '@/shared/format/currency'
+import { useConversion } from '@/shared/currency/useConversion'
 
 export interface TransferFormInitialValues {
   fromAccountId?: number
@@ -21,6 +25,10 @@ interface TransferFormProps {
   initialValues?: TransferFormInitialValues
 }
 
+function accountLabel(account: Account): string {
+  return account.currency === 'BRL' ? account.name : `${account.name} (${account.currency})`
+}
+
 export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
   const { data: accounts } = useAccounts()
   const createTransfer = useCreateTransfer()
@@ -30,6 +38,9 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
+    setError,
     formState: { errors },
   } = useForm<TransferFormValues>({
     resolver: zodResolver(transferSchema),
@@ -41,7 +52,31 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
     },
   })
 
+  // Entre moedas diferentes o destino recebe outro valor: sugerido pela PTAX e editável, para
+  // registrar o câmbio efetivo (spread e taxas da remessa).
+  const findAccount = (id: unknown) => accounts?.find((account) => String(account.id) === String(id))
+  const fromAccount = findAccount(watch('fromAccountId'))
+  const toAccount = findAccount(watch('toAccountId'))
+  const isCrossCurrency = !!fromAccount && !!toAccount && fromAccount.currency !== toAccount.currency
+  const conversion = useConversion(
+    isCrossCurrency ? fromAccount.currency : undefined,
+    toAccount?.currency,
+    Number(watch('amount')) || 0,
+    watch('transferDate'),
+  )
+  const [receivedEditedByHand, setReceivedEditedByHand] = useState(false)
+
+  useEffect(() => {
+    if (isCrossCurrency && conversion.data && !receivedEditedByHand) {
+      setValue('receivedAmount', conversion.data.amount, { shouldValidate: true })
+    }
+  }, [isCrossCurrency, conversion.data, receivedEditedByHand, setValue])
+
   async function onSubmit(values: TransferFormValues) {
+    if (isCrossCurrency && !values.receivedAmount) {
+      setError('receivedAmount', { message: 'informe o valor que entrou na conta de destino' })
+      return
+    }
     try {
       await createTransfer.mutateAsync({
         fromAccountId: values.fromAccountId,
@@ -49,12 +84,15 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
         amount: values.amount,
         transferDate: values.transferDate,
         description: values.description || undefined,
+        receivedAmount: isCrossCurrency ? values.receivedAmount : undefined,
       })
       reset({
         amount: 0,
         description: '',
         transferDate: getCurrentIsoDate(),
+        receivedAmount: undefined,
       })
+      setReceivedEditedByHand(false)
       showToast('Transferência realizada com sucesso.', 'success')
       onSuccess?.()
     } catch (error) {
@@ -70,6 +108,12 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
     )
   }
 
+  const receivedHint = conversion.isError
+    ? 'Cotação indisponível agora: informe o valor que entrou.'
+    : conversion.data && toAccount
+      ? `PTAX: 1 ${conversion.data.from} = ${formatCurrency(conversion.data.rate, toAccount.currency)}. Ajuste para o valor que realmente entrou.`
+      : 'Informe o valor enviado para sugerir a conversão.'
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
       <FormField label="Conta de origem" htmlFor="transfer-from-account" error={errors.fromAccountId?.message}>
@@ -79,7 +123,7 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
           </option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.name}
+              {accountLabel(account)}
             </option>
           ))}
         </Select>
@@ -91,14 +135,33 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
           </option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.name}
+              {accountLabel(account)}
             </option>
           ))}
         </Select>
       </FormField>
-      <FormField label="Valor" htmlFor="transfer-amount" error={errors.amount?.message}>
+      <FormField
+        label={isCrossCurrency ? `Valor enviado (${fromAccount.currency})` : 'Valor'}
+        htmlFor="transfer-amount"
+        error={errors.amount?.message}
+      >
         <Input id="transfer-amount" type="number" step="0.01" {...register('amount')} />
       </FormField>
+      {isCrossCurrency && (
+        <FormField
+          label={`Valor recebido (${toAccount.currency})`}
+          htmlFor="transfer-received-amount"
+          error={errors.receivedAmount?.message}
+          hint={receivedHint}
+        >
+          <Input
+            id="transfer-received-amount"
+            type="number"
+            step="0.01"
+            {...register('receivedAmount', { onChange: () => setReceivedEditedByHand(true) })}
+          />
+        </FormField>
+      )}
       <FormField label="Data" htmlFor="transfer-date" error={errors.transferDate?.message}>
         <Input id="transfer-date" type="date" {...register('transferDate')} />
       </FormField>

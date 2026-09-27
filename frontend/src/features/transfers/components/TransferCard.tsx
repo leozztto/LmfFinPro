@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ExpandableText, IconButton } from '@/shared/ui'
 import { ChevronDownIcon, TrashIcon } from '@/shared/ui/icons'
-import { formatCurrency } from '@/shared/format/currency'
+import { formatCurrency, type Currency } from '@/shared/format/currency'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import type { Transfer } from '../types'
 
@@ -9,14 +9,28 @@ interface TransferCardProps {
   transfer: Transfer
   fromAccountName: string
   toAccountName: string
+  fromCurrency?: Currency
+  toCurrency?: Currency
   onDelete: () => void
   isDeleting: boolean
 }
 
-export function TransferCard({ transfer, fromAccountName, toAccountName, onDelete, isDeleting }: TransferCardProps) {
+export function TransferCard({
+  transfer,
+  fromAccountName,
+  toAccountName,
+  fromCurrency = 'BRL',
+  toCurrency = 'BRL',
+  onDelete,
+  isDeleting,
+}: TransferCardProps) {
   const [open, setOpen] = useState(false)
   const title = `${fromAccountName} → ${toAccountName}`
-  const amountLabel = formatCurrency(transfer.amount)
+  // Entre moedas diferentes: o que saiu → o que entrou.
+  const amountLabel =
+    fromCurrency === toCurrency
+      ? formatCurrency(transfer.amount, fromCurrency)
+      : `${formatCurrency(transfer.amount, fromCurrency)} → ${formatCurrency(transfer.receivedAmount, toCurrency)}`
 
   const removeButton = <IconButton icon={TrashIcon} label="Remover" onClick={onDelete} disabled={isDeleting} />
 
