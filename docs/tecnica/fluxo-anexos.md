@@ -12,10 +12,11 @@ O conteúdo dos arquivos fica fora do banco. Ele passa pela porta `FileStoragePo
 
 ## 2. Tela
 
+- **Nova transação**: o `TransactionForm` tem a área **"Comprovantes (opcional)"**. Os arquivos escolhidos ficam numa fila (`usePendingAttachments`), cada um com o seu tipo de documento, e são enviados logo depois que a transação é criada (`useUploadPendingAttachments`), um por requisição, porque o upload precisa do id da transação. Se um envio falhar (ex.: o conteúdo não bate com o formato), a transação continua lançada e o toast diz qual arquivo faltou; ele pode ser anexado depois pelo clipe.
 - **Transações**: cada card tem um botão de **clipe**; quando há anexos, ele mostra a contagem e fica destacado. No celular, o card fechado mostra um clipe ao lado do valor. O botão abre o modal **"Comprovantes"** (`TransactionAttachmentsPanel`):
-  - tipo de documento e arquivo; no celular, o seletor de arquivo permite usar a câmera;
-  - lista dos anexos com nome, tipo, tamanho e data;
-  - ações **Ver** (abre numa aba nova), **Baixar** e **Excluir**.
+  - **Anexados**: lista com nome, tipo, tamanho e data (a data some no celular) e as ações **Ver** (abre numa aba nova), **Baixar** e **Excluir**;
+  - **Adicionar comprovantes**: a mesma área de seleção e fila da criação. Os arquivos que falham ficam na fila com o motivo, para trocar ou tirar da lista.
+- **Área de seleção** (`AttachmentDropzone`): clique abre o seletor do sistema, com várias seleções de uma vez (no celular, permite usar a câmera); no desktop também aceita arrastar os arquivos. A fila (`PendingAttachmentList`) recusa na hora arquivo vazio, acima de 10 MB, de formato não aceito ou além do limite de 10 por transação, e diz o motivo; o backend confere de novo pelo conteúdo.
 - **Filtro "Comprovante"** na lista de transações: todas, com comprovante ou sem comprovante. Usa o `attachmentCount` que vem na listagem.
 - **Relatórios**: tipo **"Comprovantes do ano (ZIP)"** (`AttachmentsArchiveForm`), com o campo de ano. O seletor de formato PDF/CSV some para esse tipo.
 
@@ -71,5 +72,5 @@ flowchart TD
 | API | `TransactionAttachmentController` (`GET/POST /api/transactions/{id}/attachments`, `GET …/{anexo}/content[?download=true]`, `DELETE …/{anexo}`), `AttachmentArchiveController`; `attachmentCount` em `TransactionResponse` |
 | Config | `application.yml` (`finpro.attachments.storage-dir`, limites de multipart), `docker-compose.yml` (volume `finpro_attachments`), `frontend/nginx.conf` (`client_max_body_size`), `SecurityConfig` (dispatch ASYNC) |
 | Migration | `V20__create_transaction_attachments.sql` |
-| Frontend | `features/attachments/**` (`TransactionAttachmentsPanel`, `useTransactionAttachments`, `attachmentsApi`, `utils`), `TransactionCard`/`TransactionList` (clipe, modal, filtro), `reports/components/AttachmentsArchiveForm.tsx` |
+| Frontend | `features/attachments/**` (`TransactionAttachmentsPanel`, `AttachmentDropzone`, `PendingAttachmentList`, `usePendingAttachments`, `useTransactionAttachments`, `attachmentsApi`, `uploadPendingAttachments`, `utils`), `TransactionForm` (anexos na criação), `TransactionCard`/`TransactionList` (clipe, modal, filtro), `reports/components/AttachmentsArchiveForm.tsx` |
 | Testes | `AttachmentFileTypeTest`, `TransactionAttachmentApplicationServiceTest`, `AttachmentArchiveApplicationServiceTest`, `LocalFileStorageAdapterTest`, `integration/attachment/TransactionAttachmentIntegrationTest`, `features/attachments/utils.test.ts` |

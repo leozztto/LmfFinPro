@@ -16,3 +16,11 @@ export const ATTACHMENT_DOCUMENT_TYPE_LABELS: Record<AttachmentDocumentType, str
   RECEIPT: 'Recibo',
   OTHER: 'Outro',
 }
+
+/** Arquivo escolhido que ainda não foi enviado; {@code error} guarda o motivo de um envio que falhou. */
+export interface PendingAttachment {
+  key: number
+  file: File
+  documentType: AttachmentDocumentType
+  error?: string
+}

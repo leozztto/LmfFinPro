@@ -19,7 +19,7 @@ export function TransactionsPage() {
         </Button>
       </div>
 
-      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Lançar transação">
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Lançar transação" size="lg">
         <TransactionForm onSuccess={() => setIsModalOpen(false)} />
       </Modal>
 

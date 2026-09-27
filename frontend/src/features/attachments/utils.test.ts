@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_ATTACHMENT_SIZE_BYTES, formatFileSize, validateAttachmentFile } from './utils'
+import {
+  MAX_ATTACHMENT_SIZE_BYTES,
+  MAX_ATTACHMENTS_PER_TRANSACTION,
+  formatFileSize,
+  splitValidFiles,
+  validateAttachmentFile,
+} from './utils'
 
 describe('validateAttachmentFile', () => {
   it('accepts PDFs and images within the limits', () => {
@@ -26,5 +32,28 @@ describe('formatFileSize', () => {
     expect(formatFileSize(500)).toBe('500 B')
     expect(formatFileSize(2048)).toBe('2 KB')
     expect(formatFileSize(3.5 * 1024 * 1024)).toBe('3,5 MB')
+  })
+})
+
+describe('splitValidFiles', () => {
+  const pdf = (name: string) => new File(['conteudo'], name, { type: 'application/pdf' })
+
+  it('queues the valid files and explains why the others were refused', () => {
+    const zip = new File(['x'], 'fotos.zip', { type: 'application/zip' })
+
+    const { accepted, rejected } = splitValidFiles([pdf('nota.pdf'), zip], 0)
+
+    expect(accepted.map((file) => file.name)).toEqual(['nota.pdf'])
+    expect(rejected).toEqual([expect.stringMatching(/^fotos\.zip: Formato/)])
+  })
+
+  it('stops accepting once the transaction reaches the attachment limit', () => {
+    const { accepted, rejected } = splitValidFiles(
+      [pdf('a.pdf'), pdf('b.pdf'), pdf('c.pdf')],
+      MAX_ATTACHMENTS_PER_TRANSACTION - 2,
+    )
+
+    expect(accepted.map((file) => file.name)).toEqual(['a.pdf', 'b.pdf'])
+    expect(rejected).toEqual([expect.stringContaining('c.pdf')])
   })
 })
