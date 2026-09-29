@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.Budget;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.infrastructure.persistence.mapper.BudgetPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.BudgetJpaRepository;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,18 @@ public class BudgetRepositoryAdapter implements BudgetRepositoryPort {
     @Override
     public List<Budget> findAllByUserId(Long userId) {
         return budgetJpaRepository.findByUserId(userId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public boolean existsByUserIdAndCategoryIdAndReferenceMonth(
+            Long userId, Long categoryId, YearMonth referenceMonth) {
+        return budgetJpaRepository.existsByUserIdAndCategoryIdAndReferenceMonth(
+                userId, categoryId, referenceMonth.atDay(1));
+    }
+
+    @Override
+    public boolean existsByCategoryId(Long categoryId) {
+        return budgetJpaRepository.existsByCategoryId(categoryId);
     }
 
     @Override

@@ -121,7 +121,7 @@ export function ClientList() {
           Nenhum cliente encontrado com os filtros aplicados.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {filtered.map((client) => (
             <Card
               key={client.id}
