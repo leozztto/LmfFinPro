@@ -11,7 +11,9 @@ import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,8 @@ class CategoryApplicationServiceTest {
 
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
+    @Mock private BudgetRepositoryPort budgetRepositoryPort;
+    @Mock private RecurringBudgetRepositoryPort recurringBudgetRepositoryPort;
 
     @InjectMocks private CategoryApplicationService service;
 
@@ -104,6 +108,34 @@ class CategoryApplicationServiceTest {
         Category existing = new Category(1L, 10L, "Consultoria", CategoryType.INCOME, null, null);
         when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(existing));
         when(transactionRepositoryPort.existsByCategoryId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(10L, 1L))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(categoryRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteThrowsWhenCategoryHasLinkedRecurringBudget() {
+        Category existing = new Category(1L, 10L, "Mercado", CategoryType.EXPENSE, null, null);
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(existing));
+        when(transactionRepositoryPort.existsByCategoryId(1L)).thenReturn(false);
+        when(recurringBudgetRepositoryPort.existsByCategoryId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(10L, 1L))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(categoryRepositoryPort, never()).deleteById(any());
+    }
+
+    /**
+     * budgets.category_id é ON DELETE CASCADE: sem essa checagem, o orçamento sumiria em silêncio.
+     */
+    @Test
+    void deleteThrowsWhenCategoryHasLinkedBudget() {
+        Category existing = new Category(1L, 10L, "Mercado", CategoryType.EXPENSE, null, null);
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(existing));
+        when(transactionRepositoryPort.existsByCategoryId(1L)).thenReturn(false);
+        when(recurringBudgetRepositoryPort.existsByCategoryId(1L)).thenReturn(false);
+        when(budgetRepositoryPort.existsByCategoryId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.delete(10L, 1L))
                 .isInstanceOf(EntityHasLinkedRecordsException.class);
