@@ -101,7 +101,7 @@ class DashboardApplicationServiceTest {
                                         CategoryType.INCOME,
                                         77L)));
 
-        DashboardOverview overview = service.getOverview(10L);
+        DashboardOverview overview = service.getOverview(10L, null);
 
         assertThat(overview.currentBalance()).isEqualByComparingTo("1500");
         assertThat(overview.currentMonthIncome()).isEqualByComparingTo("500");
@@ -143,7 +143,7 @@ class DashboardApplicationServiceTest {
                                         CategoryType.EXPENSE,
                                         TransactionStatus.PENDING)));
 
-        DashboardOverview overview = service.getOverview(10L);
+        DashboardOverview overview = service.getOverview(10L, null);
 
         assertThat(overview.currentBalance()).isEqualByComparingTo("1200");
         assertThat(overview.pendingIncome()).isEqualByComparingTo("500");
@@ -171,7 +171,7 @@ class DashboardApplicationServiceTest {
                 .thenReturn(List.of(ownTransaction));
 
         List<BreakdownPoint> breakdown =
-                service.getCategoryBreakdown(10L, CategoryType.EXPENSE, month);
+                service.getCategoryBreakdown(10L, CategoryType.EXPENSE, month, null);
 
         assertThat(breakdown).hasSize(1);
         assertThat(breakdown.get(0).entityId()).isEqualTo(5L);
@@ -184,7 +184,7 @@ class DashboardApplicationServiceTest {
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
 
-        assertThat(service.getMonthlyFlow(10L, 4)).hasSize(4);
+        assertThat(service.getMonthlyFlow(10L, 4, null)).hasSize(4);
     }
 
     @Test
@@ -204,7 +204,7 @@ class DashboardApplicationServiceTest {
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
 
-        assertThat(lateNightService.getMonthlyFlow(10L, 1).get(0).month())
+        assertThat(lateNightService.getMonthlyFlow(10L, 1, null).get(0).month())
                 .isEqualTo(YearMonth.of(2026, 9));
     }
 
@@ -222,7 +222,7 @@ class DashboardApplicationServiceTest {
                                         CategoryType.INCOME,
                                         null)));
 
-        var projection = service.getCashFlowProjection(10L, 1);
+        var projection = service.getCashFlowProjection(10L, 1, null);
 
         assertThat(projection).hasSize(1);
         assertThat(projection.get(0).balance()).isEqualByComparingTo("1900");
@@ -253,7 +253,7 @@ class DashboardApplicationServiceTest {
                                         true,
                                         LocalDateTime.now())));
 
-        var projection = service.getCashFlowProjection(10L, 1);
+        var projection = service.getCashFlowProjection(10L, 1, null);
 
         assertThat(projection.get(0).balance()).isEqualByComparingTo("-500");
     }
