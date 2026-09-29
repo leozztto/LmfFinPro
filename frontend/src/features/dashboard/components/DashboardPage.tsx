@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { StatCard, Tabs } from '@/shared/ui'
+import { Select, StatCard, Tabs } from '@/shared/ui'
 import { AlertTriangleIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { ClientAnalyticsPanel } from '@/features/clients/components/ClientAnalyticsPanel'
@@ -7,6 +7,7 @@ import { useClientAnalytics } from '@/features/clients/hooks/useClientAnalytics'
 import { formatShare } from '@/features/clients/analytics'
 import { CLIENTS_ANALYSIS_PATH } from '../routes'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
+import { ACCOUNT_SCOPE_LABELS, type AccountScope } from '@/features/accounts/types'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
 import { useNetWorth } from '@/features/net-worth/hooks/useNetWorth'
@@ -27,36 +28,67 @@ import { toBalancePoints, toCashFlowProjectionPoints, toCategoryBreakdownPoints,
 const TAB_PARAM = 'aba'
 const CLIENTS_TAB = 'clientes'
 const OVERVIEW_TAB = 'visao-geral'
+const SCOPE_PARAM = 'escopo'
 
 /**
- * Tudo que é leitura de dados fica aqui, em abas: a "Visão geral" (mês atual, sem filtros) e a
- * análise de clientes (com os filtros dela). A aba vai na URL (`/?aba=clientes`) para dar para
+ * Tudo que é leitura de dados fica aqui, em abas: a "Visão geral" (mês atual, com o filtro PF/PJ)
+ * e a análise de clientes (com os filtros dela). A aba vai na URL (`/?aba=clientes`) para dar para
  * linkar, voltar pelo navegador e abrir direto — a tela de Clientes linka para cá.
  */
 export function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = searchParams.get(TAB_PARAM) === CLIENTS_TAB ? CLIENTS_TAB : OVERVIEW_TAB
+  const rawScope = searchParams.get(SCOPE_PARAM)
+  const scope: AccountScope | null = rawScope === 'PERSONAL' || rawScope === 'BUSINESS' ? rawScope : null
 
   function changeTab(tabId: string) {
-    setSearchParams(tabId === OVERVIEW_TAB ? {} : { [TAB_PARAM]: tabId })
+    const next = new URLSearchParams(searchParams)
+    if (tabId === OVERVIEW_TAB) next.delete(TAB_PARAM)
+    else next.set(TAB_PARAM, tabId)
+    setSearchParams(next)
+  }
+
+  function changeScope(value: string) {
+    const next = new URLSearchParams(searchParams)
+    if (value) next.set(SCOPE_PARAM, value)
+    else next.delete(SCOPE_PARAM)
+    setSearchParams(next)
   }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Dashboard</h2>
-        <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
-          {activeTab === CLIENTS_TAB
-            ? 'Quanto cada cliente representa no seu faturamento ao longo do tempo.'
-            : 'Saldo consolidado, movimento do mês e o que ainda está pendente.'}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Dashboard</h2>
+          <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
+            {activeTab === CLIENTS_TAB
+              ? 'Quanto cada cliente representa no seu faturamento ao longo do tempo.'
+              : 'Saldo consolidado, movimento do mês e o que ainda está pendente.'}
+          </p>
+        </div>
+        {activeTab === OVERVIEW_TAB && (
+          <div className="w-40">
+            <Select
+              aria-label="Filtrar por uso da conta"
+              value={scope ?? ''}
+              onChange={(e) => changeScope(e.target.value)}
+            >
+              <option value="">Pessoal e empresa</option>
+              {Object.entries(ACCOUNT_SCOPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
 
       <Tabs
         activeTabId={activeTab}
         onTabChange={changeTab}
         tabs={[
-          { id: OVERVIEW_TAB, label: 'Visão geral', content: <OverviewTab /> },
+          { id: OVERVIEW_TAB, label: 'Visão geral', content: <OverviewTab scope={scope} /> },
           { id: CLIENTS_TAB, label: 'Clientes', content: <ClientAnalyticsPanel /> },
         ]}
       />
@@ -92,17 +124,18 @@ function NetWorthSummary() {
   )
 }
 
-function OverviewTab() {
-  const overview = useDashboardOverview()
-  const monthlyFlow = useMonthlyFlow()
-  const balanceEvolution = useBalanceEvolution()
-  const cashFlowProjection = useCashFlowProjection()
-  const { data: accounts } = useAccounts()
+function OverviewTab({ scope }: { scope: AccountScope | null }) {
+  const overview = useDashboardOverview(scope)
+  const monthlyFlow = useMonthlyFlow(6, scope)
+  const balanceEvolution = useBalanceEvolution(6, scope)
+  const cashFlowProjection = useCashFlowProjection(3, scope)
+  const { data: allAccounts } = useAccounts()
+  const accounts = scope ? allAccounts?.filter((account) => account.scope === scope) : allAccounts
   const { data: categories } = useCategories()
   const { data: clients } = useClients()
-  const expenseByCategory = useCategoryBreakdown('EXPENSE')
-  const incomeByCategory = useCategoryBreakdown('INCOME')
-  const incomeByClient = useClientBreakdown()
+  const expenseByCategory = useCategoryBreakdown('EXPENSE', undefined, scope)
+  const incomeByCategory = useCategoryBreakdown('INCOME', undefined, scope)
+  const incomeByClient = useClientBreakdown(undefined, scope)
 
   return (
     <div className="space-y-5">

@@ -1,5 +1,6 @@
 import { httpClient } from '@/shared/api/httpClient'
 import type { CategoryType } from '@/features/categories/types'
+import type { AccountScope } from '@/features/accounts/types'
 import type {
   DashboardOverview,
   RawBalancePoint,
@@ -8,13 +9,25 @@ import type {
   RawMonthlyFlowPoint,
 } from '../types'
 
+function toQuery(params: Record<string, string | number | null | undefined>) {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null) search.set(key, String(value))
+  }
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
+
 export const dashboardApi = {
-  overview: () => httpClient.get<DashboardOverview>('/dashboard/overview'),
-  monthlyFlow: (months = 6) => httpClient.get<RawMonthlyFlowPoint[]>(`/dashboard/monthly-flow?months=${months}`),
-  balanceEvolution: (months = 6) => httpClient.get<RawBalancePoint[]>(`/dashboard/balance-evolution?months=${months}`),
-  cashFlowProjection: (months = 3) =>
-    httpClient.get<RawCashFlowProjectionPoint[]>(`/dashboard/cash-flow-projection?months=${months}`),
-  categoryBreakdown: (type: CategoryType, month: string) =>
-    httpClient.get<RawBreakdownPoint[]>(`/dashboard/category-breakdown?type=${type}&month=${month}`),
-  clientBreakdown: (month: string) => httpClient.get<RawBreakdownPoint[]>(`/dashboard/client-breakdown?month=${month}`),
+  overview: (scope?: AccountScope | null) => httpClient.get<DashboardOverview>(`/dashboard/overview${toQuery({ scope })}`),
+  monthlyFlow: (months = 6, scope?: AccountScope | null) =>
+    httpClient.get<RawMonthlyFlowPoint[]>(`/dashboard/monthly-flow${toQuery({ months, scope })}`),
+  balanceEvolution: (months = 6, scope?: AccountScope | null) =>
+    httpClient.get<RawBalancePoint[]>(`/dashboard/balance-evolution${toQuery({ months, scope })}`),
+  cashFlowProjection: (months = 3, scope?: AccountScope | null) =>
+    httpClient.get<RawCashFlowProjectionPoint[]>(`/dashboard/cash-flow-projection${toQuery({ months, scope })}`),
+  categoryBreakdown: (type: CategoryType, month: string, scope?: AccountScope | null) =>
+    httpClient.get<RawBreakdownPoint[]>(`/dashboard/category-breakdown${toQuery({ type, month, scope })}`),
+  clientBreakdown: (month: string, scope?: AccountScope | null) =>
+    httpClient.get<RawBreakdownPoint[]>(`/dashboard/client-breakdown${toQuery({ month, scope })}`),
 }

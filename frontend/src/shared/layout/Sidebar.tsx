@@ -35,12 +35,12 @@ const NAV_SECTIONS = [
   {
     label: 'Financeiro',
     items: [
+      { to: '/importacoes', label: 'Importações', icon: UploadIcon },
       { to: '/calendario', label: 'Calendário', icon: CalendarIcon },
       { to: '/transacoes', label: 'Transações', icon: SwapIcon },
-      { to: '/recorrencias', label: 'Recorrências', icon: RepeatIcon },
       { to: '/transferencias', label: 'Transferências', icon: TransferIcon },
-      { to: '/importacoes', label: 'Importações', icon: UploadIcon },
       { to: '/orcamentos', label: 'Orçamentos', icon: TargetIcon },
+      { to: '/recorrencias', label: 'Recorrências', icon: RepeatIcon },
       { to: '/metas', label: 'Metas', icon: PiggyBankIcon },
       { to: '/patrimonio', label: 'Patrimônio', icon: TrendingUpIcon },
     ],

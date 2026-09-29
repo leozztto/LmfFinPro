@@ -3,6 +3,7 @@ package com.lmf.finpro.application.dashboard;
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountBalances;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.AccountValuation;
 import com.lmf.finpro.domain.model.BalancePoint;
@@ -40,8 +41,8 @@ public class DashboardApplicationService {
     private final Clock clock;
     private final ExchangeRateApplicationService exchangeRateApplicationService;
 
-    public DashboardOverview getOverview(Long userId) {
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+    public DashboardOverview getOverview(Long userId, AccountScope scope) {
+        List<Account> accounts = accountsForScope(userId, scope);
         List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal initialBalanceTotal = sumInitialBalance(accounts);
         YearMonth thisMonth = currentMonth();
@@ -84,14 +85,15 @@ public class DashboardApplicationService {
                 currentBalance.add(pendingIncome).subtract(pendingExpense));
     }
 
-    public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount) {
+    public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount, AccountScope scope) {
         return DashboardAggregator.monthlyFlow(
-                ownedNonTransferTransactions(userId), currentMonth(), monthsCount);
+                ownedNonTransferTransactions(userId, scope), currentMonth(), monthsCount);
     }
 
-    public List<BalancePoint> getBalanceEvolution(Long userId, int monthsCount) {
+    public List<BalancePoint> getBalanceEvolution(
+            Long userId, int monthsCount, AccountScope scope) {
         // Histórico real: só pagas, para o último ponto bater com o saldo atual do overview.
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+        List<Account> accounts = accountsForScope(userId, scope);
         Function<LocalDate, BigDecimal> investmentGain = investmentGains(accounts);
         return DashboardAggregator.balanceOverTime(
                         paidOnly(ownedNonTransferTransactions(accounts)),
@@ -114,8 +116,9 @@ public class DashboardApplicationService {
      * Anexa a projeção ao saldo real do fim do mês atual (exclui transações com data futura),
      * somando as ocorrências dos lançamentos recorrentes do usuário.
      */
-    public List<CashFlowProjectionPoint> getCashFlowProjection(Long userId, int monthsAhead) {
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+    public List<CashFlowProjectionPoint> getCashFlowProjection(
+            Long userId, int monthsAhead, AccountScope scope) {
+        List<Account> accounts = accountsForScope(userId, scope);
         List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal anchorBalance =
                 DashboardAggregator.balanceOverTime(
@@ -123,13 +126,17 @@ public class DashboardApplicationService {
                         .get(0)
                         .balance()
                         .add(investmentGains(accounts).apply(currentMonth().atEndOfMonth()));
+        List<Long> accountIds = accounts.stream().map(Account::id).toList();
+        List<RecurringTransaction> recurrences =
+                recurringTransactionRepositoryPort.findAllByUserId(userId).stream()
+                        .filter(recurrence -> accountIds.contains(recurrence.accountId()))
+                        .toList();
         return DashboardAggregator.cashFlowProjection(
                 transactions,
                 anchorBalance,
                 currentMonth(),
                 monthsAhead,
-                recurrencesInBrl(
-                        accounts, recurringTransactionRepositoryPort.findAllByUserId(userId)));
+                recurrencesInBrl(accounts, recurrences));
     }
 
     private List<RecurringTransaction> recurrencesInBrl(
@@ -140,17 +147,26 @@ public class DashboardApplicationService {
     }
 
     public List<BreakdownPoint> getCategoryBreakdown(
-            Long userId, CategoryType type, YearMonth month) {
+            Long userId, CategoryType type, YearMonth month, AccountScope scope) {
         return DashboardAggregator.categoryBreakdown(
-                ownedNonTransferTransactions(userId), type, month);
+                ownedNonTransferTransactions(userId, scope), type, month);
     }
 
-    public List<BreakdownPoint> getClientBreakdown(Long userId, YearMonth month) {
-        return DashboardAggregator.clientBreakdown(ownedNonTransferTransactions(userId), month);
+    public List<BreakdownPoint> getClientBreakdown(
+            Long userId, YearMonth month, AccountScope scope) {
+        return DashboardAggregator.clientBreakdown(
+                ownedNonTransferTransactions(userId, scope), month);
     }
 
-    private List<Transaction> ownedNonTransferTransactions(Long userId) {
-        return ownedNonTransferTransactions(accountRepositoryPort.findAllByUserId(userId));
+    private List<Transaction> ownedNonTransferTransactions(Long userId, AccountScope scope) {
+        return ownedNonTransferTransactions(accountsForScope(userId, scope));
+    }
+
+    private List<Account> accountsForScope(Long userId, AccountScope scope) {
+        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+        return scope == null
+                ? accounts
+                : accounts.stream().filter(account -> account.scope() == scope).toList();
     }
 
     private List<Transaction> ownedNonTransferTransactions(List<Account> accounts) {

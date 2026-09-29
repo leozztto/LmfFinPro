@@ -1,6 +1,7 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.dashboard.DashboardApplicationService;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.dashboard.BalancePointResponse;
@@ -33,15 +34,20 @@ public class DashboardController {
 
     @GetMapping("/overview")
     public DashboardOverviewResponse overview(
-            @AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return mapper.toResponse(dashboardApplicationService.getOverview(currentUser.userId()));
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam(required = false) AccountScope scope) {
+        return mapper.toResponse(
+                dashboardApplicationService.getOverview(currentUser.userId(), scope));
     }
 
     @GetMapping("/monthly-flow")
     public List<MonthlyFlowPointResponse> monthlyFlow(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam(defaultValue = "6") int months) {
-        return dashboardApplicationService.getMonthlyFlow(currentUser.userId(), months).stream()
+            @RequestParam(defaultValue = "6") int months,
+            @RequestParam(required = false) AccountScope scope) {
+        return dashboardApplicationService
+                .getMonthlyFlow(currentUser.userId(), months, scope)
+                .stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -49,9 +55,10 @@ public class DashboardController {
     @GetMapping("/balance-evolution")
     public List<BalancePointResponse> balanceEvolution(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam(defaultValue = "6") int months) {
+            @RequestParam(defaultValue = "6") int months,
+            @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getBalanceEvolution(currentUser.userId(), months)
+                .getBalanceEvolution(currentUser.userId(), months, scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -60,9 +67,10 @@ public class DashboardController {
     @GetMapping("/cash-flow-projection")
     public List<CashFlowProjectionPointResponse> cashFlowProjection(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam(defaultValue = "3") int months) {
+            @RequestParam(defaultValue = "3") int months,
+            @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getCashFlowProjection(currentUser.userId(), months)
+                .getCashFlowProjection(currentUser.userId(), months, scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -72,9 +80,10 @@ public class DashboardController {
     public List<BreakdownPointResponse> categoryBreakdown(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam CategoryType type,
-            @RequestParam String month) {
+            @RequestParam String month,
+            @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getCategoryBreakdown(currentUser.userId(), type, parseMonth(month))
+                .getCategoryBreakdown(currentUser.userId(), type, parseMonth(month), scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -82,9 +91,11 @@ public class DashboardController {
 
     @GetMapping("/client-breakdown")
     public List<BreakdownPointResponse> clientBreakdown(
-            @AuthenticationPrincipal AuthenticatedUser currentUser, @RequestParam String month) {
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam String month,
+            @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getClientBreakdown(currentUser.userId(), parseMonth(month))
+                .getClientBreakdown(currentUser.userId(), parseMonth(month), scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
