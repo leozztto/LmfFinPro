@@ -18,7 +18,11 @@ import {
   WalletIcon,
 } from '@/shared/ui/icons'
 
-const OVERVIEW_ITEM = { to: '/', label: 'Dashboard', icon: HomeIcon }
+/** Fora de qualquer seção: visões que cruzam Financeiro e Freelancer, não pertencem só a um. */
+const TOP_LEVEL_ITEMS = [
+  { to: '/', label: 'Dashboard', icon: HomeIcon, end: true },
+  { to: '/relatorios', label: 'Relatórios', icon: FileTextIcon, end: false },
+]
 
 const NAV_SECTIONS = [
   {
@@ -47,7 +51,6 @@ const NAV_SECTIONS = [
       { to: '/clientes', label: 'Clientes', icon: UsersIcon },
       { to: '/impostos', label: 'Impostos', icon: PercentIcon },
       { to: '/pro-labore', label: 'Pró-labore', icon: BriefcaseIcon },
-      { to: '/relatorios', label: 'Relatórios', icon: FileTextIcon },
     ],
   },
 ]
@@ -66,10 +69,14 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   return (
     <nav className="flex h-full flex-col gap-6 overflow-y-auto p-4">
-      <NavLink to={OVERVIEW_ITEM.to} end onClick={onNavigate} className={linkClassName}>
-        <OVERVIEW_ITEM.icon className="h-4 w-4 shrink-0" />
-        {OVERVIEW_ITEM.label}
-      </NavLink>
+      <div className="flex flex-col gap-1">
+        {TOP_LEVEL_ITEMS.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} onClick={onNavigate} className={linkClassName}>
+            <item.icon className="h-4 w-4 shrink-0" />
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
 
       {NAV_SECTIONS.map((section) => (
         <div key={section.label}>
