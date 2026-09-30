@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
  *
  * @param deadline prazo opcional (ex.: reserva de emergência costuma não ter)
  * @param incomeRate fração das receitas sugerida para separar na meta (0.06 = 6%), opcional
+ * @param autoContribute quando ligado, {@code SavingsGoalContributionScheduler} aplica a sugestão
+ *     automaticamente (mesmo cálculo do "separar com 1 clique") uma vez por dia, sem o usuário
+ *     precisar clicar — exige {@code incomeRate} definido, senão não há o que aplicar
  */
 public record SavingsGoal(
         Long id,
@@ -19,7 +22,21 @@ public record SavingsGoal(
         BigDecimal targetAmount,
         LocalDate deadline,
         BigDecimal incomeRate,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        boolean autoContribute) {
+
+    /** Compatibilidade com código anterior ao aporte automático: nasce desligado. */
+    public SavingsGoal(
+            Long id,
+            Long userId,
+            String name,
+            SavingsGoalType type,
+            BigDecimal targetAmount,
+            LocalDate deadline,
+            BigDecimal incomeRate,
+            LocalDateTime createdAt) {
+        this(id, userId, name, type, targetAmount, deadline, incomeRate, createdAt, false);
+    }
 
     public static SavingsGoal create(
             Long userId,
@@ -27,9 +44,18 @@ public record SavingsGoal(
             SavingsGoalType type,
             BigDecimal targetAmount,
             LocalDate deadline,
-            BigDecimal incomeRate) {
+            BigDecimal incomeRate,
+            boolean autoContribute) {
         return new SavingsGoal(
-                null, userId, name, type, targetAmount, deadline, incomeRate, LocalDateTime.now());
+                null,
+                userId,
+                name,
+                type,
+                targetAmount,
+                deadline,
+                incomeRate,
+                LocalDateTime.now(),
+                autoContribute);
     }
 
     public SavingsGoal withDetails(
@@ -37,7 +63,8 @@ public record SavingsGoal(
             SavingsGoalType newType,
             BigDecimal newTargetAmount,
             LocalDate newDeadline,
-            BigDecimal newIncomeRate) {
+            BigDecimal newIncomeRate,
+            boolean newAutoContribute) {
         return new SavingsGoal(
                 id,
                 userId,
@@ -46,7 +73,8 @@ public record SavingsGoal(
                 newTargetAmount,
                 newDeadline,
                 newIncomeRate,
-                createdAt);
+                createdAt,
+                newAutoContribute);
     }
 
     public boolean belongsTo(Long candidateUserId) {

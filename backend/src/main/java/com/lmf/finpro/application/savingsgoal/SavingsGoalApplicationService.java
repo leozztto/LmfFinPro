@@ -60,6 +60,7 @@ public class SavingsGoalApplicationService {
     }
 
     public SavingsGoalSummary create(Long currentUserId, SavingsGoalCommand command) {
+        requireIncomeRateWhenAutoContribute(command.incomeRate(), command.autoContribute());
         SavingsGoal created =
                 savingsGoalRepositoryPort.save(
                         SavingsGoal.create(
@@ -68,11 +69,13 @@ public class SavingsGoalApplicationService {
                                 command.type(),
                                 command.targetAmount(),
                                 command.deadline(),
-                                command.incomeRate()));
+                                command.incomeRate(),
+                                command.autoContribute()));
         return summarize(created, monthPaidIncome(currentUserId));
     }
 
     public SavingsGoalSummary update(Long currentUserId, Long goalId, SavingsGoalCommand command) {
+        requireIncomeRateWhenAutoContribute(command.incomeRate(), command.autoContribute());
         SavingsGoal updated =
                 savingsGoalRepositoryPort.save(
                         findOwnedOrThrow(currentUserId, goalId)
@@ -81,7 +84,8 @@ public class SavingsGoalApplicationService {
                                         command.type(),
                                         command.targetAmount(),
                                         command.deadline(),
-                                        command.incomeRate()));
+                                        command.incomeRate(),
+                                        command.autoContribute()));
         return summarize(updated, monthPaidIncome(currentUserId));
     }
 
@@ -140,14 +144,44 @@ public class SavingsGoalApplicationService {
         if (suggested == null || suggested.signum() == 0) {
             throw new IllegalArgumentException("Não há valor a separar nesta meta agora");
         }
+        return createSuggestedContribution(summary, false);
+    }
+
+    public List<SavingsGoal> findAllAutoContribute() {
+        return savingsGoalRepositoryPort.findAllAutoContribute();
+    }
+
+    /**
+     * Mesma sugestão do "separar com 1 clique", aplicada automaticamente pelo scheduler para quem
+     * ligou o aporte automático — silenciosamente não faz nada quando não há valor a separar agora
+     * (o comum na maioria dos dias, não é um erro). Como a sugestão já desconta o que foi aportado
+     * no mês, rodar isso todo dia captura incrementalmente a fração de cada receita nova que chega.
+     */
+    @Transactional
+    public void applyAutomaticContributionIfDue(SavingsGoal goal) {
+        SavingsGoalSummary summary = summarize(goal, monthPaidIncome(goal.userId()));
+        BigDecimal suggested = summary.suggestedContribution();
+        if (suggested != null && suggested.signum() > 0) {
+            createSuggestedContribution(summary, true);
+        }
+    }
+
+    private GoalContribution createSuggestedContribution(
+            SavingsGoalSummary summary, boolean automatic) {
         LocalDate today = LocalDate.now(clock);
         String note =
-                "Separação de %s%% das receitas recebidas em %s"
+                "Separação%s de %s%% das receitas recebidas em %s"
                         .formatted(
+                                automatic ? " automática" : "",
                                 percent(summary.goal().incomeRate()),
                                 YearMonth.from(today).format(MONTH));
         return goalContributionRepositoryPort.save(
-                GoalContribution.create(goalId, ContributionType.DEPOSIT, suggested, today, note));
+                GoalContribution.create(
+                        summary.goal().id(),
+                        ContributionType.DEPOSIT,
+                        summary.suggestedContribution(),
+                        today,
+                        note));
     }
 
     /**
@@ -231,6 +265,14 @@ public class SavingsGoalApplicationService {
                 .filter(filter)
                 .map(Transaction::baseAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void requireIncomeRateWhenAutoContribute(
+            BigDecimal incomeRate, boolean autoContribute) {
+        if (autoContribute && (incomeRate == null || incomeRate.signum() == 0)) {
+            throw new IllegalArgumentException(
+                    "Para ligar o aporte automático, defina o percentual das receitas a separar.");
+        }
     }
 
     /** Acesso a meta de outro usuário é tratado como inexistente (404), não como 403. */

@@ -52,7 +52,10 @@ export function SavingsGoalCard({ goal, onEdit, onContribute, onShowHistory }: S
           <p className="truncate font-medium text-zinc-800 dark:text-zinc-100" title={goal.name}>
             {goal.name}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{GOAL_TYPE_LABELS[goal.type]}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {GOAL_TYPE_LABELS[goal.type]}
+            {goal.autoContribute && ' · aporte automático'}
+          </p>
         </div>
         <div className="flex shrink-0 gap-1">
           <IconButton icon={PencilIcon} label="Editar meta" onClick={onEdit} />
@@ -102,6 +105,7 @@ export function SavingsGoalCard({ goal, onEdit, onContribute, onShowHistory }: S
               <p>
                 Você recebeu {formatCurrency(goal.monthPaidIncome)} este mês. Separe {formatPercent(goal.incomeRate)}:{' '}
                 <span className="font-semibold">{formatCurrency(goal.suggestedContribution)}</span>.
+                {goal.autoContribute && ' O aporte automático separa isso sozinho em breve, mas você também pode adiantar:'}
               </p>
               <Button
                 variant="brand"

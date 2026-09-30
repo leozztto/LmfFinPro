@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, FormField, Input, Select } from '@/shared/ui'
+import { Button, Checkbox, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useCreateSavingsGoal, useSuggestedTaxRate, useUpdateSavingsGoal } from '../hooks/useSavingsGoals'
@@ -16,13 +16,14 @@ interface SavingsGoalFormProps {
 }
 
 function toFormValues(goal?: SavingsGoal): Partial<SavingsGoalFormValues> {
-  if (!goal) return { name: '', type: 'EMERGENCY_FUND', deadline: '' }
+  if (!goal) return { name: '', type: 'EMERGENCY_FUND', deadline: '', autoContribute: false }
   return {
     name: goal.name,
     type: goal.type,
     targetAmount: goal.targetAmount,
     deadline: goal.deadline ?? '',
     incomePercent: goal.incomeRate === null ? undefined : rateToPercent(goal.incomeRate),
+    autoContribute: goal.autoContribute,
   }
 }
 
@@ -65,6 +66,7 @@ export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
       targetAmount: values.targetAmount,
       deadline: values.deadline ? values.deadline : null,
       incomeRate: values.incomePercent === undefined ? null : percentToRate(values.incomePercent),
+      autoContribute: values.autoContribute,
     }
     try {
       if (goal) {
@@ -116,6 +118,19 @@ export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
               ` Alíquota de referência para o seu regime: ${formatPercent(suggestedRate)}.`}
           </p>
         </div>
+        <label
+          htmlFor="goal-auto-contribute"
+          className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-200 sm:col-span-2"
+        >
+          <Checkbox id="goal-auto-contribute" className="mt-0.5" {...register('autoContribute')} />
+          <span>
+            Aporte automático
+            <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+              Separa a sugestão sozinho, uma vez por dia, sem precisar clicar em "Separar". Exige o percentual acima
+              definido.
+            </span>
+          </span>
+        </label>
       </div>
 
       <Button type="submit" disabled={isPending} className="w-full">
