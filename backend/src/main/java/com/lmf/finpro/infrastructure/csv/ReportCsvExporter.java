@@ -6,8 +6,11 @@ import com.lmf.finpro.domain.model.CategoryExpenseReportData;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ClientAnnualStatementData;
 import com.lmf.finpro.domain.model.ClientReceiptData;
+import com.lmf.finpro.domain.model.DebtType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.Money;
+import com.lmf.finpro.domain.model.NetWorthCalculator;
+import com.lmf.finpro.domain.model.NetWorthReportData;
 import com.lmf.finpro.domain.model.TagTotalsReportData;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionExportData;
@@ -15,6 +18,7 @@ import com.lmf.finpro.domain.model.TransactionReportData;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
@@ -276,6 +280,107 @@ public class ReportCsvExporter implements ReportCsvExporterPort {
                     });
         }
         return CsvWriter.write(rows);
+    }
+
+    /**
+     * A evolução mês a mês vem primeiro (é a tabela que vira gráfico na planilha); abaixo,
+     * separadas por uma linha em branco, a composição de hoje: contas, investimentos e dívidas.
+     * Valores monetários sem formatação, em reais, exceto as colunas "Moeda" e "Saldo na moeda".
+     */
+    @Override
+    public byte[] exportNetWorthReport(NetWorthReportData data) {
+        NetWorthCalculator.Report report = data.report();
+        List<String[]> rows = new ArrayList<>();
+
+        rows.add(
+                new String[] {
+                    "Mês", "Contas", "Investimentos", "Dívidas", "Patrimônio líquido", "Variação"
+                });
+        BigDecimal previous = null;
+        for (NetWorthCalculator.Point point : report.history()) {
+            rows.add(
+                    new String[] {
+                        point.month().toString(),
+                        point.cash().toPlainString(),
+                        point.investments().toPlainString(),
+                        point.debts().toPlainString(),
+                        point.netWorth().toPlainString(),
+                        previous == null ? "" : point.netWorth().subtract(previous).toPlainString()
+                    });
+            previous = point.netWorth();
+        }
+
+        rows.add(new String[] {});
+        rows.add(new String[] {"Conta", "Moeda", "Saldo na moeda", "Saldo em reais"});
+        for (NetWorthCalculator.AccountRow row : report.accounts()) {
+            rows.add(
+                    new String[] {
+                        row.account().name(),
+                        row.account().currency().name(),
+                        row.balance().toPlainString(),
+                        row.balanceInBrl().toPlainString()
+                    });
+        }
+
+        rows.add(new String[] {});
+        rows.add(
+                new String[] {
+                    "Investimento",
+                    "Moeda",
+                    "Aplicado",
+                    "Valor atual",
+                    "Rendimento",
+                    "Rendimento (%)",
+                    "Valor atual em reais",
+                    "Rendimento em reais",
+                    "Valor informado em"
+                });
+        for (NetWorthCalculator.InvestmentRow row : report.investments()) {
+            rows.add(
+                    new String[] {
+                        row.account().name(),
+                        row.account().currency().name(),
+                        row.invested().toPlainString(),
+                        row.currentValue().toPlainString(),
+                        row.gain().toPlainString(),
+                        row.gainRate() == null
+                                ? ""
+                                : row.gainRate()
+                                        .movePointRight(2)
+                                        .setScale(2, RoundingMode.HALF_UP)
+                                        .toPlainString(),
+                        row.currentValueInBrl().toPlainString(),
+                        row.gainInBrl().toPlainString(),
+                        row.lastValuation() == null
+                                ? ""
+                                : row.lastValuation().valuationDate().format(DATE_FORMAT)
+                    });
+        }
+
+        rows.add(new String[] {});
+        rows.add(new String[] {"Dívida", "Tipo", "Credor", "Saldo devedor", "Saldo informado em"});
+        for (NetWorthCalculator.DebtRow row : report.debts()) {
+            rows.add(
+                    new String[] {
+                        row.debt().name(),
+                        debtTypeLabel(row.debt().type()),
+                        row.debt().creditor(),
+                        row.currentBalance().toPlainString(),
+                        row.lastBalance() == null
+                                ? ""
+                                : row.lastBalance().balanceDate().format(DATE_FORMAT)
+                    });
+        }
+        return CsvWriter.write(rows);
+    }
+
+    private String debtTypeLabel(DebtType type) {
+        return switch (type) {
+            case FINANCING -> "Financiamento";
+            case LOAN -> "Empréstimo";
+            case CREDIT_CARD -> "Cartão de crédito";
+            case OTHER -> "Outra";
+        };
     }
 
     private String foreignCurrency(Money foreignValue) {

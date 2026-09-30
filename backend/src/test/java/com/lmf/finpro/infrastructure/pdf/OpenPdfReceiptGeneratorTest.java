@@ -16,6 +16,8 @@ import com.lmf.finpro.domain.model.ClientReceiptData;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
+import com.lmf.finpro.domain.model.NetWorthReportData;
+import com.lmf.finpro.domain.model.NetWorthReportTestData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
@@ -150,6 +152,37 @@ class OpenPdfReceiptGeneratorTest {
         byte[] pdf = generator.generateClientReceipt(data);
 
         assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void producesANetWorthPdfWithTheEvolutionAndTheComposition() throws IOException {
+        NetWorthReportData data =
+                new NetWorthReportData(issuer(), 2, NetWorthReportTestData.report());
+
+        byte[] pdf = generator.generateNetWorthReport(data);
+
+        assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
+        String text = new PdfTextExtractor(new PdfReader(pdf)).getTextFromPage(1);
+        assertThat(text)
+                .contains(
+                        "EVOLUÇÃO PATRIMONIAL",
+                        "Últimos 2 meses",
+                        "Agosto de 2026",
+                        "Setembro de 2026",
+                        "Corretora",
+                        "Carro",
+                        "Financiamento",
+                        "10,00%");
+    }
+
+    @Test
+    void producesANetWorthPdfEvenWithNothingRegistered() {
+        NetWorthReportData data =
+                new NetWorthReportData(issuer(), 1, NetWorthReportTestData.emptyReport());
+
+        byte[] pdf = generator.generateNetWorthReport(data);
+
         assertThat(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 
