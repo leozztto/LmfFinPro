@@ -167,3 +167,14 @@ Um `RecurringBudget` é um "molde" que gera um `Budget` de verdade a cada mês v
 | Migration | `db/migration/V24__create_recurring_budgets.sql` |
 | Frontend | `frontend/src/features/budgets/components/{RecurringBudgetForm,RecurringBudgetBatchForm,RecurringBudgetList,RecurringBudgetEditForm}.tsx`, `hooks/{useRecurringBudgets,useCreateRecurringBudget,useCreateRecurringBudgetBatch,useUpdateRecurringBudget,useDeleteRecurringBudget}.ts`, renderizado dentro de `frontend/src/features/recurringTransactions/components/RecurringTransactionsPage.tsx` |
 | Testes | `application/recurringbudget/RecurringBudgetApplicationServiceTest.java`, `domain/model/RecurringBudgetTest.java`, `integration/recurringbudget/RecurringBudgetIntegrationTest.java` |
+
+## 5. Orçamento vinculado a cliente/projeto
+
+Para o público freelancer, o orçamento pode ser vinculado a um `Client` (migration `V30__link_budgets_to_clients.sql`: `budgets.client_id` opcional, FK com `ON DELETE CASCADE`).
+
+- **Regra de gasto** (`BudgetApplicationService.calculateSpent`): com `clientId`, soma só as despesas da categoria/mês **lançadas para aquele cliente** (`sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween`); sem `clientId`, continua sendo o orçamento geral da categoria — soma todas as despesas dela, inclusive as de clientes. Os dois tipos podem coexistir na mesma categoria/mês.
+- **Validação**: cliente de outro usuário (ou inexistente) é tratado como 404 no `create`, igual ao restante do sistema.
+- **Exclusão de cliente**: bloqueada (409) enquanto houver orçamento vinculado — mesma proteção da categoria, para o `CASCADE` nunca apagar orçamentos em silêncio.
+- **Consumidores**: alertas de 80%/100% já usam `calculateSpent`, então respeitam o vínculo; o relatório "Orçado x realizado" recalcula com a mesma regra e mostra o rótulo `Categoria · Cliente`. Orçamento recorrente continua gerando só orçamentos gerais.
+- **Tela**: o formulário ganhou o select "Cliente / projeto (opcional)" (só clientes ativos); os cartões mostram o cliente (ou "Orçamento geral") e, havendo orçamentos de cliente, aparece um filtro por cliente acima da lista.
+- **Fora de escopo (por ora)**: orçamento de um cliente somando todas as categorias (hoje a categoria continua obrigatória) e meta de receita por cliente.

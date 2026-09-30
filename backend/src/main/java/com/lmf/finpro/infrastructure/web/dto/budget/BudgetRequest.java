@@ -15,4 +15,5 @@ public record BudgetRequest(
                         value = "0.0",
                         inclusive = false,
                         message = "valor limite deve ser maior que zero")
-                BigDecimal limitValue) {}
+                BigDecimal limitValue,
+        Long clientId) {}

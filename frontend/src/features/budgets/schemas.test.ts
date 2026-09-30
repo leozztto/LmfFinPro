@@ -108,3 +108,17 @@ describe('recurringBudgetUpdateSchema', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('budgetSchema clientId', () => {
+  it('treats an empty client as no client', () => {
+    const result = budgetSchema.safeParse({ categoryId: '5', referenceMonth: '2026-09', limitValue: '500', clientId: '' })
+
+    expect(result.success && result.data.clientId).toBeUndefined()
+  })
+
+  it('converts a selected client to a number', () => {
+    const result = budgetSchema.safeParse({ categoryId: '5', referenceMonth: '2026-09', limitValue: '500', clientId: '7' })
+
+    expect(result.success && result.data.clientId).toBe(7)
+  })
+})

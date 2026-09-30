@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -119,11 +120,11 @@ class RecurringBudgetApplicationServiceTest {
         when(categoryRepositoryPort.findById(5L)).thenReturn(Optional.of(expenseCategory()));
         when(recurringBudgetRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonth(
-                        eq(10L), eq(5L), any()))
+        when(budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+                        eq(10L), eq(5L), any(), isNull()))
                 .thenReturn(false);
-        when(budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonth(
-                        10L, 5L, YearMonth.of(2026, 8)))
+        when(budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+                        10L, 5L, YearMonth.of(2026, 8), null))
                 .thenReturn(true);
 
         RecurringBudget created =

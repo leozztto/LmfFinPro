@@ -215,7 +215,7 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
                         "/api/budgets",
                         HttpMethod.POST,
                         new HttpEntity<>(
-                                new BudgetRequest(categoryId, YearMonth.from(TODAY), limit),
+                                new BudgetRequest(categoryId, YearMonth.from(TODAY), limit, null),
                                 user.authHeaders()),
                         Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);

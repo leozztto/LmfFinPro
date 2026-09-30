@@ -26,6 +26,10 @@ public class BudgetJpaEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private CategoryJpaEntity category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private ClientJpaEntity client;
+
     @Column(name = "reference_month", nullable = false)
     private LocalDate referenceMonth;
 

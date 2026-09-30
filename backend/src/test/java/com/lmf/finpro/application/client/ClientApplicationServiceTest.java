@@ -12,6 +12,7 @@ import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.util.List;
@@ -27,6 +28,7 @@ class ClientApplicationServiceTest {
 
     @Mock private ClientRepositoryPort clientRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
+    @Mock private BudgetRepositoryPort budgetRepositoryPort;
 
     @InjectMocks private ClientApplicationService service;
 
@@ -163,6 +165,31 @@ class ClientApplicationServiceTest {
                         client.active());
         when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(withId));
         when(transactionRepositoryPort.existsByClientId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(10L, 1L))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(clientRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteThrowsWhenClientHasLinkedBudgets() {
+        Client client = existingClient();
+        Client withId =
+                new Client(
+                        1L,
+                        client.userId(),
+                        client.name(),
+                        client.email(),
+                        client.phone(),
+                        client.documentType(),
+                        client.documentNumber(),
+                        client.workType(),
+                        client.notes(),
+                        client.color(),
+                        client.active());
+        when(clientRepositoryPort.findById(1L)).thenReturn(Optional.of(withId));
+        when(transactionRepositoryPort.existsByClientId(1L)).thenReturn(false);
+        when(budgetRepositoryPort.existsByClientId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.delete(10L, 1L))
                 .isInstanceOf(EntityHasLinkedRecordsException.class);

@@ -107,7 +107,7 @@ class RecurringBudgetIntegrationTest extends AbstractIntegrationTest {
                 "/api/budgets",
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        new BudgetRequest(categoryId, CURRENT_MONTH, BigDecimal.valueOf(300)),
+                        new BudgetRequest(categoryId, CURRENT_MONTH, BigDecimal.valueOf(300), null),
                         user.authHeaders()),
                 BudgetResponse.class);
 

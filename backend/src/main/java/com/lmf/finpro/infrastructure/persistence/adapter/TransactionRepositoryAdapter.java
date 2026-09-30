@@ -91,6 +91,18 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
+    public BigDecimal sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
+            Long userId,
+            Long categoryId,
+            Long clientId,
+            CategoryType type,
+            LocalDate start,
+            LocalDate end) {
+        return transactionJpaRepository.sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
+                userId, categoryId, clientId, type, start, end);
+    }
+
+    @Override
     public boolean existsByAccountId(Long accountId) {
         return transactionJpaRepository.existsByAccountId(accountId);
     }

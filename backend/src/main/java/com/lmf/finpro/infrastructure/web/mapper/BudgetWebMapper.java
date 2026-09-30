@@ -12,6 +12,7 @@ public class BudgetWebMapper {
         return new BudgetResponse(
                 budget.id(),
                 budget.categoryId(),
+                budget.clientId(),
                 budget.referenceMonth(),
                 budget.limitValue(),
                 spentValue);

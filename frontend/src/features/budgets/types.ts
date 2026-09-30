@@ -1,6 +1,8 @@
 export interface Budget {
   id: number
   categoryId: number
+  /** Cliente/projeto vinculado; null = orçamento geral da categoria. */
+  clientId: number | null
   referenceMonth: string
   limitValue: number
   spentValue: number
@@ -8,6 +10,7 @@ export interface Budget {
 
 export interface BudgetInput {
   categoryId: number
+  clientId?: number
   referenceMonth: string
   limitValue: number
 }

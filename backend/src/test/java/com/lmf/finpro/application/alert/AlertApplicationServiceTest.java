@@ -194,7 +194,8 @@ class AlertApplicationServiceTest {
                                         USER_ID,
                                         5L,
                                         YearMonth.from(TODAY).minusMonths(1),
-                                        BigDecimal.valueOf(1000))));
+                                        BigDecimal.valueOf(1000),
+                                        null)));
 
         assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
     }
@@ -350,7 +351,7 @@ class AlertApplicationServiceTest {
 
     private void givenBudgetWithSpent(String spent) {
         Budget budget =
-                new Budget(7L, USER_ID, 5L, YearMonth.from(TODAY), BigDecimal.valueOf(1000));
+                new Budget(7L, USER_ID, 5L, YearMonth.from(TODAY), BigDecimal.valueOf(1000), null);
         lenient().when(budgetRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of(budget));
         lenient()
                 .when(budgetApplicationService.calculateSpent(budget))
