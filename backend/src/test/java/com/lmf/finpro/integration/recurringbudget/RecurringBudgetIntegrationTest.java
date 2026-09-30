@@ -7,6 +7,8 @@ import com.lmf.finpro.infrastructure.web.dto.budget.BudgetRequest;
 import com.lmf.finpro.infrastructure.web.dto.budget.BudgetResponse;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryResponse;
+import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetBatchItemRequest;
+import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetBatchRequest;
 import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetRequest;
 import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetResponse;
 import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetUpdateRequest;
@@ -146,6 +148,74 @@ class RecurringBudgetIntegrationTest extends AbstractIntegrationTest {
         assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         assertThat(listBudgets(user)).hasSize(1);
+    }
+
+    @Test
+    void batchCreatesOneRecurrencePerCategoryAndLaunchesDueBudgets() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long mercadoId = createExpenseCategory(user);
+        CategoryRequest transporteRequest =
+                new CategoryRequest("Transporte", CategoryType.EXPENSE, null, null);
+        Long transporteId =
+                restTemplate
+                        .exchange(
+                                "/api/categories",
+                                HttpMethod.POST,
+                                new HttpEntity<>(transporteRequest, user.authHeaders()),
+                                CategoryResponse.class)
+                        .getBody()
+                        .id();
+
+        RecurringBudgetBatchRequest batchRequest =
+                new RecurringBudgetBatchRequest(
+                        CURRENT_MONTH,
+                        null,
+                        List.of(
+                                new RecurringBudgetBatchItemRequest(
+                                        mercadoId, BigDecimal.valueOf(500)),
+                                new RecurringBudgetBatchItemRequest(
+                                        transporteId, BigDecimal.valueOf(300))));
+
+        ResponseEntity<RecurringBudgetResponse[]> response =
+                restTemplate.exchange(
+                        "/api/recurring-budgets/batch",
+                        HttpMethod.POST,
+                        new HttpEntity<>(batchRequest, user.authHeaders()),
+                        RecurringBudgetResponse[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        List<RecurringBudgetResponse> created = List.of(response.getBody());
+        assertThat(created).hasSize(2);
+        assertThat(created)
+                .extracting(RecurringBudgetResponse::categoryId)
+                .containsExactlyInAnyOrder(mercadoId, transporteId);
+        assertThat(listBudgets(user)).hasSize(2);
+    }
+
+    @Test
+    void batchRejectsSameCategoryTwice() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long categoryId = createExpenseCategory(user);
+
+        RecurringBudgetBatchRequest batchRequest =
+                new RecurringBudgetBatchRequest(
+                        CURRENT_MONTH,
+                        null,
+                        List.of(
+                                new RecurringBudgetBatchItemRequest(
+                                        categoryId, BigDecimal.valueOf(500)),
+                                new RecurringBudgetBatchItemRequest(
+                                        categoryId, BigDecimal.valueOf(300))));
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/recurring-budgets/batch",
+                        HttpMethod.POST,
+                        new HttpEntity<>(batchRequest, user.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(listBudgets(user)).isEmpty();
     }
 
     @Test

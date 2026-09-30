@@ -162,8 +162,6 @@ class RecurringBudgetApplicationServiceTest {
 
     @Test
     void createThrowsWhenEndMonthIsBeforeStartMonth() {
-        when(categoryRepositoryPort.findById(5L)).thenReturn(Optional.of(expenseCategory()));
-
         assertThatThrownBy(
                         () ->
                                 service.create(
@@ -173,6 +171,63 @@ class RecurringBudgetApplicationServiceTest {
                                         CURRENT_MONTH,
                                         CURRENT_MONTH.minusMonths(1)))
                 .isInstanceOf(InvalidRecurrencePeriodException.class);
+    }
+
+    @Test
+    void createBatchCreatesOneRecurrencePerCategory() {
+        Category otherExpenseCategory =
+                new Category(6L, 10L, "Transporte", CategoryType.EXPENSE, null, null);
+        when(categoryRepositoryPort.findById(5L)).thenReturn(Optional.of(expenseCategory()));
+        when(categoryRepositoryPort.findById(6L)).thenReturn(Optional.of(otherExpenseCategory));
+        when(recurringBudgetRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<RecurringBudget> created =
+                service.createBatch(
+                        10L,
+                        CURRENT_MONTH,
+                        null,
+                        List.of(
+                                new CategoryLimit(5L, BigDecimal.valueOf(500)),
+                                new CategoryLimit(6L, BigDecimal.valueOf(300))));
+
+        assertThat(created).hasSize(2);
+        assertThat(created).extracting(RecurringBudget::categoryId).containsExactly(5L, 6L);
+        verify(budgetRepositoryPort, times(2)).save(any());
+    }
+
+    @Test
+    void createBatchThrowsWhenSameCategoryAppearsTwice() {
+        assertThatThrownBy(
+                        () ->
+                                service.createBatch(
+                                        10L,
+                                        CURRENT_MONTH,
+                                        null,
+                                        List.of(
+                                                new CategoryLimit(5L, BigDecimal.valueOf(500)),
+                                                new CategoryLimit(5L, BigDecimal.valueOf(300)))))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(recurringBudgetRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void createBatchThrowsWhenOneCategoryIsInvalidAndCreatesNothingForThatCall() {
+        when(categoryRepositoryPort.findById(5L)).thenReturn(Optional.of(expenseCategory()));
+        when(categoryRepositoryPort.findById(6L)).thenReturn(Optional.empty());
+        when(recurringBudgetRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThatThrownBy(
+                        () ->
+                                service.createBatch(
+                                        10L,
+                                        CURRENT_MONTH,
+                                        null,
+                                        List.of(
+                                                new CategoryLimit(5L, BigDecimal.valueOf(500)),
+                                                new CategoryLimit(6L, BigDecimal.valueOf(300)))))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
