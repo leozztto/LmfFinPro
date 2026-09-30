@@ -22,7 +22,7 @@ public class SentAlertJpaEntity {
     private Long userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "alert_type", nullable = false, length = 20)
+    @Column(name = "alert_type", nullable = false, length = 30)
     private AlertType alertType;
 
     @Column(name = "reference_key", nullable = false, length = 50)

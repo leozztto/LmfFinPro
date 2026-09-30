@@ -4,5 +4,6 @@ public enum AlertType {
     BILL_DUE,
     BUDGET_80,
     BUDGET_100,
-    DAS_DUE
+    DAS_DUE,
+    RECURRING_BUDGET_EXPIRING
 }

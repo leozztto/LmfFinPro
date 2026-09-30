@@ -42,7 +42,8 @@ public class NotificationPreferencesController {
                         request.billsEnabled(),
                         request.billDaysBefore(),
                         request.budgetsEnabled(),
-                        request.dasEnabled()));
+                        request.dasEnabled(),
+                        request.recurringBudgetsEnabled()));
     }
 
     private NotificationPreferencesResponse toResponse(NotificationPreferences preferences) {
@@ -50,6 +51,7 @@ public class NotificationPreferencesController {
                 preferences.billsEnabled(),
                 preferences.billDaysBefore(),
                 preferences.budgetsEnabled(),
-                preferences.dasEnabled());
+                preferences.dasEnabled(),
+                preferences.recurringBudgetsEnabled());
     }
 }

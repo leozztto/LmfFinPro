@@ -18,6 +18,7 @@ const notificationPreferencesSchema = z.object({
     .max(15, DAYS_MESSAGE),
   budgetsEnabled: z.boolean(),
   dasEnabled: z.boolean(),
+  recurringBudgetsEnabled: z.boolean(),
 })
 
 const TOGGLES = [
@@ -35,6 +36,11 @@ const TOGGLES = [
     name: 'dasEnabled',
     label: 'DAS',
     description: 'Lembrete do vencimento no dia 20, para MEI e Simples Nacional.',
+  },
+  {
+    name: 'recurringBudgetsEnabled',
+    label: 'Orçamentos recorrentes',
+    description: 'Quando uma recorrência de orçamento está perto de terminar (mês final).',
   },
 ] as const
 
