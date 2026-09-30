@@ -58,6 +58,15 @@ export function ImportBatchList() {
                       {batch.uncategorizedCount} sem categoria
                     </span>
                   )}
+                  {batch.duplicateCount > 0 && (
+                    <span
+                      className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+                      title="Linhas do arquivo já existiam nessa conta (mesma data, hora, descrição e valor) e não foram importadas de novo."
+                    >
+                      {batch.duplicateCount} duplicata{batch.duplicateCount > 1 ? 's' : ''} ignorada
+                      {batch.duplicateCount > 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   {formatDateOnlyBr(batch.importedAt.slice(0, 10))} ·{' '}

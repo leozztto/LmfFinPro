@@ -52,7 +52,8 @@ export function TransactionCard({
       : null,
     accountCurrency !== 'BRL' ? `≈ ${formatCurrency(transaction.baseAmount)}` : null,
   ].filter(Boolean)
-  const metaLine = `${formatDateOnlyBr(transaction.transactionDate)} · ${accountName}${
+  const timeLabel = transaction.transactionTime ? ` ${transaction.transactionTime.slice(0, 5)}` : ''
+  const metaLine = `${formatDateOnlyBr(transaction.transactionDate)}${timeLabel} · ${accountName}${
     categoryName ? ` · ${categoryName}` : ''
   }${clientName ? ` · ${clientName}` : ''}${currencyNotes.length ? ` · ${currencyNotes.join(' · ')}` : ''}`
 

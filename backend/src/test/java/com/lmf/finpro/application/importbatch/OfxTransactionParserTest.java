@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -54,11 +55,34 @@ class OfxTransactionParserTest {
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).date()).isEqualTo(LocalDate.of(2026, 9, 1));
+        assertThat(rows.get(0).time()).isEqualTo(LocalTime.of(12, 0, 0));
         assertThat(rows.get(0).description()).isEqualTo("ALUGUEL ESCRITORIO");
         assertThat(rows.get(0).signedAmount()).isEqualByComparingTo("-1500.00");
         assertThat(rows.get(1).date()).isEqualTo(LocalDate.of(2026, 9, 3));
+        assertThat(rows.get(1).time()).isNull();
         assertThat(rows.get(1).description()).isEqualTo("PAGAMENTO CLIENTE");
         assertThat(rows.get(1).signedAmount()).isEqualByComparingTo("4200.00");
+    }
+
+    @Test
+    void extractsTimeWithTimezoneSuffixAfterSeconds() {
+        String content =
+                "<STMTTRN>\n<DTPOSTED>20260901083015[-3:BRT]\n<TRNAMT>-10.00\n<MEMO>Compra\n</STMTTRN>\n";
+
+        List<ParsedTransactionRow> rows = OfxTransactionParser.parse(ofx(content));
+
+        assertThat(rows.get(0).time()).isEqualTo(LocalTime.of(8, 30, 15));
+    }
+
+    @Test
+    void invalidTimePortionIsIgnoredWithoutFailingTheDate() {
+        String content =
+                "<STMTTRN>\n<DTPOSTED>20260901ABCDEF\n<TRNAMT>-10.00\n<MEMO>Compra\n</STMTTRN>\n";
+
+        List<ParsedTransactionRow> rows = OfxTransactionParser.parse(ofx(content));
+
+        assertThat(rows.get(0).date()).isEqualTo(LocalDate.of(2026, 9, 1));
+        assertThat(rows.get(0).time()).isNull();
     }
 
     @Test

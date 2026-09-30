@@ -29,8 +29,9 @@ export function ImportUploadForm({ onSuccess }: ImportUploadFormProps) {
       const batch = await uploadBatch.mutateAsync({ accountId: Number(accountId), file })
       setFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
+      const duplicateNote = batch.duplicateCount > 0 ? `, ${batch.duplicateCount} duplicada(s) ignorada(s)` : ''
       showToast(
-        `Importação concluída: ${batch.transactionCount} transações, ${batch.uncategorizedCount} sem categoria.`,
+        `Importação concluída: ${batch.transactionCount} transações, ${batch.uncategorizedCount} sem categoria${duplicateNote}.`,
         'success',
       )
       onSuccess?.(batch)
@@ -69,9 +70,11 @@ export function ImportUploadForm({ onSuccess }: ImportUploadFormProps) {
       </FormField>
       <div className="sm:col-span-2">
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          O formato é detectado pela extensão do arquivo. CSV: cabeçalho <code>date,description,amount</code> — data
+          O formato é detectado pela extensão do arquivo. CSV: cabeçalho <code>date,description,amount</code> ou,
+          para incluir a hora, <code>date,time,description,amount</code> (hora no formato <code>HH:mm</code>) — data
           no formato aaaa-mm-dd, valor com ponto decimal (positivo = receita, negativo = despesa). OFX: extrato
-          exportado pelo banco, com um lançamento por bloco <code>&lt;STMTTRN&gt;</code>.
+          exportado pelo banco, com um lançamento por bloco <code>&lt;STMTTRN&gt;</code>. Uma linha idêntica a uma
+          transação já existente na conta (mesma data, hora, descrição e valor) não é importada de novo.
         </p>
       </div>
       <div className="sm:col-span-2">

@@ -10,6 +10,8 @@ export interface ImportBatch {
   status: ImportStatus
   transactionCount: number
   uncategorizedCount: number
+  /** Linhas do arquivo puladas por já existir uma transação igual (mesma data, hora, descrição e valor). */
+  duplicateCount: number
 }
 
 export interface ImportBatchUploadInput {

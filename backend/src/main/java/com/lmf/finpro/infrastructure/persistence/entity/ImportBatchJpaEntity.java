@@ -41,6 +41,10 @@ public class ImportBatchJpaEntity {
     @Column(nullable = false, length = 20)
     private ImportStatus status;
 
+    @Column(name = "duplicate_count", nullable = false)
+    @Builder.Default
+    private int duplicateCount = 0;
+
     @PrePersist
     void onCreate() {
         if (importedAt == null) {

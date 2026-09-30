@@ -12,4 +12,5 @@ public record ImportBatchResponse(
         LocalDateTime importedAt,
         ImportStatus status,
         int transactionCount,
-        int uncategorizedCount) {}
+        int uncategorizedCount,
+        int duplicateCount) {}

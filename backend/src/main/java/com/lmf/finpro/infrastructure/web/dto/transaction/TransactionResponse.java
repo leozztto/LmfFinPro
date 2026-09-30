@@ -8,6 +8,7 @@ import com.lmf.finpro.infrastructure.web.dto.tag.TagSummaryResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 public record TransactionResponse(
@@ -29,4 +30,5 @@ public record TransactionResponse(
         BigDecimal originalAmount,
         BigDecimal baseAmount,
         long attachmentCount,
-        List<TagSummaryResponse> tags) {}
+        List<TagSummaryResponse> tags,
+        LocalTime transactionTime) {}

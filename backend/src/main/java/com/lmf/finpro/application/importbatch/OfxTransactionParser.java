@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -21,6 +22,9 @@ import java.util.Locale;
  * por bancos brasileiros, quanto OFX 2.x XML bem formado (ex.: {@code <MEMO>Aluguel</MEMO>}), desde
  * que cada elemento continue em sua própria linha. Cada bloco {@code <STMTTRN>...</STMTTRN>} vira
  * uma {@link ParsedTransactionRow}; o sinal de {@code TRNAMT} é preservado, igual ao parser de CSV.
+ * Quando {@code DTPOSTED} traz hora ({@code yyyyMMddHHmmss}, com ou sem sufixo de
+ * fuso/milissegundos depois), ela também é extraída; só com os 8 dígitos da data, a hora fica
+ * {@code null}.
  */
 public final class OfxTransactionParser {
 
@@ -31,6 +35,7 @@ public final class OfxTransactionParser {
     private static final String MEMO = "<MEMO>";
     private static final String NAME = "<NAME>";
     private static final DateTimeFormatter OFX_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final DateTimeFormatter OFX_TIME = DateTimeFormatter.ofPattern("HHmmss");
 
     private OfxTransactionParser() {}
 
@@ -124,6 +129,7 @@ public final class OfxTransactionParser {
             throw new ImportFileInvalidException(
                     "Linha " + lineNumber + ": data inválida em DTPOSTED (\"" + date + "\").");
         }
+        LocalTime parsedTime = extractTime(date);
 
         BigDecimal signedAmount;
         try {
@@ -137,7 +143,21 @@ public final class OfxTransactionParser {
                     "Linha " + lineNumber + ": valor não pode ser zero.");
         }
 
-        return new ParsedTransactionRow(parsedDate, description.trim(), signedAmount);
+        return new ParsedTransactionRow(parsedDate, parsedTime, description.trim(), signedAmount);
+    }
+
+    /**
+     * {@code null} sem os 6 dígitos de hora (HHmmss) após os 8 da data, ou se não forem válidos.
+     */
+    private static LocalTime extractTime(String date) {
+        if (date.length() < 14) {
+            return null;
+        }
+        try {
+            return LocalTime.parse(date.substring(8, 14), OFX_TIME);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     private static String extractValue(String line, int openTagLength) {

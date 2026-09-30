@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.*;
 
 @Entity
@@ -80,6 +81,9 @@ public class TransactionJpaEntity {
 
     @Column(name = "base_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal baseAmount;
+
+    @Column(name = "transaction_time")
+    private LocalTime transactionTime;
 
     @PrePersist
     void onCreate() {
