@@ -56,6 +56,10 @@ Contas e investimentos em `USD`/`EUR` entram no patrimônio pelo **equivalente e
 | GET/POST | `/api/debts/{id}/balances` | Lista / informa o saldo devedor (`balanceDate`, `balance`) |
 | DELETE | `/api/debts/{id}/balances/{balanceId}` | Exclui um saldo (não o único) |
 
+### Relatório de evolução patrimonial
+
+`GET /api/reports/net-worth?months=12&format=PDF|CSV` (`TransactionReportController`, `NetWorthReportApplicationService`): o mesmo `NetWorthApplicationService.summary` do endpoint acima, então o arquivo sempre bate com a tela. PDF em paisagem (resumo, evolução mês a mês com variação, contas, investimentos e dívidas); CSV com as quatro tabelas empilhadas, separadas por linha em branco. Na tela de Relatórios é o tipo "Evolução patrimonial" (`NetWorthReportForm`, períodos de 6, 12, 24 ou 36 meses).
+
 ```mermaid
 flowchart LR
     Accounts["contas + transações pagas"] --> AB["AccountBalances"]

@@ -18,6 +18,8 @@ import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
 import com.lmf.finpro.domain.model.Money;
+import com.lmf.finpro.domain.model.NetWorthReportData;
+import com.lmf.finpro.domain.model.NetWorthReportTestData;
 import com.lmf.finpro.domain.model.ReportGranularity;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
@@ -104,6 +106,45 @@ class ReportCsvExporterTest {
                 LocalDateTime.now(),
                 null,
                 null);
+    }
+
+    @Test
+    void exportsNetWorthReportAsStackedSections() {
+        NetWorthReportData data =
+                new NetWorthReportData(issuer(), 2, NetWorthReportTestData.report());
+
+        String content = bodyOf(exporter.exportNetWorthReport(data));
+
+        assertThat(content)
+                .isEqualTo(
+                        "Mês;Contas;Investimentos;Dívidas;Patrimônio líquido;Variação\r\n"
+                                + "2026-08;1000.00;1000.00;400.00;1600.00;\r\n"
+                                + "2026-09;1500.00;1100.00;300.00;2300.00;700.00\r\n"
+                                + "\r\n"
+                                + "Conta;Moeda;Saldo na moeda;Saldo em reais\r\n"
+                                + "\"Conta; Corrente\";BRL;1000.00;1000.00\r\n"
+                                + "Conta EUA;USD;100.00;500.00\r\n"
+                                + "\r\n"
+                                + "Investimento;Moeda;Aplicado;Valor atual;Rendimento;Rendimento (%);"
+                                + "Valor atual em reais;Rendimento em reais;Valor informado em\r\n"
+                                + "Corretora;BRL;1000.00;1100.00;100.00;10.00;1100.00;100.00;2026-09-28\r\n"
+                                + "\r\n"
+                                + "Dívida;Tipo;Credor;Saldo devedor;Saldo informado em\r\n"
+                                + "Carro;Financiamento;Banco X;300.00;2026-09-10\r\n");
+    }
+
+    @Test
+    void exportsNetWorthReportWithoutAccountsInvestmentsOrDebts() {
+        NetWorthReportData data =
+                new NetWorthReportData(issuer(), 1, NetWorthReportTestData.emptyReport());
+
+        String content = bodyOf(exporter.exportNetWorthReport(data));
+
+        assertThat(content)
+                .startsWith(
+                        "Mês;Contas;Investimentos;Dívidas;Patrimônio líquido;Variação\r\n"
+                                + "2026-09;0;0;0;0;\r\n");
+        assertThat(content).contains("Conta;Moeda;Saldo na moeda;Saldo em reais\r\n\r\n");
     }
 
     private static String bodyOf(byte[] csv) {

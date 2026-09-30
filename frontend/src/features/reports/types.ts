@@ -9,6 +9,7 @@ export type ReportType =
   | 'INCOME_REPORT'
   | 'EXPENSE_REPORT'
   | 'TAG_TOTALS'
+  | 'NET_WORTH'
   | 'ATTACHMENTS_ARCHIVE'
 
 export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
@@ -54,6 +55,11 @@ export interface TransactionExportInput {
   format: ReportFormat
 }
 
+export interface NetWorthReportInput {
+  months: number
+  format: ReportFormat
+}
+
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   CLIENT_RECEIPT: 'Recibo por cliente',
   ACCOUNT_STATEMENT: 'Extrato de conta',
@@ -65,6 +71,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   INCOME_REPORT: 'Receitas (com filtros)',
   EXPENSE_REPORT: 'Despesas (com filtros)',
   TAG_TOTALS: 'Totais por tag',
+  NET_WORTH: 'Evolução patrimonial',
   ATTACHMENTS_ARCHIVE: 'Comprovantes do ano (ZIP)',
 }
 

@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
+import com.lmf.finpro.application.report.NetWorthReportApplicationService;
 import com.lmf.finpro.application.report.TagTotalsReportApplicationService;
 import com.lmf.finpro.application.report.TransactionReportApplicationService;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -16,12 +17,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Relatórios de transações com filtros opcionais, em PDF ou CSV: receitas, despesas e totais por
- * tag. Ex.: {@code GET /api/reports/expenses?startDate=2026-09-01&categoryId=5&status=PENDING
- * &format=CSV}.
+ * tag; também a evolução patrimonial. Ex.: {@code GET
+ * /api/reports/expenses?startDate=2026-09-01&categoryId=5&status=PENDING &format=CSV}.
  */
 @RestController
 @RequestMapping("/api/reports")
@@ -30,6 +32,7 @@ public class TransactionReportController {
 
     private final TransactionReportApplicationService transactionReportApplicationService;
     private final TagTotalsReportApplicationService tagTotalsReportApplicationService;
+    private final NetWorthReportApplicationService netWorthReportApplicationService;
     private final Clock clock;
 
     @GetMapping("/incomes")
@@ -55,6 +58,17 @@ public class TransactionReportController {
                 tagTotalsReportApplicationService.generate(
                         currentUser.userId(), request.toFilters(), format);
         return respond(body, "totais-por-tag", format);
+    }
+
+    /** Evolução patrimonial dos últimos {@code months} meses (1 a 60). */
+    @GetMapping("/net-worth")
+    public ResponseEntity<byte[]> netWorth(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam(defaultValue = "12") int months,
+            @RequestParam(defaultValue = "PDF") ReportFormat format) {
+        byte[] body =
+                netWorthReportApplicationService.generate(currentUser.userId(), months, format);
+        return respond(body, "evolucao-patrimonial", format);
     }
 
     private ResponseEntity<byte[]> generate(
