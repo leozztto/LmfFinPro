@@ -7,16 +7,16 @@ ALTER TABLE category_rules ALTER COLUMN user_id DROP NOT NULL;
 
 -- Categorias padrão do sistema (user_id nulo) usadas como alvo das regras globais abaixo.
 INSERT INTO categories (user_id, name, type, color, icon) VALUES
-    (NULL, 'Transporte',        'EXPENSE', '#EAB308', NULL),
-    (NULL, 'Alimentação',       'EXPENSE', '#EF4444', NULL),
-    (NULL, 'Mercado',           'EXPENSE', '#22C55E', NULL),
-    (NULL, 'Saúde',             'EXPENSE', '#14B8A6', NULL),
-    (NULL, 'Educação',          'EXPENSE', '#6366F1', NULL),
-    (NULL, 'Lazer',             'EXPENSE', '#EC4899', NULL),
-    (NULL, 'Assinaturas',       'EXPENSE', '#A855F7', NULL),
-    (NULL, 'Moradia',           'EXPENSE', '#F97316', NULL),
-    (NULL, 'Compras',           'EXPENSE', '#F59E0B', NULL),
-    (NULL, 'Salário',           'INCOME',  '#2AD6A5', NULL);
+    (NULL, 'Transporte',        'EXPENSE', '#EAB308', 'car'),
+    (NULL, 'Alimentação',       'EXPENSE', '#EF4444', 'utensils'),
+    (NULL, 'Mercado',           'EXPENSE', '#22C55E', 'shopping-cart'),
+    (NULL, 'Saúde',             'EXPENSE', '#14B8A6', 'stethoscope'),
+    (NULL, 'Educação',          'EXPENSE', '#6366F1', 'graduation-cap'),
+    (NULL, 'Lazer',             'EXPENSE', '#EC4899', 'popcorn'),
+    (NULL, 'Assinaturas',       'EXPENSE', '#A855F7', 'repeat'),
+    (NULL, 'Moradia',           'EXPENSE', '#F97316', 'home'),
+    (NULL, 'Compras',           'EXPENSE', '#F59E0B', 'shopping-bag'),
+    (NULL, 'Salário',           'INCOME',  '#2AD6A5', 'banknote');
 
 -- Padrão de descritivo -> nome da categoria global acima (match por substring, case-insensitive,
 -- ver CategoryRule.matches). Peso inicial 1, igual a uma regra recém-criada pelo usuário.
