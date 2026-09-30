@@ -38,4 +38,7 @@ public class GoalContributionJpaEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "transfer_id", nullable = false)
+    private Long transferId;
 }

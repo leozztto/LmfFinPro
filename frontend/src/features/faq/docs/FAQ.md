@@ -250,7 +250,13 @@ ___
 ## Metas de economia
 
 **O dinheiro que eu coloco numa meta sai da minha conta?**
-Não. As metas são "caixinhas" virtuais: um aporte só registra que você separou aquele valor para a meta. Nenhuma transação é criada e o saldo das contas não muda. Se você também guarda o dinheiro numa poupança de verdade, a transferência entre contas continua sendo lançada à parte, na tela de Transferências.
+Sim. Cada meta tem uma **conta reserva** (onde o dinheiro guardado fica) e uma **conta de origem** (de onde o aporte sai e para onde o resgate volta), escolhidas na criação e fixas depois. Aportar ou resgatar é uma transferência de verdade entre as duas contas: aparece na tela de Transferências e no extrato, com o saldo de ambas mudando. Várias metas podem compartilhar a mesma conta reserva — por exemplo, uma poupança única guardando a reserva de emergência e as férias ao mesmo tempo.
+
+**Por que a meta pede duas contas na criação?**
+A **conta reserva** é o "pote" onde o valor guardado fica de fato — pode ser uma poupança, uma carteira, até uma conta de investimento. A **conta de origem** é de onde sai o dinheiro a cada aporte (e pra onde ele volta num resgate); é também a conta usada automaticamente pelo "Separar com 1 clique" e pelo aporte automático, que não têm como perguntar isso na hora. As duas precisam ser diferentes e ter a mesma moeda, e não dá pra trocar depois de criada a meta.
+
+**Posso excluir uma meta que já tem dinheiro guardado?**
+Não enquanto houver saldo guardado — é preciso resgatar tudo primeiro. Como o dinheiro é real (está numa conta de verdade), excluir a meta com saldo apagaria só o rótulo sem devolver o valor pra lugar nenhum; resgatando tudo antes, o saldo já volta pra conta de origem e a exclusão libera. As transferências já feitas continuam no extrato mesmo depois de excluída a meta — só deixam de aparecer ligadas a ela.
 
 **Como funciona o "separar X% das receitas"?**
 Ao definir um percentual na meta, ela calcula quanto separar das receitas **já recebidas (pagas)** no mês — receitas pendentes e transferências entre contas não entram — e desconta o que você já aportou nela no mês. O botão "Separar" lança esse valor como aporte com um clique; nada é separado sem você confirmar, a menos que você ligue o **aporte automático**. A sugestão nunca passa do que falta para atingir o valor-alvo.
@@ -303,7 +309,7 @@ Sim, quando se aplica. No modo automático, o INSS e o IRRF são calculados para
 É a contribuição que a empresa paga sobre o pró-labore, além do bruto. No automático, é 20% no Lucro Presumido e 0% nos demais regimes (no Simples, na maioria dos anexos, ela já vai no DAS). Se o seu caso for diferente (por exemplo, Simples Anexo IV), informe o percentual na configuração. Os valores são estimativas de referência de 2026 — confira com seu contador.
 
 **Na base "saldo atual", por que o imposto pode ser maior que o do mês?**
-Porque o que você já guardou nas caixinhas do imposto continua no saldo das contas (as caixinhas são virtuais) e não pode ir para o pró-labore. Então vale o maior valor entre o imposto do mês e o que já está guardado.
+Porque o que você já guardou na caixinha do imposto não pode ir para o pró-labore. Então vale o maior valor entre o imposto do mês e o que já está guardado — desde que a conta reserva da sua caixinha do imposto seja uma conta da empresa (PJ); se ela apontar para uma conta pessoal, o dinheiro já saiu de vez do caixa da empresa e não deveria ser descontado de novo aqui.
 
 **Como registro o pagamento do pró-labore?**
 Pelo botão **Pagar**, que abre uma transferência já preenchida da conta PJ com mais saldo para uma conta PF (dá pra ajustar tudo antes de confirmar). Qualquer transferência de conta PJ para conta PF no mês conta como retirada.

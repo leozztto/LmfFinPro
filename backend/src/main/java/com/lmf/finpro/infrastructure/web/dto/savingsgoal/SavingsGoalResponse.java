@@ -16,4 +16,6 @@ public record SavingsGoalResponse(
         BigDecimal monthlyNeeded,
         BigDecimal monthPaidIncome,
         BigDecimal suggestedContribution,
-        boolean autoContribute) {}
+        boolean autoContribute,
+        Long accountId,
+        Long fundingAccountId) {}

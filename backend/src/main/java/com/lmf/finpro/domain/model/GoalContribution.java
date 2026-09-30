@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** Aporte (ou resgate) virtual numa meta: não gera transação nem mexe no saldo das contas. */
+/**
+ * Aporte (ou resgate) numa meta: uma transferência real entre a conta reserva e a conta de origem
+ * da meta, identificada por {@code transferId}.
+ */
 public record GoalContribution(
         Long id,
         Long goalId,
@@ -12,16 +15,25 @@ public record GoalContribution(
         BigDecimal amount,
         LocalDate contributionDate,
         String note,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        Long transferId) {
 
     public static GoalContribution create(
             Long goalId,
             ContributionType type,
             BigDecimal amount,
             LocalDate contributionDate,
-            String note) {
+            String note,
+            Long transferId) {
         return new GoalContribution(
-                null, goalId, type, amount, contributionDate, note, LocalDateTime.now());
+                null,
+                goalId,
+                type,
+                amount,
+                contributionDate,
+                note,
+                LocalDateTime.now(),
+                transferId);
     }
 
     /** Positivo para aporte, negativo para resgate. */

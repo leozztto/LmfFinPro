@@ -38,6 +38,12 @@
 
 O saldo consolidado do Dashboard (card "Saldo atual", "Evolução do saldo" e ponto de partida da projeção) soma o rendimento ainda não resgatado das contas de investimento (`AccountBalances.valuationGain`), para bater com a soma dos saldos da tela de Contas.
 
+### Multi-moeda
+
+Contas e investimentos em `USD`/`EUR` entram no patrimônio pelo **equivalente em reais**: `NetWorthCalculator` recebe uma `ExchangeRates` (tabela de cotações já carregada, `rates.toBrl(moeda, valor, data)`) e converte cada valor de conta/investimento pela **cotação do fim de cada mês** do histórico; no mês atual (e nos valores "agora" dos cards) usa a cotação de hoje. Sem cotação, `none()` some com qualquer conversão (equivalente a 1:1, só usado onde não há moeda estrangeira). Isso faz a **variação cambial** aparecer no patrimônio mês a mês, sem precisar de nenhum lançamento manual.
+
+`NetWorthResponse.AccountRow`/`InvestmentRow` trazem o valor **na moeda da conta** (`balance`/`currentValue`) **e** o equivalente em reais (`balanceInBrl`/`currentValueInBrl`, e `gainInBrl` pro rendimento) — os totais consolidados (`current`, `history`) já vêm só em reais. O `NetWorthPage` mostra as duas linhas quando a moeda não é BRL ("≈ R$ X pela última cotação").
+
 ## 3. Endpoints
 
 | Método | Caminho | O quê |
@@ -56,7 +62,8 @@ flowchart LR
     Valuations["account_valuations"] --> AB
     AB --> NW["NetWorthCalculator"]
     Debts["debts + debt_balances"] --> NW
-    NW --> Resp["GET /api/net-worth"]
+    Rates["ExchangeRates\n(cotações PTAX já carregadas)"] --> NW
+    NW --> Resp["GET /api/net-worth\n(valores em reais + na moeda\nda conta, quando não é BRL)"]
     AB --> Acc["saldo da conta (Contas, transferências, pró-labore)"]
     AB --> Dash["saldo consolidado do Dashboard"]
 ```
@@ -69,6 +76,6 @@ flowchart LR
 
 ## 5. Arquivos
 
-- Backend: `AccountType.INVESTMENT`, `AccountValuation`, `Debt`, `DebtType`, `DebtBalance`, `AccountBalances`, `NetWorthCalculator` (domínio); `AccountValuationApplicationService`, `DebtApplicationService`, `NetWorthApplicationService`; `AccountValuationController`, `DebtController`, `NetWorthController`; migration `V22__create_net_worth.sql`.
+- Backend: `AccountType.INVESTMENT`, `AccountValuation`, `Debt`, `DebtType`, `DebtBalance`, `AccountBalances`, `NetWorthCalculator`, `ExchangeRates`/`ExchangeRate` (domínio); `AccountValuationApplicationService`, `DebtApplicationService`, `NetWorthApplicationService`, `ExchangeRateApplicationService`; `AccountValuationController`, `DebtController`, `NetWorthController`; migration `V22__create_net_worth.sql` (+ `V23__add_multi_currency.sql` para moeda das contas).
 - Frontend: `features/net-worth` (`NetWorthPage`, `NetWorthChart`, `DebtForm`, `DebtBalancesPanel`, `useNetWorth`, `netWorthApi`, `schemas.ts`, `utils.ts`); `features/accounts` (`AccountValuationsPanel`, `useAccountValuations`).
 - Testes: `AccountBalancesTest`, `NetWorthCalculatorTest`, `AccountValuationApplicationServiceTest`, `DebtApplicationServiceTest`, casos novos em `AccountApplicationServiceTest`, `NetWorthIntegrationTest`; no frontend, `net-worth/schemas.test.ts` e `net-worth/utils.test.ts`.

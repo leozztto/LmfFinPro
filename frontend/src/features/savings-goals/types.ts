@@ -21,9 +21,25 @@ export interface SavingsGoal {
   suggestedContribution: number | null
   /** Quando ligado, o sistema separa a sugestão automaticamente uma vez por dia. */
   autoContribute: boolean
+  /** Conta reserva onde o dinheiro guardado fica de fato — fixa depois de criada. */
+  accountId: number
+  /** Conta de onde o aporte sai (e para onde o resgate volta) — fixa depois de criada. */
+  fundingAccountId: number
 }
 
-export interface SavingsGoalInput {
+/** Conta reserva e conta de origem só são escolhidas na criação — fixas depois disso. */
+export interface SavingsGoalCreateInput {
+  name: string
+  type: SavingsGoalType
+  targetAmount: number
+  deadline: string | null
+  incomeRate: number | null
+  autoContribute: boolean
+  accountId: number
+  fundingAccountId: number
+}
+
+export interface SavingsGoalUpdateInput {
   name: string
   type: SavingsGoalType
   targetAmount: number
@@ -39,6 +55,8 @@ export interface GoalContribution {
   amount: number
   contributionDate: string
   note: string | null
+  /** Id da transferência real por trás do aporte/resgate. */
+  transferId: number
 }
 
 export interface GoalContributionInput {

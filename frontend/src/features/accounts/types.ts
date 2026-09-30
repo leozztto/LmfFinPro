@@ -1,6 +1,6 @@
 import type { Currency } from '@/shared/format/currency'
 
-export type AccountType = 'CHECKING' | 'SAVINGS' | 'WALLET' | 'INVESTMENT'
+export type AccountType = 'CHECKING' | 'SAVINGS' | 'WALLET' | 'INVESTMENT' | 'RESERVE'
 
 /** Pessoal (PF) ou da empresa (PJ) — base do cálculo de pró-labore. */
 export type AccountScope = 'PERSONAL' | 'BUSINESS'
@@ -34,6 +34,7 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   SAVINGS: 'Poupança',
   WALLET: 'Carteira',
   INVESTMENT: 'Investimento',
+  RESERVE: 'Conta reserva',
 }
 
 export const ACCOUNT_SCOPE_LABELS: Record<AccountScope, string> = {

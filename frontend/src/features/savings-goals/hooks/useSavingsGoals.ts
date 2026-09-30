@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { savingsGoalsApi } from '../api/savingsGoalsApi'
-import type { GoalContributionInput, SavingsGoalInput } from '../types'
+import type { GoalContributionInput, SavingsGoalUpdateInput } from '../types'
 
 export const SAVINGS_GOALS_QUERY_KEY = ['savings-goals'] as const
 
@@ -41,7 +41,7 @@ export function useCreateSavingsGoal() {
 }
 
 export function useUpdateSavingsGoal() {
-  return useInvalidatingMutation(({ id, input }: { id: number; input: SavingsGoalInput }) =>
+  return useInvalidatingMutation(({ id, input }: { id: number; input: SavingsGoalUpdateInput }) =>
     savingsGoalsApi.update(id, input),
   )
 }

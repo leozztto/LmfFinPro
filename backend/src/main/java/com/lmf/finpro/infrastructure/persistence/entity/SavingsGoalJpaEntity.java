@@ -44,4 +44,10 @@ public class SavingsGoalJpaEntity {
 
     @Column(name = "auto_contribute", nullable = false)
     private boolean autoContribute;
+
+    @Column(name = "account_id", nullable = false)
+    private Long accountId;
+
+    @Column(name = "funding_account_id", nullable = false)
+    private Long fundingAccountId;
 }
