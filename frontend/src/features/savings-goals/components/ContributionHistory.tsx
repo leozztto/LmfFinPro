@@ -40,7 +40,7 @@ export function ContributionHistory({ goalId }: ContributionHistoryProps) {
   }
 
   return (
-    <ul className="max-h-[60vh] divide-y divide-zinc-200 overflow-y-auto dark:divide-zinc-700">
+    <ul className="max-h-[60dvh] divide-y divide-zinc-200 overflow-y-auto dark:divide-zinc-700">
       {contributions.map((contribution) => {
         const isDeposit = contribution.type === 'DEPOSIT'
         return (

@@ -115,7 +115,7 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
       : 'Informe o valor enviado para sugerir a conversão.'
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Conta de origem" htmlFor="transfer-from-account" error={errors.fromAccountId?.message}>
         <Select id="transfer-from-account" defaultValue={initialValues?.fromAccountId ?? ''} {...register('fromAccountId')}>
           <option value="" disabled>

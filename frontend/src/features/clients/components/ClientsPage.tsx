@@ -12,7 +12,7 @@ export function ClientsPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Clientes</h2>
           <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
             Clientes e projetos aos quais você pode vincular receitas.

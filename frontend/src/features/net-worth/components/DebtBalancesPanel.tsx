@@ -58,7 +58,7 @@ export function DebtBalancesPanel({ debtId }: { debtId: number }) {
         Informe quanto ainda falta pagar (pelo extrato do banco). Saldo zero marca a dívida como quitada.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
         <FormField label="Data" htmlFor="debt-balance-date" error={errors.balanceDate?.message}>
           <Input id="debt-balance-date" type="date" max={getCurrentIsoDate()} {...register('balanceDate')} />
         </FormField>

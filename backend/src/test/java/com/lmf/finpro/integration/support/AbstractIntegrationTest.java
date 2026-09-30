@@ -56,6 +56,7 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("finpro.jwt.secret", () -> "integration-test-secret-with-at-least-32-bytes");
         // Anexos gravados numa pasta temporária, não dentro do projeto.
         registry.add("finpro.attachments.storage-dir", () -> ATTACHMENTS_DIR.toString());
     }

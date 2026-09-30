@@ -7,7 +7,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest
+@SpringBootTest(properties = "finpro.jwt.secret=context-test-secret-with-at-least-32-bytes")
 @Testcontainers
 class FinProApplicationTests {
 

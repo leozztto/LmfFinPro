@@ -33,7 +33,8 @@ springdoc:
 
 finpro:
   jwt:
-    secret: ${JWT_SECRET:change-me-to-a-long-random-secret}
+    # Obrigatório, sem padrão: a aplicação não sobe sem JWT_SECRET (mín. 32 bytes) — ver JwtProperties.
+    secret: ${JWT_SECRET:}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

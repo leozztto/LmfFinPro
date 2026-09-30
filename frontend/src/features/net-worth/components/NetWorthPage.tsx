@@ -72,7 +72,7 @@ export function NetWorthPage() {
           )}
           <div className="space-y-4">
             <NetWorthChart history={netWorth.history} />
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <InvestmentsCard netWorth={netWorth} onValue={setValuing} />
               <DebtsCard
                 netWorth={netWorth}
@@ -232,7 +232,7 @@ function DebtsCard({
   return (
     <Card>
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Dívidas</h3>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
             Financiamentos, empréstimos e cartões. As parcelas seguem como despesas.
@@ -287,7 +287,7 @@ function AccountsCard({ netWorth }: { netWorth: NetWorth }) {
   return (
     <Card>
       <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Contas</h3>
-      <ul className="mt-3 grid gap-x-6 sm:grid-cols-2">
+      <ul className="mt-3 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
         {netWorth.accounts.map((account) => (
           <li
             key={account.accountId}

@@ -69,7 +69,7 @@ export function AccountValuationsPanel({ accountId }: AccountValuationsPanelProp
         esse valor mais as aplicações e resgates lançados depois. A diferença para o que foi aplicado é o rendimento.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
         <FormField label="Data" htmlFor="valuation-date" error={errors.valuationDate?.message}>
           <Input id="valuation-date" type="date" max={getCurrentIsoDate()} {...register('valuationDate')} />
         </FormField>

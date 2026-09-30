@@ -22,7 +22,7 @@ export function CategoriesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Categorias e tags</h2>
           <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
             Categorias padrão do sistema e as suas próprias, e as tags que você usa para classificar transações.

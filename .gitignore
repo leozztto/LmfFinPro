@@ -23,3 +23,5 @@ frontend/coverage/
 
 # SonarCloud (sonar-scanner)
 .scannerwork/
+/docs/avaliacao-projeto.html
+/docs/avaliacao-projeto.md
