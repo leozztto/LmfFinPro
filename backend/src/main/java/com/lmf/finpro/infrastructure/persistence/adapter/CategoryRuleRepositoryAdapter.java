@@ -27,8 +27,8 @@ public class CategoryRuleRepositoryAdapter implements CategoryRuleRepositoryPort
     }
 
     @Override
-    public List<CategoryRule> findAllByUserIdOrderByWeightDesc(Long userId) {
-        return categoryRuleJpaRepository.findByUserIdOrderByWeightDesc(userId).stream()
+    public List<CategoryRule> findVisibleToUserOrderByPriorityDesc(Long userId) {
+        return categoryRuleJpaRepository.findVisibleToUserOrderByPriorityDesc(userId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }

@@ -12,6 +12,7 @@ public class CategoryRuleWebMapper {
                 categoryRule.id(),
                 categoryRule.pattern(),
                 categoryRule.categoryId(),
-                categoryRule.weight());
+                categoryRule.weight(),
+                categoryRule.isGlobal());
     }
 }

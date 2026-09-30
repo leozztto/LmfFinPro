@@ -95,7 +95,7 @@ class ImportApplicationServiceTest {
                                     : batch;
                         });
         CategoryRule rule = new CategoryRule(1L, 10L, "UBER", 5L, 3);
-        when(categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(10L))
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
                 .thenReturn(List.of(rule));
         Category expenseCategory =
                 new Category(5L, 10L, "Transporte", CategoryType.EXPENSE, null, null);
@@ -122,7 +122,7 @@ class ImportApplicationServiceTest {
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
         when(importBatchRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(10L))
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
                 .thenReturn(List.of());
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -144,7 +144,7 @@ class ImportApplicationServiceTest {
         when(importBatchRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         CategoryRule rule = new CategoryRule(1L, 10L, "SALARIO", 5L, 3);
-        when(categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(10L))
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
                 .thenReturn(List.of(rule));
         Category expenseCategory =
                 new Category(5L, 10L, "Transporte", CategoryType.EXPENSE, null, null);
@@ -169,7 +169,7 @@ class ImportApplicationServiceTest {
         when(importBatchRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         CategoryRule rule = new CategoryRule(1L, 10L, "ALUGUEL", 5L, 3);
-        when(categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(10L))
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
                 .thenReturn(List.of(rule));
         when(categoryRepositoryPort.findById(5L)).thenReturn(Optional.empty());
         when(transactionRepositoryPort.save(any()))

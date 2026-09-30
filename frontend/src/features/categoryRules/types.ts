@@ -3,6 +3,7 @@ export interface CategoryRule {
   pattern: string
   categoryId: number
   weight: number
+  global: boolean
 }
 
 export interface CategoryRuleInput {

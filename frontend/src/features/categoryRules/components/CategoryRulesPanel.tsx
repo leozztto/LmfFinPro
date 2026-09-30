@@ -56,7 +56,9 @@ export function CategoryRulesPanel() {
       <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Regras de categorização</h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
         Quando o descritivo de uma transação importada contém o padrão, ela é categorizada automaticamente. A cada
-        correção manual na revisão de uma importação, uma regra é criada ou reforçada.
+        correção manual na revisão de uma importação, uma regra é criada ou reforçada. As regras "padrão do sistema"
+        vêm prontas para todo mundo e não podem ser editadas ou removidas — uma correção sua para o mesmo padrão
+        sempre tem prioridade sobre elas.
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
@@ -103,17 +105,26 @@ export function CategoryRulesPanel() {
                 <span className="shrink-0 text-zinc-500 dark:text-zinc-400">
                   → {categoryNameById.get(rule.categoryId) ?? 'categoria removida'}
                 </span>
-                <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
-                  peso {rule.weight}
-                </span>
+                {!rule.global && (
+                  <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                    peso {rule.weight}
+                  </span>
+                )}
+                {rule.global && (
+                  <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                    padrão do sistema
+                  </span>
+                )}
               </div>
-              <IconButton
-                icon={TrashIcon}
-                label="Remover regra"
-                onClick={() => handleDelete(rule.id, rule.pattern)}
-                disabled={deleteRule.isPending}
-                className="shrink-0"
-              />
+              {!rule.global && (
+                <IconButton
+                  icon={TrashIcon}
+                  label="Remover regra"
+                  onClick={() => handleDelete(rule.id, rule.pattern)}
+                  disabled={deleteRule.isPending}
+                  className="shrink-0"
+                />
+              )}
             </div>
           ))
         )}
