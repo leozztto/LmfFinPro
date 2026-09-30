@@ -59,7 +59,8 @@ flowchart TD
     Model --> WorkType
     Model --> DocType
     Service --> Port
-    Service -- "delete(): bloqueia se houver\ntransações vinculadas" --> TxPort
+    Service -- "delete(): bloqueia se houver
+transações ou orçamentos vinculados" --> TxPort
     Port -.->|implementa| Adapter
     Adapter --> PMapper
     Adapter --> JpaRepo
@@ -108,6 +109,7 @@ sequenceDiagram
 - **Validação de documento** (`@ValidDocumentNumber`, implementado por `DocumentNumberConstraintValidator`): o `documentNumber` é validado por dígito verificador conforme o `documentType` informado — `CpfValidator` para CPF, `CnpjValidator` para CNPJ. **Não há, hoje, nenhuma regra cruzando `workType` com `documentType`** (nem no backend, nem no schema Zod do frontend): um cliente `PJ` pode ter CPF e um `AUTONOMO` pode ter CNPJ — a única obrigatoriedade é que o número informado seja válido para o tipo escolhido. Isso é diferente da regra de cadastro do próprio usuário (`RegisterRequest`), que exige CNPJ para regimes de pessoa jurídica via `@ValidTaxRegimeDocument` — os dois validadores são independentes.
 - **Posse**: acesso a cliente de outro usuário é tratado como 404 (`ResourceNotFoundException`), não 403 — mesmo padrão de Account/Transaction (`findOwnedOrThrow`/`belongsTo`).
 - **Exclusão bloqueada com vínculo**: `delete()` verifica `transactionRepositoryPort.existsByClientId(clientId)` antes de remover; se houver qualquer transação vinculada, lança `EntityHasLinkedRecordsException` (HTTP 409) com a mensagem "Este cliente possui transações vinculadas. Exclua-as ou desvincule-as antes de remover o cliente."
+- **Também bloqueada por orçamento vinculado**: depois de verificar as transações, `delete()` consulta `budgetRepositoryPort.existsByClientId(clientId)` (`budgets.client_id` é `ON DELETE CASCADE`, então sem a checagem a exclusão apagaria orçamentos em silêncio); havendo algum, lança `EntityHasLinkedRecordsException` (409) com "Este cliente possui orçamentos vinculados. Exclua-os antes de remover o cliente." Ver [`fluxo-orcamentos.md`](./fluxo-orcamentos.md#5-orçamento-vinculado-a-clienteprojeto).
 - **Campo `active`**: cliente inativo continua existindo e pode ser filtrado na lista, mas não há restrição de negócio no backend impedindo lançar transações para um cliente inativo — o filtro de status é só de UI.
 
 ## 5.1 Análise de clientes (aba "Clientes" do Dashboard)

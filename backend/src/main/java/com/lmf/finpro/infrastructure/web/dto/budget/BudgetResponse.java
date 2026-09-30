@@ -7,6 +7,7 @@ import java.time.YearMonth;
 public record BudgetResponse(
         Long id,
         Long categoryId,
+        Long clientId,
         @JsonFormat(pattern = "yyyy-MM") YearMonth referenceMonth,
         BigDecimal limitValue,
         BigDecimal spentValue) {}

@@ -5,6 +5,7 @@ import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.util.List;
@@ -17,6 +18,7 @@ public class ClientApplicationService {
 
     private final ClientRepositoryPort clientRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
+    private final BudgetRepositoryPort budgetRepositoryPort;
 
     public Client create(
             Long currentUserId,
@@ -82,6 +84,12 @@ public class ClientApplicationService {
         if (transactionRepositoryPort.existsByClientId(clientId)) {
             throw new EntityHasLinkedRecordsException(
                     "Este cliente possui transações vinculadas. Exclua-as ou desvincule-as antes de remover o cliente.");
+        }
+        // budgets.client_id é ON DELETE CASCADE: sem essa checagem, excluir o cliente apagaria
+        // orçamentos existentes em silêncio.
+        if (budgetRepositoryPort.existsByClientId(clientId)) {
+            throw new EntityHasLinkedRecordsException(
+                    "Este cliente possui orçamentos vinculados. Exclua-os antes de remover o cliente.");
         }
         clientRepositoryPort.deleteById(clientId);
     }

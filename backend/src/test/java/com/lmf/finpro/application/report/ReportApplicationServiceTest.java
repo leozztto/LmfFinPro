@@ -871,10 +871,11 @@ class ReportApplicationServiceTest {
         when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of(rent, food));
 
         Budget rentBudget =
-                new Budget(1L, 10L, 1L, YearMonth.of(2026, 9), BigDecimal.valueOf(1000));
-        Budget foodBudget = new Budget(2L, 10L, 2L, YearMonth.of(2026, 9), BigDecimal.valueOf(500));
+                new Budget(1L, 10L, 1L, YearMonth.of(2026, 9), BigDecimal.valueOf(1000), null);
+        Budget foodBudget =
+                new Budget(2L, 10L, 2L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
         Budget otherMonthBudget =
-                new Budget(3L, 10L, 1L, YearMonth.of(2026, 8), BigDecimal.valueOf(999));
+                new Budget(3L, 10L, 1L, YearMonth.of(2026, 8), BigDecimal.valueOf(999), null);
         when(budgetRepositoryPort.findAllByUserId(10L))
                 .thenReturn(List.of(rentBudget, foodBudget, otherMonthBudget));
 
@@ -926,7 +927,8 @@ class ReportApplicationServiceTest {
         when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
         when(categoryRepositoryPort.findAllVisibleToUser(10L)).thenReturn(List.of());
 
-        Budget budget = new Budget(1L, 10L, 999L, YearMonth.of(2026, 9), BigDecimal.valueOf(300));
+        Budget budget =
+                new Budget(1L, 10L, 999L, YearMonth.of(2026, 9), BigDecimal.valueOf(300), null);
         when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(budget));
         when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
                         any(), any(), any(), any(), any()))

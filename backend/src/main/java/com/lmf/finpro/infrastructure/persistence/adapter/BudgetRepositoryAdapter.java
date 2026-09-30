@@ -33,15 +33,20 @@ public class BudgetRepositoryAdapter implements BudgetRepositoryPort {
     }
 
     @Override
-    public boolean existsByUserIdAndCategoryIdAndReferenceMonth(
-            Long userId, Long categoryId, YearMonth referenceMonth) {
-        return budgetJpaRepository.existsByUserIdAndCategoryIdAndReferenceMonth(
-                userId, categoryId, referenceMonth.atDay(1));
+    public boolean existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+            Long userId, Long categoryId, YearMonth referenceMonth, Long clientId) {
+        return budgetJpaRepository.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+                userId, categoryId, referenceMonth.atDay(1), clientId);
     }
 
     @Override
     public boolean existsByCategoryId(Long categoryId) {
         return budgetJpaRepository.existsByCategoryId(categoryId);
+    }
+
+    @Override
+    public boolean existsByClientId(Long clientId) {
+        return budgetJpaRepository.existsByClientId(clientId);
     }
 
     @Override

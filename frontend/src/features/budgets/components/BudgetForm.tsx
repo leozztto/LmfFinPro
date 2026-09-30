@@ -5,6 +5,7 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { getCurrentYearMonth } from '@/shared/format/date'
 import { useCategories } from '@/features/categories/hooks/useCategories'
+import { useClients } from '@/features/clients/hooks/useClients'
 import { useCreateBudget } from '../hooks/useCreateBudget'
 import { budgetSchema, type BudgetFormValues } from '../schemas'
 
@@ -16,11 +17,13 @@ const EMPTY_VALUES: Partial<BudgetFormValues> = {
   referenceMonth: getCurrentYearMonth(),
   categoryId: undefined,
   limitValue: undefined,
+  clientId: undefined,
 }
 
 export function BudgetForm({ onSuccess }: BudgetFormProps) {
   const createBudget = useCreateBudget()
   const { data: categories } = useCategories()
+  const { data: clients } = useClients()
   const { showToast } = useToast()
   const {
     register,
@@ -34,6 +37,7 @@ export function BudgetForm({ onSuccess }: BudgetFormProps) {
   })
 
   const expenseCategories = (categories ?? []).filter((category) => category.type === 'EXPENSE')
+  const activeClients = (clients ?? []).filter((client) => client.active)
 
   async function onSubmit(values: BudgetFormValues) {
     try {
@@ -65,6 +69,16 @@ export function BudgetForm({ onSuccess }: BudgetFormProps) {
         </FormField>
         <FormField label="Valor limite" htmlFor="budget-limit" error={errors.limitValue?.message}>
           <Input id="budget-limit" type="number" step="0.01" {...register('limitValue')} />
+        </FormField>
+        <FormField label="Cliente / projeto (opcional)" htmlFor="budget-client" error={errors.clientId?.message}>
+          <Select id="budget-client" {...register('clientId')}>
+            <option value="">Sem cliente (orçamento geral)</option>
+            {activeClients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </Select>
         </FormField>
       </div>
 

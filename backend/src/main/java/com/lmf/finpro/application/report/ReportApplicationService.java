@@ -429,9 +429,13 @@ public class ReportApplicationService {
                 categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
 
+        Map<Long, String> clientNameById =
+                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                        .collect(Collectors.toMap(Client::id, Client::name));
+
         List<BudgetVsActualReportData.BudgetComparison> comparisons =
                 budgets.stream()
-                        .map(budget -> budgetComparison(budget, categoryNameById))
+                        .map(budget -> budgetComparison(budget, categoryNameById, clientNameById))
                         .sorted(Comparator.comparing(this::usageRatio).reversed())
                         .toList();
 
@@ -449,16 +453,31 @@ public class ReportApplicationService {
     }
 
     private BudgetVsActualReportData.BudgetComparison budgetComparison(
-            Budget budget, Map<Long, String> categoryNameById) {
+            Budget budget, Map<Long, String> categoryNameById, Map<Long, String> clientNameById) {
+        LocalDate start = budget.referenceMonth().atDay(1);
+        LocalDate end = budget.referenceMonth().plusMonths(1).atDay(1);
         BigDecimal spent =
-                transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
-                        budget.userId(),
-                        budget.categoryId(),
-                        CategoryType.EXPENSE,
-                        budget.referenceMonth().atDay(1),
-                        budget.referenceMonth().plusMonths(1).atDay(1));
+                budget.clientId() == null
+                        ? transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+                                budget.userId(),
+                                budget.categoryId(),
+                                CategoryType.EXPENSE,
+                                start,
+                                end)
+                        : transactionRepositoryPort
+                                .sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
+                                        budget.userId(),
+                                        budget.categoryId(),
+                                        budget.clientId(),
+                                        CategoryType.EXPENSE,
+                                        start,
+                                        end);
         String categoryName =
                 categoryNameById.getOrDefault(budget.categoryId(), "Categoria removida");
+        if (budget.clientId() != null) {
+            categoryName +=
+                    " · " + clientNameById.getOrDefault(budget.clientId(), "Cliente removido");
+        }
         BigDecimal difference = budget.limitValue().subtract(spent);
         return new BudgetVsActualReportData.BudgetComparison(
                 categoryName,

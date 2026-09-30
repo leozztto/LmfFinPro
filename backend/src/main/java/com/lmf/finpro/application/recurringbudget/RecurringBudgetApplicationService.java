@@ -124,15 +124,16 @@ public class RecurringBudgetApplicationService {
         }
         for (YearMonth month : dueMonths) {
             boolean alreadyExists =
-                    budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonth(
-                            recurrence.userId(), recurrence.categoryId(), month);
+                    budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+                            recurrence.userId(), recurrence.categoryId(), month, null);
             if (!alreadyExists) {
                 budgetRepositoryPort.save(
                         Budget.create(
                                 recurrence.userId(),
                                 recurrence.categoryId(),
                                 month,
-                                recurrence.limitValue()));
+                                recurrence.limitValue(),
+                                null));
             }
         }
         return recurringBudgetRepositoryPort.save(
