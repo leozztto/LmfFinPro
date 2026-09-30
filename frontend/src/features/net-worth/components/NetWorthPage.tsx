@@ -35,7 +35,11 @@ export function NetWorthPage() {
         <div>
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Patrimônio</h2>
           <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
-            Tudo o que você tem (contas e investimentos) menos o que deve, ao longo do tempo.
+            Tudo o que você tem (contas e investimentos) menos o que deve, ao longo do tempo.{' '}
+            <Link to="/relatorios" className="font-medium text-[#1ea883] underline dark:text-[#2ad6a5]">
+              Exportar em PDF ou CSV
+            </Link>
+            .
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">

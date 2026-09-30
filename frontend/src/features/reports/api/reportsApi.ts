@@ -6,6 +6,7 @@ import type {
   ClientAnnualStatementInput,
   ClientReceiptInput,
   IncomeStatementInput,
+  NetWorthReportInput,
   ReportFormat,
   TagTotalsReportFilters,
   TransactionExportInput,
@@ -43,6 +44,8 @@ export const reportsApi = {
     httpClient.getBlob(
       `/reports/transaction-export?referenceMonth=${input.referenceMonth}&format=${input.format}`,
     ),
+  downloadNetWorthReport: (input: NetWorthReportInput) =>
+    httpClient.getBlob(`/reports/net-worth?months=${input.months}&format=${input.format}`),
   downloadAttachmentsArchive: (year: string) => httpClient.getBlob(`/reports/attachments-archive?year=${year}`),
   downloadTransactionReport: (
     kind: TransactionReportKind,
