@@ -9,4 +9,5 @@ public record SavingsGoalCommand(
         SavingsGoalType type,
         BigDecimal targetAmount,
         LocalDate deadline,
-        BigDecimal incomeRate) {}
+        BigDecimal incomeRate,
+        boolean autoContribute) {}

@@ -253,7 +253,10 @@ ___
 Não. As metas são "caixinhas" virtuais: um aporte só registra que você separou aquele valor para a meta. Nenhuma transação é criada e o saldo das contas não muda. Se você também guarda o dinheiro numa poupança de verdade, a transferência entre contas continua sendo lançada à parte, na tela de Transferências.
 
 **Como funciona o "separar X% das receitas"?**
-Ao definir um percentual na meta, ela calcula quanto separar das receitas **já recebidas (pagas)** no mês — receitas pendentes e transferências entre contas não entram — e desconta o que você já aportou nela no mês. O botão "Separar" lança esse valor como aporte com um clique; nada é separado sem você confirmar. A sugestão nunca passa do que falta para atingir o valor-alvo.
+Ao definir um percentual na meta, ela calcula quanto separar das receitas **já recebidas (pagas)** no mês — receitas pendentes e transferências entre contas não entram — e desconta o que você já aportou nela no mês. O botão "Separar" lança esse valor como aporte com um clique; nada é separado sem você confirmar, a menos que você ligue o **aporte automático**. A sugestão nunca passa do que falta para atingir o valor-alvo.
+
+**O que faz o "aporte automático"?**
+Com ele ligado (exige um percentual definido na meta), o próprio sistema aplica essa sugestão sozinho, uma vez por dia — sem você precisar entrar na tela e clicar em "Separar". Ele só lança um aporte quando há algo novo a separar (por exemplo, depois que uma receita entra); nos demais dias, não faz nada. Você ainda pode clicar em "Separar" manualmente a qualquer momento para adiantar, mesmo com o automático ligado. No histórico da meta, um aporte automático tem a nota "Separação automática de X%...", para diferenciar dos que você lançou na mão.
 
 **De onde vem o percentual sugerido na caixinha do imposto?**
 Da alíquota de referência do seu regime tributário (o mesmo cadastrado em Configurações), igual à sugestão da tela de Impostos. Para autônomo, a faixa é escolhida pela receita média dos 3 meses anteriores. Você pode trocar o percentual livremente.

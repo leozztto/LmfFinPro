@@ -60,7 +60,7 @@ export function SavingsGoalsPage() {
           Nenhuma meta cadastrada ainda. Crie a primeira no botão acima — que tal uma caixinha do imposto?
         </p>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {goals.map((goal) => (
             <SavingsGoalCard
               key={goal.id}

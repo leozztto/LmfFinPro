@@ -76,6 +76,47 @@ class SavingsGoalIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createsGoalWithAutoContributeOnAndPersistsIt() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        SavingsGoalResponse goal =
+                createGoal(
+                        user,
+                        new SavingsGoalRequest(
+                                "Caixinha do imposto",
+                                SavingsGoalType.TAX_RESERVE,
+                                BigDecimal.valueOf(10000),
+                                null,
+                                new BigDecimal("0.06"),
+                                true));
+
+        assertThat(goal.autoContribute()).isTrue();
+        assertThat(listGoals(user).get(0).autoContribute()).isTrue();
+    }
+
+    @Test
+    void rejectsAutoContributeWithoutIncomeRate() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<ApiError> response =
+                restTemplate.exchange(
+                        "/api/savings-goals",
+                        HttpMethod.POST,
+                        new HttpEntity<>(
+                                new SavingsGoalRequest(
+                                        "Caixinha",
+                                        SavingsGoalType.OTHER,
+                                        BigDecimal.valueOf(1000),
+                                        null,
+                                        null,
+                                        true),
+                                user.authHeaders()),
+                        ApiError.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void withdrawalBeyondSavedAmountIsRejected() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         SavingsGoalResponse goal =

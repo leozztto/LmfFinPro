@@ -8,19 +8,20 @@ Uma **meta de economia** é uma caixinha com valor-alvo, prazo opcional e, se o 
 
 Os **aportes e resgates são virtuais**: registram quanto o usuário separou, mas não geram transação nem mexem no saldo das contas.
 
-A ideia central é responder à pergunta "quanto devo guardar pra imposto?". Com um percentual definido, a meta mostra quanto separar das receitas já recebidas no mês, e um botão lança esse valor como aporte. Nada é separado sem o usuário confirmar.
+A ideia central é responder à pergunta "quanto devo guardar pra imposto?". Com um percentual definido, a meta mostra quanto separar das receitas já recebidas no mês, e um botão lança esse valor como aporte. Nada é separado sem o usuário confirmar — a menos que ele ligue o **aporte automático** (seção 7), que aplica essa mesma sugestão sozinho, uma vez por dia.
 
 ## 2. Tela
 
 **Rota:** `/metas` (`SavingsGoalsPage`), item "Metas" na seção Financeiro do menu.
 
-- **Cards em grade** (1 coluna no celular, 2 no tablet, 3 no desktop). Cada card mostra:
+- **Cards em grade** (1 coluna no celular, 2 no tablet/desktop). Cada card mostra:
   - nome e tipo;
   - barra de progresso com o valor guardado, o alvo e o %;
   - quanto falta, o prazo e o "guarde R$ X/mês";
   - o bloco de sugestão, quando a meta tem percentual.
-- **Bloco de sugestão**: "Você recebeu R$ X este mês. Separe 6%: R$ Y", com o botão **Separar R$ Y**. Se já foi separado, ou se ainda não entrou receita, aparece uma mensagem explicando.
+- **Bloco de sugestão**: "Você recebeu R$ X este mês. Separe 6%: R$ Y", com o botão **Separar R$ Y**. Se já foi separado, ou se ainda não entrou receita, aparece uma mensagem explicando. Com o aporte automático ligado, o texto avisa que a separação já acontece sozinha, mas o botão continua disponível pra quem quiser adiantar.
 - **Modais**: criar/editar meta (`SavingsGoalForm`), aporte/resgate (`ContributionForm`) e histórico com exclusão (`ContributionHistory`).
+- **Aporte automático**: checkbox no formulário (exige percentual definido — validado no schema do frontend e de novo no backend); quando ligado, o subtítulo do card ganha "· aporte automático".
 - **Caixinha do imposto**: o campo de percentual vazio vem preenchido com a alíquota de referência do regime do usuário.
 
 ## 3. Arquitetura (hexagonal)
@@ -78,6 +79,7 @@ sequenceDiagram
 - **Excluir um aporte**: também é recusado se deixaria a meta negativa (por causa de resgates já feitos).
 - **Percentual sugerido para o imposto**: `TaxRateEstimator.suggestRate(regime do usuário, receita média dos 3 meses anteriores)`, considerando todas as receitas, pagas e pendentes. O mês atual fica de fora por estar incompleto. Usuário sem regime: 0.
 - **Isolamento entre usuários**: meta de outro usuário é tratada como inexistente (404). Excluir a meta remove os aportes (FK `ON DELETE CASCADE`).
+- **Aporte automático exige percentual**: ligar `autoContribute` sem `incomeRate` definido (ou zero) é recusado (400) — senão a meta ficaria "automática" sem nunca ter o que aplicar, silenciosamente, e o usuário não entenderia por quê.
 
 ## 6. Onde cada peça vive no repositório
 
@@ -86,8 +88,36 @@ sequenceDiagram
 | Domínio | `domain/model/{SavingsGoal,SavingsGoalType,GoalContribution,ContributionType,SavingsGoalCalculator}.java` |
 | Ports | `domain/port/out/{SavingsGoalRepositoryPort,GoalContributionRepositoryPort}.java` |
 | Aplicação | `application/savingsgoal/{SavingsGoalApplicationService,SavingsGoalSummary,SavingsGoalCommand}.java` |
+| Scheduler | `infrastructure/scheduling/SavingsGoalContributionScheduler.java` |
 | Persistência | `infrastructure/persistence/{entity,repository,adapter}/…SavingsGoal…`, `…GoalContribution…` |
 | API | `infrastructure/web/controller/SavingsGoalController.java`, `infrastructure/web/dto/savingsgoal/*` |
-| Migration | `db/migration/V16__create_savings_goals.sql` |
+| Migration | `db/migration/V16__create_savings_goals.sql`, `db/migration/V26__add_auto_contribute_to_savings_goals.sql` |
 | Frontend | `frontend/src/features/savings-goals/` (`SavingsGoalsPage`, `SavingsGoalCard`, `SavingsGoalForm`, `ContributionForm`, `ContributionHistory`, `useSavingsGoals`) |
 | Testes | `SavingsGoalCalculatorTest`, `SavingsGoalApplicationServiceTest`, `integration/savingsgoal/SavingsGoalIntegrationTest`, `features/savings-goals/utils.test.ts` |
+
+## 7. Aporte automático (`autoContribute`)
+
+Mesmo padrão de scheduler já usado nos orçamentos recorrentes (`RecurringBudgetScheduler`, ver [`fluxo-orcamentos.md`](fluxo-orcamentos.md#6-orçamentos-recorrentes-recurringbudget)): um `@Scheduled` diário (`finpro.savings-goal.cron`, padrão `0 20 0 * * *`) que também roda na subida da aplicação. A diferença é que aqui não existe um "mês vencido" para lançar — a sugestão é **recalculada do zero a cada execução** (percentual sobre a receita já paga no mês, menos o que já foi aportado nele), então rodar todo dia só vai capturando, incrementalmente, a fração de cada receita nova que chega. Nunca duplica: se não houver nada a separar (a maioria dos dias), `applyAutomaticContributionIfDue` não faz nada, silenciosamente — diferente de `applySuggestion` (clique manual), que responde 400 nesse caso, porque ali é o usuário pedindo uma ação, não uma varredura automática.
+
+```mermaid
+sequenceDiagram
+    participant Sched as SavingsGoalContributionScheduler
+    participant Svc as SavingsGoalApplicationService
+    participant DB as Postgres
+
+    Note over Sched: @Scheduled diário + na subida da aplicação
+    Sched->>Svc: findAllAutoContribute()
+    Svc->>DB: SELECT * FROM savings_goals WHERE auto_contribute = true
+    DB-->>Svc: metas de todos os usuários
+    loop para cada meta (isolada em try/catch)
+        Sched->>Svc: applyAutomaticContributionIfDue(goal)
+        Svc->>Svc: recalcula a sugestão (igual ao "separar com 1 clique")
+        alt há algo a separar
+            Svc->>DB: INSERT goal_contributions (nota "Separação automática de X%...")
+        else nada a separar hoje
+            Svc-->>Sched: não faz nada
+        end
+    end
+```
+
+O aporte gerado automaticamente é indistinguível de um aporte manual na lista de contribuições, exceto pela nota (`"Separação automática de X% das receitas recebidas em MM/yyyy"` vs. `"Separação de X%..."` no clique manual) — não há um campo `origin` separado, ao contrário de `Transaction`/`RecurringTransaction`.

@@ -41,4 +41,7 @@ public class SavingsGoalJpaEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "auto_contribute", nullable = false)
+    private boolean autoContribute;
 }

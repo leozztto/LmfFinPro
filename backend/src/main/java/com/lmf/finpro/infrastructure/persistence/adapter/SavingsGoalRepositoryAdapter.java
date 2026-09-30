@@ -28,6 +28,7 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
                                 .deadline(goal.deadline())
                                 .incomeRate(goal.incomeRate())
                                 .createdAt(goal.createdAt())
+                                .autoContribute(goal.autoContribute())
                                 .build()));
     }
 
@@ -44,6 +45,11 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
     }
 
     @Override
+    public List<SavingsGoal> findAllAutoContribute() {
+        return repository.findByAutoContributeTrue().stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public void deleteById(Long id) {
         repository.deleteById(id);
     }
@@ -57,6 +63,7 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
                 entity.getTargetAmount(),
                 entity.getDeadline(),
                 entity.getIncomeRate(),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                entity.isAutoContribute());
     }
 }

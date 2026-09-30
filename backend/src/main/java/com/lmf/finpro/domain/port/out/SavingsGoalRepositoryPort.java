@@ -11,6 +11,9 @@ public interface SavingsGoalRepositoryPort {
 
     List<SavingsGoal> findAllByUserId(Long userId);
 
+    /** Metas com aporte automático ligado, de todos os usuários — usado pelo scheduler diário. */
+    List<SavingsGoal> findAllAutoContribute();
+
     /** Os aportes da meta são removidos junto (FK ON DELETE CASCADE). */
     void deleteById(Long id);
 }

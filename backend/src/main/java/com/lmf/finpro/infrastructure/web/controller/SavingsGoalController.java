@@ -113,7 +113,8 @@ public class SavingsGoalController {
                 request.type(),
                 request.targetAmount(),
                 request.deadline(),
-                request.incomeRate());
+                request.incomeRate(),
+                request.autoContribute());
     }
 
     private SavingsGoalResponse toResponse(SavingsGoalSummary summary) {
@@ -129,7 +130,8 @@ public class SavingsGoalController {
                 summary.remainingAmount(),
                 summary.monthlyNeeded(),
                 summary.monthPaidIncome(),
-                summary.suggestedContribution());
+                summary.suggestedContribution(),
+                goal.autoContribute());
     }
 
     private GoalContributionResponse toResponse(GoalContribution contribution) {

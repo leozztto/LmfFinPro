@@ -9,16 +9,22 @@ const optionalPercent = z.preprocess(
     .optional(),
 )
 
-export const savingsGoalSchema = z.object({
-  name: z.string().trim().min(1, 'nome é obrigatório').max(100, 'nome deve ter no máximo 100 caracteres'),
-  type: z.enum(['EMERGENCY_FUND', 'TAX_RESERVE', 'VACATION', 'OTHER']),
-  targetAmount: z.coerce
-    .number({ invalid_type_error: 'informe o valor-alvo' })
-    .positive('informe um valor maior que zero'),
-  deadline: z.string().optional(),
-  /** Percentual (0 a 100) na tela; o backend recebe a fração. */
-  incomePercent: optionalPercent,
-})
+export const savingsGoalSchema = z
+  .object({
+    name: z.string().trim().min(1, 'nome é obrigatório').max(100, 'nome deve ter no máximo 100 caracteres'),
+    type: z.enum(['EMERGENCY_FUND', 'TAX_RESERVE', 'VACATION', 'OTHER']),
+    targetAmount: z.coerce
+      .number({ invalid_type_error: 'informe o valor-alvo' })
+      .positive('informe um valor maior que zero'),
+    deadline: z.string().optional(),
+    /** Percentual (0 a 100) na tela; o backend recebe a fração. */
+    incomePercent: optionalPercent,
+    autoContribute: z.boolean(),
+  })
+  .refine((values) => !values.autoContribute || values.incomePercent !== undefined, {
+    message: 'defina o percentual para ligar o aporte automático',
+    path: ['incomePercent'],
+  })
 
 export type SavingsGoalFormValues = z.infer<typeof savingsGoalSchema>
 
