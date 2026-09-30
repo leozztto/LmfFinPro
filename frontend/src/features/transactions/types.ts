@@ -13,6 +13,8 @@ export interface Transaction {
   description: string
   amount: number
   transactionDate: string
+  /** Hora da transação (ex.: "14:32:00") — só presente em transações importadas com coluna de hora. */
+  transactionTime: string | null
   type: TransactionType
   origin: TransactionOrigin
   createdAt: string

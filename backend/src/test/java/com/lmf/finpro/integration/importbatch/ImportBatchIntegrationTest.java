@@ -140,6 +140,34 @@ class ImportBatchIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void reimportingTheSameCsvSkipsAllRowsAsDuplicates() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        uploadCsv(user, accountId, VALID_CSV);
+
+        ImportBatchResponse secondBatch = uploadCsv(user, accountId, VALID_CSV).getBody();
+
+        assertThat(secondBatch.transactionCount()).isZero();
+        assertThat(secondBatch.duplicateCount()).isEqualTo(3);
+    }
+
+    @Test
+    void sameDayAndAmountWithDifferentTimeIsNotADuplicate() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user);
+        String morning =
+                "date,time,description,amount\n2026-01-05,08:00,ALMOCO RESTAURANTE,-50.00\n";
+        String afternoon =
+                "date,time,description,amount\n2026-01-05,12:30,ALMOCO RESTAURANTE,-50.00\n";
+        uploadCsv(user, accountId, morning);
+
+        ImportBatchResponse secondBatch = uploadCsv(user, accountId, afternoon).getBody();
+
+        assertThat(secondBatch.transactionCount()).isEqualTo(1);
+        assertThat(secondBatch.duplicateCount()).isZero();
+    }
+
+    @Test
     void listReturnsAllBatchesForTheOwningUser() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user);

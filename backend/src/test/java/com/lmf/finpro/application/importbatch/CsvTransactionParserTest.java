@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -38,9 +39,52 @@ class CsvTransactionParserTest {
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).date()).isEqualTo(LocalDate.of(2026, 9, 1));
+        assertThat(rows.get(0).time()).isNull();
         assertThat(rows.get(0).description()).isEqualTo("Salario");
         assertThat(rows.get(0).signedAmount()).isEqualByComparingTo("3000.00");
         assertThat(rows.get(1).signedAmount()).isEqualByComparingTo("-1500.50");
+    }
+
+    @Test
+    void parsesTimeColumnWhenHeaderIncludesIt() {
+        String content =
+                "date,time,description,amount\n"
+                        + "2026-09-01,14:32,Salario,3000.00\n"
+                        + "2026-09-02,08:05:30,Aluguel,-1500.50\n";
+
+        List<ParsedTransactionRow> rows = CsvTransactionParser.parse(csv(content));
+
+        assertThat(rows.get(0).time()).isEqualTo(LocalTime.of(14, 32));
+        assertThat(rows.get(1).time()).isEqualTo(LocalTime.of(8, 5, 30));
+    }
+
+    @Test
+    void blankTimeCellBecomesNullEvenWithTimeColumnHeader() {
+        String content = "date,time,description,amount\n2026-09-01,,Salario,3000.00\n";
+
+        List<ParsedTransactionRow> rows = CsvTransactionParser.parse(csv(content));
+
+        assertThat(rows.get(0).time()).isNull();
+    }
+
+    @Test
+    void rejectsInvalidTime() {
+        assertThatThrownBy(
+                        () ->
+                                CsvTransactionParser.parse(
+                                        csv(
+                                                "date,time,description,amount\n2026-09-01,25:99,Salario,100\n")))
+                .isInstanceOf(ImportFileInvalidException.class);
+    }
+
+    @Test
+    void rejectsRowWithWrongColumnCountWhenHeaderHasTime() {
+        assertThatThrownBy(
+                        () ->
+                                CsvTransactionParser.parse(
+                                        csv(
+                                                "date,time,description,amount\n2026-09-01,14:00,Salario,100,extra\n")))
+                .isInstanceOf(ImportFileInvalidException.class);
     }
 
     @Test

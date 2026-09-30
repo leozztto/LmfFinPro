@@ -19,8 +19,13 @@ import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ImportBatchRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -52,17 +57,28 @@ public class ImportApplicationService {
 
         List<CategoryRule> rules =
                 categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentUserId);
+        Set<DuplicateKey> existingKeys = duplicateKeysOf(accountId);
+        int duplicateCount = 0;
         for (ParsedTransactionRow row : rows) {
             CategoryType type =
                     row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
+            BigDecimal amount = row.signedAmount().abs();
+            DuplicateKey key =
+                    new DuplicateKey(
+                            row.date(), row.time(), row.description().trim(), amount, type);
+            if (!existingKeys.add(key)) {
+                duplicateCount++;
+                continue;
+            }
             Long categoryId = matchCategory(rules, row.description(), type);
             Transaction imported =
                     Transaction.createImported(
                             accountId,
                             categoryId,
                             row.description(),
-                            row.signedAmount().abs(),
+                            amount,
                             row.date(),
+                            row.time(),
                             type,
                             batch.id());
             if (!account.currency().isBase()) {
@@ -74,8 +90,36 @@ public class ImportApplicationService {
             transactionRepositoryPort.save(imported);
         }
 
-        return importBatchRepositoryPort.save(batch.withStatus(ImportStatus.COMPLETED));
+        return importBatchRepositoryPort.save(
+                batch.withStatus(ImportStatus.COMPLETED).withDuplicateCount(duplicateCount));
     }
+
+    /**
+     * Chave (data, hora, descrição, valor, tipo) de cada transação já lançada na conta — usada para
+     * pular, sem duplicar, uma linha do arquivo que já existe (de uma importação anterior ou de uma
+     * linha repetida dentro do próprio arquivo sendo importado agora).
+     */
+    private Set<DuplicateKey> duplicateKeysOf(Long accountId) {
+        Set<DuplicateKey> keys = new HashSet<>();
+        for (Transaction transaction :
+                transactionRepositoryPort.findAllByAccountIds(List.of(accountId))) {
+            keys.add(
+                    new DuplicateKey(
+                            transaction.transactionDate(),
+                            transaction.transactionTime(),
+                            transaction.description().trim(),
+                            transaction.amount(),
+                            transaction.type()));
+        }
+        return keys;
+    }
+
+    private record DuplicateKey(
+            LocalDate date,
+            LocalTime time,
+            String description,
+            BigDecimal amount,
+            CategoryType type) {}
 
     public List<ImportBatch> list(Long currentUserId) {
         return importBatchRepositoryPort.findAllByUserId(currentUserId);
