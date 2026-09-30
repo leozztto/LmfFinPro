@@ -8,7 +8,7 @@ Em vez de o usuário lançar transação por transação, ele sobe um arquivo CS
 
 Duas entidades de domínio sustentam esse fluxo:
 - **`ImportBatch`**: um "lote" de importação — um arquivo, uma conta, um status, N transações resultantes.
-- **`CategoryRule`**: um padrão de texto (ex: `"UBER"`) associado a uma categoria, com um peso que cresce a cada confirmação do usuário. É o motor de categorização automática, mas não é exclusivo da importação — qualquer transação futura cujo descritivo contenha o padrão poderia, em tese, reaproveitar a mesma regra (hoje o `matchCategory` só é chamado durante a importação).
+- **`CategoryRule`**: um padrão de texto (ex: `"UBER"`) associado a uma categoria, com um peso que cresce a cada confirmação do usuário. É o motor de categorização automática, mas não é exclusivo da importação — qualquer transação futura cujo descritivo contenha o padrão poderia, em tese, reaproveitar a mesma regra (hoje o `matchCategory` só é chamado durante a importação). `userId` nulo é regra padrão do sistema (ex.: `"UBER"` → Transporte, `"NETFLIX"` → Lazer), disponível para todo usuário desde a primeira importação — mesmo conceito de "categoria global" que já existia em `Category.userId`, só que agora aplicado também às regras (migration V25, ~48 regras cobrindo transporte, alimentação, mercado, saúde, educação, lazer, assinaturas, moradia, compras e salário). Regra própria do usuário sempre tem prioridade sobre a global para o mesmo padrão — é assim que uma correção manual "vence" a sugestão genérica (`CategoryRuleJpaRepository.findVisibleToUserOrderByPriorityDesc`, que ordena regras do usuário antes das globais, e dentro de cada grupo por peso decrescente). Regras globais são somente leitura via API — o usuário não pode editá-las nem removê-las (mesma regra do MVP para categorias globais).
 
 ## 2. Tela
 
@@ -107,8 +107,8 @@ sequenceDiagram
     else CSV válido
         Parser-->>Svc: lista de ParsedRow
         Svc->>Svc: cria ImportBatch (status PROCESSING)
-        Svc->>RuleRepo: findAllByUserIdOrderByWeightDesc(userId)
-        RuleRepo-->>Svc: regras do usuário, mais confiáveis primeiro
+        Svc->>RuleRepo: findVisibleToUserOrderByPriorityDesc(userId)
+        RuleRepo-->>Svc: regras do usuário (mais confiáveis primeiro)\n+ regras globais do sistema (por último)
 
         loop para cada linha do CSV
             Svc->>Svc: tipo = valor negativo? EXPENSE : INCOME
@@ -127,7 +127,7 @@ sequenceDiagram
     end
 ```
 
-**Casamento de regra ↔ categoria:** `matchCategory` percorre as regras do usuário (já ordenadas por peso decrescente) e retorna a categoria da **primeira** cuja `pattern` esteja contido no descritivo (comparação case-insensitive) **e** cuja categoria tenha o mesmo `CategoryType` (INCOME/EXPENSE) da transação sendo importada. Se nenhuma regra bater — ou se a categoria referenciada por uma regra tiver sido excluída nesse meio tempo — a transação entra sem categoria (`categoryId = null`), contabilizada em `uncategorizedCount`.
+**Casamento de regra ↔ categoria:** `matchCategory` percorre as regras visíveis ao usuário — próprias primeiro, depois as globais do sistema, cada grupo já ordenado por peso decrescente — e retorna a categoria da **primeira** cuja `pattern` esteja contido no descritivo (comparação case-insensitive) **e** cuja categoria tenha o mesmo `CategoryType` (INCOME/EXPENSE) da transação sendo importada. Se nenhuma regra bater — ou se a categoria referenciada por uma regra tiver sido excluída nesse meio tempo — a transação entra sem categoria (`categoryId = null`), contabilizada em `uncategorizedCount`.
 
 ## 5. Fluxo de revisão manual — onde o motor "aprende"
 
@@ -206,7 +206,7 @@ O sinal do valor decide o `CategoryType` (negativo → `EXPENSE`, positivo → `
 | Port/Adapter | `domain/port/out/{ImportBatchRepositoryPort,CategoryRuleRepositoryPort}.java` + `infrastructure/persistence/adapter/{ImportBatchRepositoryAdapter,CategoryRuleRepositoryAdapter}.java` |
 | Aplicação | `application/importbatch/ImportApplicationService.java` |
 | API | `infrastructure/web/controller/ImportBatchController.java` (`/api/import-batches`), DTOs em `infrastructure/web/dto/importbatch/`, mappers `ImportBatchWebMapper`/`TransactionWebMapper` |
-| Migration | `db/migration/V9__add_import_and_rule_indexes.sql` |
+| Migration | `db/migration/V9__add_import_and_rule_indexes.sql`, `db/migration/V25__seed_global_category_rules.sql` (regras + categorias globais padrão do sistema) |
 | Frontend (importação) | `frontend/src/features/importBatches/**` (`ImportsPage`, `ImportUploadForm`, `ImportBatchList`, `ImportBatchReviewTable`, hooks, `importBatchesApi`, `types.ts`) |
 | Frontend (regras) | `frontend/src/features/categoryRules/**` (`CategoryRulesPanel` — ver [`fluxo-categorias.md`](fluxo-categorias.md) pro CRUD detalhado) |
 | Testes | `backend/src/test/java/.../integration/importbatch/ImportBatchIntegrationTest.java`, `backend/src/test/java/.../application/importbatch/{ImportApplicationServiceTest,CsvTransactionParserTest}.java`, `../../frontend/src/features/importBatches/api/importBatchesApi.test.ts` |

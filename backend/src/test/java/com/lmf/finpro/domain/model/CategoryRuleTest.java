@@ -51,6 +51,21 @@ class CategoryRuleTest {
     }
 
     @Test
+    void isGlobalIsTrueWhenUserIdIsNull() {
+        CategoryRule global = new CategoryRule(1L, null, "UBER", 10L, 1);
+
+        assertThat(global.isGlobal()).isTrue();
+        assertThat(new CategoryRule(1L, 1L, "UBER", 10L, 1).isGlobal()).isFalse();
+    }
+
+    @Test
+    void belongsToReturnsFalseForGlobalRule() {
+        CategoryRule global = new CategoryRule(1L, null, "UBER", 10L, 1);
+
+        assertThat(global.belongsTo(1L)).isFalse();
+    }
+
+    @Test
     void withDetailsReplacesPatternAndCategoryButKeepsWeight() {
         CategoryRule rule = new CategoryRule(1L, 1L, "UBER", 10L, 7);
 

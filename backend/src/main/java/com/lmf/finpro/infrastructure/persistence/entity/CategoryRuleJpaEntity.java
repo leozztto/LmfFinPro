@@ -21,8 +21,9 @@ public class CategoryRuleJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    /** Nula = regra padrão do sistema, disponível para todos os usuários. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private UserJpaEntity user;
 
     @Column(nullable = false)

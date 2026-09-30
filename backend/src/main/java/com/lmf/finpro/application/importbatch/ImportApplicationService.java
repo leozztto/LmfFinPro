@@ -51,7 +51,7 @@ public class ImportApplicationService {
                         ImportBatch.start(currentUserId, accountId, originalFileName, format));
 
         List<CategoryRule> rules =
-                categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(currentUserId);
+                categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentUserId);
         for (ParsedTransactionRow row : rows) {
             CategoryType type =
                     row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;

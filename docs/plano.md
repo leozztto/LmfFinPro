@@ -164,12 +164,11 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 *✅ Implementado (`ImportApplicationService`, `CategoryRuleApplicationService`).*
 
 1. Upload do CSV cria um `ImportBatch` (status `PROCESSING` → `COMPLETED`) e cada linha vira uma `Transaction` com `origin = IMPORTED`
-2. Para cada transação, busca as `CategoryRule` do usuário ordenadas por peso decrescente e aplica a primeira cujo padrão está contido no descritivo (case-insensitive) e cujo tipo (receita/despesa) bate com o da transação
+2. Para cada transação, busca as `CategoryRule` visíveis ao usuário (próprias + globais do sistema, próprias com prioridade) ordenadas por peso decrescente dentro de cada grupo e aplica a primeira cujo padrão está contido no descritivo (case-insensitive) e cujo tipo (receita/despesa) bate com o da transação
 3. Se nada bater, a transação fica com `categoryId = null` ("Sem categoria") para revisão manual na tela de importação
-4. Correção manual do usuário (`PUT /api/import-batches/{id}/transactions/{id}`) reforça o peso da regra existente para aquele descritivo, ou cria uma nova regra — assim, uma próxima importação com o mesmo descritivo já chega categorizada
+4. Correção manual do usuário (`PUT /api/import-batches/{id}/transactions/{id}`) reforça o peso da regra existente para aquele descritivo, ou cria uma nova regra própria — assim, uma próxima importação com o mesmo descritivo já chega categorizada, e passa a ter prioridade sobre uma eventual regra global para o mesmo padrão
 5. Regras também podem ser cadastradas manualmente, sem depender de uma importação (`CategoryRulesPanel`)
-
-*Não implementado ainda: regras padrão globais do sistema (ex.: um conjunto pré-cadastrado tipo "UBER" → Transporte disponível para todo usuário) — hoje toda regra é criada pelo próprio usuário, seja manualmente ou por correção.*
+6. **Regras padrão globais do sistema** — ✅ **feito** (migration `V25__seed_global_category_rules.sql`): ~48 regras com `user_id` nulo (mesmo conceito de "categoria global" que já existia em `Category`), cobrindo transporte, alimentação, mercado, saúde, educação, lazer, assinaturas, moradia, compras e salário (ex.: `"UBER"` → Transporte, `"NETFLIX"` → Lazer). Somente leitura via API — não aparecem para edição/remoção no `CategoryRulesPanel`, só com um selo "padrão do sistema"
 
 ## 9. Módulo freelancer
 

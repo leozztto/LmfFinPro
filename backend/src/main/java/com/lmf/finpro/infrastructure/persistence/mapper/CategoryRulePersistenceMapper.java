@@ -12,7 +12,10 @@ public class CategoryRulePersistenceMapper {
     public CategoryRuleJpaEntity toEntity(CategoryRule categoryRule) {
         return CategoryRuleJpaEntity.builder()
                 .id(categoryRule.id())
-                .user(UserJpaEntity.builder().id(categoryRule.userId()).build())
+                .user(
+                        categoryRule.userId() == null
+                                ? null
+                                : UserJpaEntity.builder().id(categoryRule.userId()).build())
                 .pattern(categoryRule.pattern())
                 .category(CategoryJpaEntity.builder().id(categoryRule.categoryId()).build())
                 .weight(categoryRule.weight())
@@ -22,7 +25,7 @@ public class CategoryRulePersistenceMapper {
     public CategoryRule toDomain(CategoryRuleJpaEntity entity) {
         return new CategoryRule(
                 entity.getId(),
-                entity.getUser().getId(),
+                entity.getUser() == null ? null : entity.getUser().getId(),
                 entity.getPattern(),
                 entity.getCategory().getId(),
                 entity.getWeight());

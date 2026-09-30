@@ -9,7 +9,7 @@ public interface CategoryRuleRepositoryPort {
 
     Optional<CategoryRule> findById(Long id);
 
-    List<CategoryRule> findAllByUserIdOrderByWeightDesc(Long userId);
+    List<CategoryRule> findVisibleToUserOrderByPriorityDesc(Long userId);
 
     Optional<CategoryRule> findByUserIdAndPattern(Long userId, String pattern);
 
