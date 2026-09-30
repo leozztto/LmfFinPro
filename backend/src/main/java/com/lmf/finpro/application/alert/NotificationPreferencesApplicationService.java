@@ -22,9 +22,15 @@ public class NotificationPreferencesApplicationService {
             boolean billsEnabled,
             int billDaysBefore,
             boolean budgetsEnabled,
-            boolean dasEnabled) {
+            boolean dasEnabled,
+            boolean recurringBudgetsEnabled) {
         return notificationPreferencesRepositoryPort.save(
                 new NotificationPreferences(
-                        currentUserId, billsEnabled, billDaysBefore, budgetsEnabled, dasEnabled));
+                        currentUserId,
+                        billsEnabled,
+                        billDaysBefore,
+                        budgetsEnabled,
+                        dasEnabled,
+                        recurringBudgetsEnabled));
     }
 }

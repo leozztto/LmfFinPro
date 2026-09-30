@@ -48,7 +48,7 @@ export function CalendarMonthGrid({ month, today, days, selectedDate, onSelectDa
             return (
               <div
                 key={`empty-${index}`}
-                className="min-h-14 border-b border-r border-zinc-100 bg-zinc-100/50 sm:min-h-20 dark:border-zinc-700/60 dark:bg-zinc-900/30 [&:nth-child(7n)]:border-r-0"
+                className="min-h-12 border-b border-r border-zinc-100 bg-zinc-100/50 sm:min-h-20 dark:border-zinc-700/60 dark:bg-zinc-900/30 [&:nth-child(7n)]:border-r-0"
               />
             )
           }
@@ -68,7 +68,7 @@ export function CalendarMonthGrid({ month, today, days, selectedDate, onSelectDa
               onClick={() => onSelectDate(date)}
               aria-label={label}
               aria-pressed={isSelected}
-              className={`flex min-h-14 min-w-0 flex-col items-stretch gap-1 border-b border-r border-zinc-100 p-1 text-left transition-colors sm:min-h-20 sm:p-1.5 dark:border-zinc-700/60 [&:nth-child(7n)]:border-r-0 ${
+              className={`flex min-h-12 min-w-0 flex-col items-stretch gap-0.5 border-b border-r border-zinc-100 p-0.5 text-left transition-colors sm:min-h-20 sm:p-1 dark:border-zinc-700/60 [&:nth-child(7n)]:border-r-0 ${
                 isSelected
                   ? 'bg-[#2ad6a5]/10 dark:bg-[#2ad6a5]/10'
                   : 'hover:bg-zinc-100 dark:hover:bg-zinc-700/40'

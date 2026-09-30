@@ -14,6 +14,8 @@ import com.lmf.finpro.infrastructure.web.dto.category.CategoryRequest;
 import com.lmf.finpro.infrastructure.web.dto.category.CategoryResponse;
 import com.lmf.finpro.infrastructure.web.dto.profile.NotificationPreferencesRequest;
 import com.lmf.finpro.infrastructure.web.dto.profile.NotificationPreferencesResponse;
+import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetRequest;
+import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.integration.support.AbstractIntegrationTest;
@@ -86,6 +88,23 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void sendsRecurringBudgetExpiringWarning() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long categoryId = createCategory(user);
+        createRecurringBudget(
+                user, categoryId, YearMonth.from(TODAY).minusMonths(3), YearMonth.from(TODAY));
+
+        alertScheduler.sendDailyAlerts();
+
+        List<AlertDigest> digests = mailer.digestsByEmail.get(user.email());
+        assertThat(digests).hasSize(1);
+        assertThat(digests.get(0).recurringBudgetsExpiring())
+                .singleElement()
+                .extracting("endMonth")
+                .isEqualTo(YearMonth.from(TODAY));
+    }
+
+    @Test
     void userWithUnreadableRegisterDoesNotBlockTheOthers() {
         TestUser broken = TestDataFactory.registerRandomUser(restTemplate);
         // Valor fora do enum TaxRegime, como os gravados direto no banco: ler esse usuário falha.
@@ -110,7 +129,7 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user);
         createExpense(user, accountId, null, BigDecimal.valueOf(120), TODAY.plusDays(1));
-        putPreferences(user, new NotificationPreferencesRequest(false, 3, true, true));
+        putPreferences(user, new NotificationPreferencesRequest(false, 3, true, true, true));
 
         alertScheduler.sendDailyAlerts();
 
@@ -122,13 +141,15 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
 
         NotificationPreferencesResponse defaults = getPreferences(user);
-        assertThat(defaults).isEqualTo(new NotificationPreferencesResponse(true, 3, true, true));
+        assertThat(defaults)
+                .isEqualTo(new NotificationPreferencesResponse(true, 3, true, true, true));
 
         ResponseEntity<NotificationPreferencesResponse> updated =
-                putPreferences(user, new NotificationPreferencesRequest(true, 7, false, true));
+                putPreferences(
+                        user, new NotificationPreferencesRequest(true, 7, false, true, false));
         assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(getPreferences(user))
-                .isEqualTo(new NotificationPreferencesResponse(true, 7, false, true));
+                .isEqualTo(new NotificationPreferencesResponse(true, 7, false, true, false));
     }
 
     @Test
@@ -136,7 +157,8 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
 
         ResponseEntity<NotificationPreferencesResponse> response =
-                putPreferences(user, new NotificationPreferencesRequest(true, 16, true, true));
+                putPreferences(
+                        user, new NotificationPreferencesRequest(true, 16, true, true, true));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -196,6 +218,20 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
                                 new BudgetRequest(categoryId, YearMonth.from(TODAY), limit),
                                 user.authHeaders()),
                         Void.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    private void createRecurringBudget(
+            TestUser user, Long categoryId, YearMonth startMonth, YearMonth endMonth) {
+        ResponseEntity<RecurringBudgetResponse> response =
+                restTemplate.exchange(
+                        "/api/recurring-budgets",
+                        HttpMethod.POST,
+                        new HttpEntity<>(
+                                new RecurringBudgetRequest(
+                                        categoryId, BigDecimal.valueOf(500), startMonth, endMonth),
+                                user.authHeaders()),
+                        RecurringBudgetResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 

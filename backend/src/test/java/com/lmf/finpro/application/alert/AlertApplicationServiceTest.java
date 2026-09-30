@@ -20,6 +20,7 @@ import com.lmf.finpro.domain.model.Budget;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.NotificationPreferences;
+import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.domain.model.SentAlert;
 import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.model.TaxRegime;
@@ -32,6 +33,7 @@ import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.NotificationPreferencesRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.SentAlertRepositoryPort;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
@@ -39,6 +41,7 @@ import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
@@ -66,6 +69,7 @@ class AlertApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private BudgetRepositoryPort budgetRepositoryPort;
     @Mock private BudgetApplicationService budgetApplicationService;
+    @Mock private RecurringBudgetRepositoryPort recurringBudgetRepositoryPort;
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private TaxEstimateRepositoryPort taxEstimateRepositoryPort;
     @Mock private AlertMailerPort alertMailerPort;
@@ -88,6 +92,9 @@ class AlertApplicationServiceTest {
                                         null)));
         lenient().when(transactionRepositoryPort.findAllByAccountIds(any())).thenReturn(List.of());
         lenient().when(budgetRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        lenient()
+                .when(recurringBudgetRepositoryPort.findAllByUserId(USER_ID))
+                .thenReturn(List.of());
         lenient().when(sentAlertRepositoryPort.exists(anyLong(), any(), any())).thenReturn(false);
         lenient().when(taxEstimateRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
         lenient()
@@ -193,6 +200,72 @@ class AlertApplicationServiceTest {
     }
 
     @Test
+    void recurringBudgetEndingThisMonthSendsWarning() {
+        givenRecurringBudget(3L, YearMonth.from(TODAY), true);
+
+        service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO));
+
+        AlertDigest digest = sentDigest();
+        assertThat(digest.recurringBudgetsExpiring()).hasSize(1);
+        assertThat(digest.recurringBudgetsExpiring().get(0).categoryName()).isEqualTo("Mercado");
+        assertThat(digest.recurringBudgetsExpiring().get(0).endMonth())
+                .isEqualTo(YearMonth.from(TODAY));
+        verify(sentAlertRepositoryPort)
+                .save(new SentAlert(USER_ID, AlertType.RECURRING_BUDGET_EXPIRING, "3-2026-09"));
+    }
+
+    @Test
+    void recurringBudgetEndingNextMonthSendsWarning() {
+        givenRecurringBudget(3L, YearMonth.from(TODAY).plusMonths(1), true);
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isTrue();
+        assertThat(sentDigest().recurringBudgetsExpiring()).hasSize(1);
+    }
+
+    @Test
+    void recurringBudgetEndingFarInTheFutureIsIgnored() {
+        givenRecurringBudget(3L, YearMonth.from(TODAY).plusMonths(2), true);
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
+    }
+
+    @Test
+    void inactiveRecurringBudgetIsIgnored() {
+        givenRecurringBudget(3L, YearMonth.from(TODAY), false);
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
+    }
+
+    @Test
+    void recurringBudgetWithoutEndMonthIsIgnored() {
+        when(recurringBudgetRepositoryPort.findAllByUserId(USER_ID))
+                .thenReturn(
+                        List.of(
+                                new RecurringBudget(
+                                        3L,
+                                        USER_ID,
+                                        5L,
+                                        BigDecimal.valueOf(500),
+                                        YearMonth.from(TODAY).minusMonths(3),
+                                        null,
+                                        3,
+                                        true,
+                                        LocalDateTime.now())));
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
+    }
+
+    @Test
+    void doesNotRepeatARecurringBudgetAlreadyNotifiedForTheSameEndMonth() {
+        givenRecurringBudget(3L, YearMonth.from(TODAY), true);
+        when(sentAlertRepositoryPort.exists(
+                        USER_ID, AlertType.RECURRING_BUDGET_EXPIRING, "3-2026-09"))
+                .thenReturn(true);
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
+    }
+
+    @Test
     void dasReminderForMeiIncludesEstimatedValueOfTheCompetence() {
         YearMonth competence = YearMonth.of(2026, 8);
         when(taxEstimateRepositoryPort.findAllByUserId(USER_ID))
@@ -233,11 +306,14 @@ class AlertApplicationServiceTest {
     void disabledPreferencesSkipEveryAlert() {
         when(notificationPreferencesRepositoryPort.findByUserId(USER_ID))
                 .thenReturn(
-                        Optional.of(new NotificationPreferences(USER_ID, false, 3, false, false)));
+                        Optional.of(
+                                new NotificationPreferences(
+                                        USER_ID, false, 3, false, false, false)));
         lenient()
                 .when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
                 .thenReturn(List.of(expense(1L, TODAY.plusDays(1), TransactionStatus.PENDING)));
         givenBudgetWithSpent("1200");
+        givenRecurringBudget(3L, YearMonth.from(TODAY), true);
 
         assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.MEI))).isFalse();
         verify(alertMailerPort, never()).sendDigest(any(), any(), any());
@@ -265,6 +341,7 @@ class AlertApplicationServiceTest {
                 transactionRepositoryPort,
                 budgetRepositoryPort,
                 budgetApplicationService,
+                recurringBudgetRepositoryPort,
                 categoryRepositoryPort,
                 taxEstimateRepositoryPort,
                 alertMailerPort,
@@ -278,6 +355,23 @@ class AlertApplicationServiceTest {
         lenient()
                 .when(budgetApplicationService.calculateSpent(budget))
                 .thenReturn(new BigDecimal(spent));
+    }
+
+    private void givenRecurringBudget(Long id, YearMonth endMonth, boolean active) {
+        RecurringBudget recurrence =
+                new RecurringBudget(
+                        id,
+                        USER_ID,
+                        5L,
+                        BigDecimal.valueOf(500),
+                        endMonth.minusMonths(6),
+                        endMonth,
+                        6,
+                        active,
+                        LocalDateTime.now());
+        lenient()
+                .when(recurringBudgetRepositoryPort.findAllByUserId(USER_ID))
+                .thenReturn(List.of(recurrence));
     }
 
     private AlertDigest sentDigest() {
