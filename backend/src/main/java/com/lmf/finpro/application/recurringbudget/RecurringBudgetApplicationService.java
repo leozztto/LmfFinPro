@@ -38,8 +38,42 @@ public class RecurringBudgetApplicationService {
             BigDecimal limitValue,
             YearMonth startMonth,
             YearMonth endMonth) {
-        requireMatchingCategory(currentUserId, categoryId);
         requireValidPeriod(startMonth, endMonth);
+        return createOne(currentUserId, categoryId, limitValue, startMonth, endMonth);
+    }
+
+    /**
+     * Cria uma recorrência por categoria, todas com o mesmo período — um "pacote" mensal em vez de
+     * cadastrar uma de cada vez. Roda numa única transação: se uma categoria for inválida ou
+     * repetida no lote, nenhuma é criada.
+     */
+    @Transactional
+    public List<RecurringBudget> createBatch(
+            Long currentUserId,
+            YearMonth startMonth,
+            YearMonth endMonth,
+            List<CategoryLimit> items) {
+        requireValidPeriod(startMonth, endMonth);
+        requireNoDuplicateCategories(items);
+        return items.stream()
+                .map(
+                        item ->
+                                createOne(
+                                        currentUserId,
+                                        item.categoryId(),
+                                        item.limitValue(),
+                                        startMonth,
+                                        endMonth))
+                .toList();
+    }
+
+    private RecurringBudget createOne(
+            Long currentUserId,
+            Long categoryId,
+            BigDecimal limitValue,
+            YearMonth startMonth,
+            YearMonth endMonth) {
+        requireMatchingCategory(currentUserId, categoryId);
         RecurringBudget saved =
                 recurringBudgetRepositoryPort.save(
                         RecurringBudget.create(
@@ -109,6 +143,13 @@ public class RecurringBudgetApplicationService {
         if (endMonth != null && endMonth.isBefore(startMonth)) {
             throw new InvalidRecurrencePeriodException(
                     "O mês final da recorrência não pode ser anterior ao mês inicial.");
+        }
+    }
+
+    private void requireNoDuplicateCategories(List<CategoryLimit> items) {
+        long distinctCategories = items.stream().map(CategoryLimit::categoryId).distinct().count();
+        if (distinctCategories != items.size()) {
+            throw new IllegalArgumentException("Cada categoria só pode aparecer uma vez no lote.");
         }
     }
 
