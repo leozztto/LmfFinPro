@@ -664,7 +664,10 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
             TestUser user, Long categoryId, String referenceMonth, String limitValue) {
         BudgetRequest request =
                 new BudgetRequest(
-                        categoryId, YearMonth.parse(referenceMonth), new BigDecimal(limitValue));
+                        categoryId,
+                        YearMonth.parse(referenceMonth),
+                        new BigDecimal(limitValue),
+                        null);
         restTemplate.exchange(
                 "/api/budgets",
                 HttpMethod.POST,

@@ -8,8 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface BudgetJpaRepository extends JpaRepository<BudgetJpaEntity, Long> {
     List<BudgetJpaEntity> findByUserId(Long userId);
 
-    boolean existsByUserIdAndCategoryIdAndReferenceMonth(
-            Long userId, Long categoryId, LocalDate referenceMonth);
+    // clientId nulo vira "client IS NULL" na query derivada: procura o orçamento geral.
+    boolean existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+            Long userId, Long categoryId, LocalDate referenceMonth, Long clientId);
 
     boolean existsByCategoryId(Long categoryId);
+
+    boolean existsByClientId(Long clientId);
 }

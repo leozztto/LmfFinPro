@@ -38,7 +38,8 @@ public class BudgetController {
                         currentUser.userId(),
                         request.categoryId(),
                         request.referenceMonth(),
-                        request.limitValue());
+                        request.limitValue(),
+                        request.clientId());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 

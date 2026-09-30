@@ -12,10 +12,13 @@ public interface BudgetRepositoryPort {
 
     List<Budget> findAllByUserId(Long userId);
 
-    boolean existsByUserIdAndCategoryIdAndReferenceMonth(
-            Long userId, Long categoryId, YearMonth referenceMonth);
+    /** {@code clientId} nulo procura o orçamento geral (sem cliente) da categoria/mês. */
+    boolean existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+            Long userId, Long categoryId, YearMonth referenceMonth, Long clientId);
 
     boolean existsByCategoryId(Long categoryId);
+
+    boolean existsByClientId(Long clientId);
 
     void deleteById(Long id);
 }

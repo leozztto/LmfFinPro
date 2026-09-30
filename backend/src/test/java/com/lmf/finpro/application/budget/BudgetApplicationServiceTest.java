@@ -10,7 +10,11 @@ import static org.mockito.Mockito.when;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.model.Budget;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.Client;
+import com.lmf.finpro.domain.model.ClientWorkType;
+import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
+import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +32,7 @@ class BudgetApplicationServiceTest {
 
     @Mock private BudgetRepositoryPort budgetRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
+    @Mock private ClientRepositoryPort clientRepositoryPort;
 
     @InjectMocks private BudgetApplicationService service;
 
@@ -36,17 +41,19 @@ class BudgetApplicationServiceTest {
         when(budgetRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         YearMonth month = YearMonth.of(2026, 9);
 
-        Budget created = service.create(10L, 5L, month, BigDecimal.valueOf(500));
+        Budget created = service.create(10L, 5L, month, BigDecimal.valueOf(500), null);
 
         assertThat(created.userId()).isEqualTo(10L);
         assertThat(created.categoryId()).isEqualTo(5L);
         assertThat(created.referenceMonth()).isEqualTo(month);
         assertThat(created.limitValue()).isEqualByComparingTo("500");
+        assertThat(created.clientId()).isNull();
     }
 
     @Test
     void listReturnsAllBudgetsForUser() {
-        Budget budget = new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500));
+        Budget budget =
+                new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
         when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(budget));
 
         assertThat(service.list(10L)).containsExactly(budget);
@@ -54,7 +61,8 @@ class BudgetApplicationServiceTest {
 
     @Test
     void calculateSpentQueriesTransactionsForTheBudgetsCategoryAndMonth() {
-        Budget budget = new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500));
+        Budget budget =
+                new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
         when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
                         10L,
                         5L,
@@ -70,7 +78,8 @@ class BudgetApplicationServiceTest {
 
     @Test
     void deleteRemovesBudgetWhenOwned() {
-        Budget budget = new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500));
+        Budget budget =
+                new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
         when(budgetRepositoryPort.findById(1L)).thenReturn(Optional.of(budget));
 
         service.delete(10L, 1L);
@@ -80,7 +89,8 @@ class BudgetApplicationServiceTest {
 
     @Test
     void deleteThrowsWhenBudgetBelongsToAnotherUser() {
-        Budget budget = new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500));
+        Budget budget =
+                new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
         when(budgetRepositoryPort.findById(1L)).thenReturn(Optional.of(budget));
 
         assertThatThrownBy(() -> service.delete(999L, 1L))
@@ -94,5 +104,77 @@ class BudgetApplicationServiceTest {
 
         assertThatThrownBy(() -> service.delete(10L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void createLinksBudgetToOwnedClient() {
+        when(clientRepositoryPort.findById(7L)).thenReturn(Optional.of(ownedClient(7L, 10L)));
+        when(budgetRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Budget created =
+                service.create(10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), 7L);
+
+        assertThat(created.clientId()).isEqualTo(7L);
+    }
+
+    @Test
+    void createThrowsWhenClientBelongsToAnotherUser() {
+        when(clientRepositoryPort.findById(7L)).thenReturn(Optional.of(ownedClient(7L, 999L)));
+
+        assertThatThrownBy(
+                        () ->
+                                service.create(
+                                        10L,
+                                        5L,
+                                        YearMonth.of(2026, 9),
+                                        BigDecimal.valueOf(500),
+                                        7L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(budgetRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void createThrowsWhenClientDoesNotExist() {
+        when(clientRepositoryPort.findById(7L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(
+                        () ->
+                                service.create(
+                                        10L,
+                                        5L,
+                                        YearMonth.of(2026, 9),
+                                        BigDecimal.valueOf(500),
+                                        7L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void calculateSpentRestrictsToTheClientWhenBudgetIsLinked() {
+        Budget budget = new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), 7L);
+        when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
+                        10L,
+                        5L,
+                        7L,
+                        CategoryType.EXPENSE,
+                        LocalDate.of(2026, 9, 1),
+                        LocalDate.of(2026, 10, 1)))
+                .thenReturn(BigDecimal.valueOf(120));
+
+        assertThat(service.calculateSpent(budget)).isEqualByComparingTo("120");
+    }
+
+    private static Client ownedClient(Long id, Long userId) {
+        return new Client(
+                id,
+                userId,
+                "Acme",
+                "a@acme.com",
+                "11999998888",
+                DocumentType.CNPJ,
+                "11444777000161",
+                ClientWorkType.PJ,
+                null,
+                null,
+                true);
     }
 }

@@ -35,6 +35,18 @@ public interface TransactionRepositoryPort {
     BigDecimal sumAmountByUserIdAndCategoryIdAndTypeBetween(
             Long userId, Long categoryId, CategoryType type, LocalDate start, LocalDate end);
 
+    /**
+     * Igual a {@link #sumAmountByUserIdAndCategoryIdAndTypeBetween}, restrito às transações
+     * vinculadas ao cliente informado.
+     */
+    BigDecimal sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
+            Long userId,
+            Long categoryId,
+            Long clientId,
+            CategoryType type,
+            LocalDate start,
+            LocalDate end);
+
     boolean existsByAccountId(Long accountId);
 
     boolean existsByCategoryId(Long categoryId);
