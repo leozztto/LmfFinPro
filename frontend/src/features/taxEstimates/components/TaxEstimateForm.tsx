@@ -81,7 +81,7 @@ export function TaxEstimateForm({ onSuccess }: TaxEstimateFormProps) {
         Estimativa simplificada e educacional — não substitui a orientação de um contador.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Mês de referência" htmlFor="tax-estimate-month" error={errors.referenceMonth?.message}>
           <Input id="tax-estimate-month" type="month" {...register('referenceMonth')} />
         </FormField>

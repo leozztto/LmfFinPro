@@ -139,7 +139,7 @@ export function TransactionList() {
   return (
     <div className="space-y-4">
       <CollapsibleFilters activeCount={activeFiltersCount}>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           <FormField label="Conta" htmlFor="filter-account">
             <Select
               id="filter-account"

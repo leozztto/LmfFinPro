@@ -84,3 +84,12 @@ select:-webkit-autofill {
 .animate-toast-out {
   animation: toast-out 0.25s ease-in forwards;
 }
+
+/* iOS Safari dá zoom automático ao focar campos com fonte menor que 16px; no mobile mantém 16px. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

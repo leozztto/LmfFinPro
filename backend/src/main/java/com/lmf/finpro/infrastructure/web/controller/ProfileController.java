@@ -3,7 +3,9 @@ package com.lmf.finpro.infrastructure.web.controller;
 import com.lmf.finpro.application.auth.AddressCommand;
 import com.lmf.finpro.application.auth.AuthResult;
 import com.lmf.finpro.application.profile.ProfileApplicationService;
+import com.lmf.finpro.application.profile.ProfileApplicationService.PhotoContent;
 import com.lmf.finpro.application.profile.UpdateProfileCommand;
+import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
@@ -13,13 +15,20 @@ import com.lmf.finpro.infrastructure.web.dto.profile.ChangePasswordRequest;
 import com.lmf.finpro.infrastructure.web.dto.profile.ProfileResponse;
 import com.lmf.finpro.infrastructure.web.dto.profile.UpdateProfileRequest;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /** "Meu perfil": sempre o usuário do token — não existe como editar o cadastro de outra pessoa. */
 @RestController
@@ -53,6 +62,36 @@ public class ProfileController {
         return toResponse(updated);
     }
 
+    /** Foto de perfil (JPG, PNG ou WEBP, até 2 MB). Substitui a anterior, se houver. */
+    @PutMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProfileResponse uploadPhoto(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam("file") MultipartFile file) {
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch (IOException e) {
+            throw new AttachmentInvalidException("Não foi possível ler o arquivo enviado.");
+        }
+        return toResponse(profileApplicationService.updatePhoto(currentUser.userId(), content));
+    }
+
+    @DeleteMapping("/photo")
+    public ProfileResponse removePhoto(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return toResponse(profileApplicationService.removePhoto(currentUser.userId()));
+    }
+
+    /** Imagem do próprio usuário; {@code nosniff} impede o navegador de adivinhar outro tipo. */
+    @GetMapping("/photo")
+    public ResponseEntity<byte[]> photo(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        PhotoContent photo = profileApplicationService.getPhoto(currentUser.userId());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photo.contentType()))
+                .header("X-Content-Type-Options", "nosniff")
+                .cacheControl(CacheControl.noStore().cachePrivate())
+                .body(photo.content());
+    }
+
     /** Devolve um token novo: a troca encerra as outras sessões, mas mantém a de quem trocou. */
     @PutMapping("/password")
     public AuthResponse changePassword(
@@ -84,6 +123,7 @@ public class ProfileController {
                                 address.neighborhood(),
                                 address.city(),
                                 address.state()),
+                user.hasPhoto(),
                 user.createdAt());
     }
 

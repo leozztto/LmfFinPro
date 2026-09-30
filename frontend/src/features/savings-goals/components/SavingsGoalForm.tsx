@@ -111,7 +111,7 @@ export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Tipo" htmlFor="goal-type" error={errors.type?.message}>
           <Select id="goal-type" {...register('type')}>
             {Object.entries(GOAL_TYPE_LABELS).map(([value, label]) => (

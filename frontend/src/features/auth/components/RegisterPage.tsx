@@ -62,7 +62,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-900">
+    <div className="flex min-h-dvh flex-col bg-white dark:bg-zinc-900">
       <div className="flex justify-end px-4 pt-4">
         <ThemeToggle />
       </div>
@@ -79,7 +79,7 @@ export function RegisterPage() {
 
               <section className="space-y-4">
                 <h2 className={formSectionTitleClassName}>Segurança</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField label="Senha" htmlFor="password" error={errors.password?.message}>
                     <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
                   </FormField>

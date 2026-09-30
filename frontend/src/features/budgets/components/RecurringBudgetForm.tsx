@@ -48,7 +48,7 @@ export function RecurringBudgetForm({ onSuccess }: RecurringBudgetFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Categoria" htmlFor="recurring-budget-category" error={errors.categoryId?.message}>
           <Select id="recurring-budget-category" defaultValue="" {...register('categoryId')}>
             <option value="" disabled>

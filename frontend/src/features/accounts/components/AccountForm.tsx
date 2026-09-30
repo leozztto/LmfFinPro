@@ -70,7 +70,7 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Nome" htmlFor="account-name" error={errors.name?.message}>
         <Input id="account-name" placeholder="Conta corrente Nubank" {...register('name')} />
       </FormField>

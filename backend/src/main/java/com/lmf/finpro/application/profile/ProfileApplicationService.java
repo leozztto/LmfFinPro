@@ -1,14 +1,20 @@
 package com.lmf.finpro.application.profile;
 
 import com.lmf.finpro.application.auth.AuthResult;
+import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.IncorrectCurrentPasswordException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.model.AttachmentFileType;
 import com.lmf.finpro.domain.model.User;
+import com.lmf.finpro.domain.port.out.FileStoragePort;
 import com.lmf.finpro.domain.port.out.PasswordHasherPort;
 import com.lmf.finpro.domain.port.out.TokenPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,9 +24,16 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProfileApplicationService {
 
+    public static final long MAX_PHOTO_SIZE_BYTES = 2L * 1024 * 1024;
+    private static final Set<AttachmentFileType> PHOTO_TYPES =
+            Set.of(AttachmentFileType.JPEG, AttachmentFileType.PNG, AttachmentFileType.WEBP);
+
+    public record PhotoContent(String contentType, byte[] content) {}
+
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordHasherPort passwordHasherPort;
     private final TokenPort tokenPort;
+    private final FileStoragePort fileStoragePort;
 
     public User getProfile(Long userId) {
         return findUser(userId);
@@ -59,6 +72,64 @@ public class ProfileApplicationService {
                         onlyDigits(command.phone()),
                         command.taxRegime(),
                         command.address().toDomain()));
+    }
+
+    /**
+     * Define a foto de perfil. O formato (JPG, PNG ou WEBP) é reconhecido pelo conteúdo, nunca pelo
+     * nome ou pelo tipo informado pelo navegador. Grava o arquivo novo antes de trocar o registro e
+     * só então apaga o anterior, para nunca deixar o usuário com uma foto quebrada.
+     */
+    @Transactional
+    public User updatePhoto(Long userId, byte[] content) {
+        User user = findUser(userId);
+        if (content == null || content.length == 0) {
+            throw new AttachmentInvalidException("O arquivo enviado está vazio.");
+        }
+        if (content.length > MAX_PHOTO_SIZE_BYTES) {
+            throw new AttachmentInvalidException("A foto é grande demais. O limite é de 2 MB.");
+        }
+        AttachmentFileType fileType =
+                AttachmentFileType.detect(Arrays.copyOf(content, Math.min(content.length, 12)))
+                        .filter(PHOTO_TYPES::contains)
+                        .orElseThrow(
+                                () ->
+                                        new AttachmentInvalidException(
+                                                "Formato não aceito. Envie uma imagem JPG, PNG ou"
+                                                        + " WEBP."));
+
+        String newKey = "profile-" + UUID.randomUUID() + "." + fileType.extension();
+        fileStoragePort.store(newKey, content);
+        String oldKey = user.photoKey();
+        try {
+            User saved = userRepositoryPort.save(user.withPhoto(newKey, fileType.contentType()));
+            if (oldKey != null) {
+                fileStoragePort.delete(oldKey);
+            }
+            return saved;
+        } catch (RuntimeException e) {
+            fileStoragePort.delete(newKey);
+            throw e;
+        }
+    }
+
+    @Transactional
+    public User removePhoto(Long userId) {
+        User user = findUser(userId);
+        if (!user.hasPhoto()) {
+            return user;
+        }
+        String oldKey = user.photoKey();
+        User saved = userRepositoryPort.save(user.withPhoto(null, null));
+        fileStoragePort.delete(oldKey);
+        return saved;
+    }
+
+    public PhotoContent getPhoto(Long userId) {
+        User user = findUser(userId);
+        if (!user.hasPhoto()) {
+            throw new ResourceNotFoundException("Você ainda não tem foto de perfil");
+        }
+        return new PhotoContent(user.photoContentType(), fileStoragePort.load(user.photoKey()));
     }
 
     /**

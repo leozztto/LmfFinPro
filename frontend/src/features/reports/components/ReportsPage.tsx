@@ -26,7 +26,7 @@ export function ReportsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:max-w-md sm:grid-cols-2">
         <FormField label="Tipo de relatório" htmlFor="report-type">
           <Select
             id="report-type"

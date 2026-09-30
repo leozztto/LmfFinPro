@@ -56,7 +56,7 @@ export function RecurringBudgetBatchForm({ onSuccess }: RecurringBudgetBatchForm
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="A partir de" htmlFor="recurring-budget-batch-start" error={errors.startMonth?.message}>
           <Input id="recurring-budget-batch-start" type="month" {...register('startMonth')} />
         </FormField>

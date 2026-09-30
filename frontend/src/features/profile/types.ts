@@ -9,6 +9,8 @@ export interface Profile {
   phone: string | null
   taxRegime: string
   address: AddressPayload | null
+  /** Foto de perfil é opcional; a imagem vem de GET /profile/photo. */
+  hasPhoto: boolean
   createdAt: string
 }
 

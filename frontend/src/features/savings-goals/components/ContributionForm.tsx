@@ -59,7 +59,7 @@ export function ContributionForm({ goal, onSuccess }: ContributionFormProps) {
           ? `O resgate vira uma transferência de ${accountName(goal.accountId)} para ${accountName(goal.fundingAccountId)}.`
           : `O aporte vira uma transferência de ${accountName(goal.fundingAccountId)} para ${accountName(goal.accountId)}.`}
       </p>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Movimentação" htmlFor="contribution-type" error={errors.type?.message}>
           <Select id="contribution-type" {...register('type')}>
             <option value="DEPOSIT">Aporte (guardar)</option>

@@ -14,6 +14,7 @@ public record ProfileResponse(
         String phone,
         TaxRegime taxRegime,
         AddressResponse address,
+        boolean hasPhoto,
         LocalDateTime createdAt) {
 
     public record AddressResponse(

@@ -35,7 +35,7 @@ export function TransferCard({
   const removeButton = <IconButton icon={TrashIcon} label="Remover" onClick={onDelete} disabled={isDeleting} />
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <div className="sm:hidden">
         <div className="flex items-center gap-2">
           <button

@@ -12,7 +12,7 @@ interface AuthPageShellProps {
  *  acima de um box central. */
 export function AuthPageShell({ titlePrefix = '', children }: AuthPageShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-900">
+    <div className="flex min-h-dvh flex-col bg-white dark:bg-zinc-900">
       <div className="flex justify-end px-4 pt-4">
         <ThemeToggle />
       </div>

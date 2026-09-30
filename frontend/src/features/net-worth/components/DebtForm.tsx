@@ -48,7 +48,7 @@ function CreateDebtForm({ onSuccess }: { onSuccess?: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <DebtDetailsFields
         fields={{ name: register('name'), type: register('type'), creditor: register('creditor') }}
         errors={errors}
@@ -100,7 +100,7 @@ function EditDebtForm({ debt, onSuccess }: { debt: NetWorthDebtRow; onSuccess?: 
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <DebtDetailsFields
         fields={{ name: register('name'), type: register('type'), creditor: register('creditor') }}
         errors={errors}

@@ -61,7 +61,7 @@ export function CategoryRulesPanel() {
         sempre tem prioridade sobre elas.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
         <FormField label="Padrão no descritivo" htmlFor="rule-pattern" error={errors.pattern?.message}>
           <Input id="rule-pattern" placeholder="Ex: UBER" {...register('pattern')} />
         </FormField>
