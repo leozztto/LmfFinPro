@@ -6,12 +6,14 @@ import com.lmf.finpro.domain.model.AlertDigest;
 import com.lmf.finpro.domain.model.AlertDigest.BillDue;
 import com.lmf.finpro.domain.model.AlertDigest.BudgetAlert;
 import com.lmf.finpro.domain.model.AlertDigest.DasReminder;
+import com.lmf.finpro.domain.model.AlertDigest.RecurringBudgetExpiring;
 import com.lmf.finpro.domain.model.AlertType;
 import com.lmf.finpro.domain.model.Budget;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.DasSchedule;
 import com.lmf.finpro.domain.model.NotificationPreferences;
+import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.domain.model.SentAlert;
 import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.model.Transaction;
@@ -21,6 +23,7 @@ import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.NotificationPreferencesRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.SentAlertRepositoryPort;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
@@ -38,8 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Monta e envia o resumo diário de alertas: contas a vencer, orçamentos do mês que passaram de 80%
- * ou 100% e o lembrete do DAS. Cada aviso é enviado uma única vez — o que já foi avisado fica em
- * {@code sent_alerts} e não entra nos resumos seguintes.
+ * ou 100%, orçamentos recorrentes perto de expirar e o lembrete do DAS. Cada aviso é enviado uma
+ * única vez — o que já foi avisado fica em {@code sent_alerts} e não entra nos resumos seguintes.
  */
 @Service
 @RequiredArgsConstructor
@@ -54,6 +57,7 @@ public class AlertApplicationService {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final BudgetRepositoryPort budgetRepositoryPort;
     private final BudgetApplicationService budgetApplicationService;
+    private final RecurringBudgetRepositoryPort recurringBudgetRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final TaxEstimateRepositoryPort taxEstimateRepositoryPort;
     private final AlertMailerPort alertMailerPort;
@@ -94,8 +98,13 @@ public class AlertApplicationService {
                 preferences.dasEnabled()
                         ? collectDas(user, today, preferences.billDaysBefore(), toRecord)
                         : null;
+        List<RecurringBudgetExpiring> recurringBudgetsExpiring =
+                preferences.recurringBudgetsEnabled()
+                        ? collectRecurringBudgetsExpiring(
+                                user.id(), YearMonth.from(today), toRecord)
+                        : List.of();
 
-        AlertDigest digest = new AlertDigest(bills, budgets, das);
+        AlertDigest digest = new AlertDigest(bills, budgets, das, recurringBudgetsExpiring);
         if (digest.isEmpty()) {
             return false;
         }
@@ -181,6 +190,37 @@ public class AlertApplicationService {
                             budget.limitValue(),
                             spent,
                             threshold));
+        }
+        return alerts;
+    }
+
+    /**
+     * Orçamentos recorrentes ativos cujo {@code endMonth} é o mês atual ou o próximo — um aviso
+     * único por recorrência e mês final, para o usuário decidir se estende antes dela parar de
+     * lançar. Estender o {@code endMonth} depois de avisado libera um novo aviso mais pra frente,
+     * já que a chave inclui o mês final.
+     */
+    private List<RecurringBudgetExpiring> collectRecurringBudgetsExpiring(
+            Long userId, YearMonth currentMonth, List<SentAlert> toRecord) {
+        List<RecurringBudgetExpiring> alerts = new ArrayList<>();
+        for (RecurringBudget recurrence : recurringBudgetRepositoryPort.findAllByUserId(userId)) {
+            YearMonth endMonth = recurrence.endMonth();
+            if (!recurrence.active() || endMonth == null) {
+                continue;
+            }
+            boolean expiringSoon =
+                    !currentMonth.isBefore(endMonth.minusMonths(1))
+                            && !currentMonth.isAfter(endMonth);
+            if (!expiringSoon) {
+                continue;
+            }
+            String key = recurrence.id() + "-" + endMonth;
+            if (alreadySent(userId, AlertType.RECURRING_BUDGET_EXPIRING, key)) {
+                continue;
+            }
+            alerts.add(
+                    new RecurringBudgetExpiring(categoryName(recurrence.categoryId()), endMonth));
+            toRecord.add(new SentAlert(userId, AlertType.RECURRING_BUDGET_EXPIRING, key));
         }
         return alerts;
     }

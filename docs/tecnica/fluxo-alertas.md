@@ -4,10 +4,11 @@
 
 ## 1. Visão geral
 
-Todo dia de manhã o sistema monta, para cada usuário, um **resumo de alertas** e envia um único e-mail — só quando há algo novo a avisar. São três tipos:
+Todo dia de manhã o sistema monta, para cada usuário, um **resumo de alertas** e envia um único e-mail — só quando há algo novo a avisar. São quatro tipos:
 
 - **Contas a vencer**: despesas `PENDING` (sem transferências) com data entre hoje e hoje + N dias.
 - **Orçamentos do mês**: orçamentos do mês atual cujo gasto passou de **80%** ou de **100%** do limite.
+- **Orçamentos recorrentes perto de expirar**: `RecurringBudget` ativo cujo `endMonth` é o mês atual ou o próximo.
 - **DAS**: para regime MEI ou Simples Nacional, o DAS da competência anterior, que vence no **dia 20**.
 
 Cada aviso é enviado **uma vez só**. O que já foi avisado fica na tabela `sent_alerts` e não entra nos resumos seguintes. O usuário escolhe o que receber em **Configurações > Notificações**.
@@ -16,7 +17,7 @@ Cada aviso é enviado **uma vez só**. O que já foi avisado fica na tabela `sen
 
 **Rota:** `/configuracoes/notificacoes` (`NotificationsPage`, dentro do `SettingsLayout`).
 
-- Três caixas de seleção, uma por tipo de alerta, cada uma com o nome à esquerda, uma descrição curta e o controle à direita (empilhadas também no celular).
+- Quatro caixas de seleção, uma por tipo de alerta, cada uma com o nome à esquerda, uma descrição curta e o controle à direita (empilhadas também no celular).
 - Campo numérico "Avisar com quantos dias de antecedência" (0 a 15; vale para contas e DAS). Fica desabilitado quando contas e DAS estão desligados, já que não teria efeito.
 - O botão "Salvar preferências" só fica ativo quando algo mudou.
 
@@ -35,12 +36,13 @@ flowchart TD
     end
 
     subgraph domain
-        Digest["AlertDigest\n(bills · budgets · das)"]
+        Digest["AlertDigest\n(bills · budgets · recurringBudgetsExpiring · das)"]
         Das["DasSchedule\n(dia 20 do mês seguinte)"]
         Prefs["NotificationPreferences.defaults"]
     end
 
     Service --> Budget
+    Service --> RecBudgetPort["RecurringBudgetRepositoryPort"]
     Service --> Das
     Service --> Digest
     Service --> PrefsPort["NotificationPreferencesRepositoryPort"]
@@ -86,6 +88,7 @@ sequenceDiagram
   - Com gasto ≥ 100% do limite, envia o aviso de 100% e marca também o de 80%. Assim, um orçamento que estourou de uma vez não recebe depois um "passou de 80%".
   - Com gasto ≥ 80% (e o aviso de 80% ainda não enviado), envia o aviso de 80%.
   - Depois do aviso de 100%, aquele orçamento não gera mais nada.
+- **Orçamentos recorrentes perto de expirar**: só recorrências ativas com `endMonth` definido (recorrência sem fim nunca avisa). Avisa quando o mês atual é o próprio `endMonth` ou o mês anterior a ele — uma janela fixa de "este mês ou o próximo é o último". Chave: id da recorrência + `endMonth` (ex.: `12-2026-12`), não só o id — assim, se o usuário estender o `endMonth` depois de avisado, um novo aviso pode sair mais pra frente, para a nova data.
 - **DAS**: só para `TaxRegime.MEI` e `SIMPLES_NACIONAL` (regime do cadastro do usuário).
   - O vencimento é sempre o dia 20 do mês seguinte à competência, sem ajuste para fim de semana ou feriado.
   - O lembrete vai quando o dia 20 cai em [hoje, hoje + `billDaysBefore`].
@@ -102,13 +105,13 @@ sequenceDiagram
 | Camada | Arquivos |
 |---|---|
 | Domínio | `domain/model/{AlertDigest,AlertType,SentAlert,NotificationPreferences,DasSchedule}.java` |
-| Ports | `domain/port/out/{AlertMailerPort,SentAlertRepositoryPort,NotificationPreferencesRepositoryPort}.java`, `UserRepositoryPort.findAllIds` |
+| Ports | `domain/port/out/{AlertMailerPort,SentAlertRepositoryPort,NotificationPreferencesRepositoryPort,RecurringBudgetRepositoryPort}.java`, `UserRepositoryPort.findAllIds` |
 | Aplicação | `application/alert/{AlertApplicationService,NotificationPreferencesApplicationService}.java` |
 | Agendamento | `infrastructure/scheduling/AlertScheduler.java` (cron em `finpro.alerts.cron`, env `FINPRO_ALERTS_CRON`) |
 | E-mail | `infrastructure/mail/{SmtpAlertMailer,LoggingAlertMailer}.java`, `infrastructure/config/{AlertConfig,AlertProperties}.java` |
 | Persistência | `infrastructure/persistence/{entity,repository,adapter}/…NotificationPreferences…`, `…SentAlert…` |
 | API | `infrastructure/web/controller/NotificationPreferencesController.java` (`GET/PUT /api/profile/notifications`) |
-| Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql` |
+| Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql`, `V27__add_recurring_budget_expiring_alert.sql` (toggle + `alert_type` de VARCHAR(20) pra VARCHAR(30), pra caber `RECURRING_BUDGET_EXPIRING`) |
 | Frontend | `frontend/src/features/profile/components/{NotificationsPage,NotificationPreferencesForm}.tsx`, `hooks/useNotificationPreferences.ts` |
 | Testes | `AlertApplicationServiceTest`, `DasScheduleTest`, `integration/alert/AlertIntegrationTest` |
 

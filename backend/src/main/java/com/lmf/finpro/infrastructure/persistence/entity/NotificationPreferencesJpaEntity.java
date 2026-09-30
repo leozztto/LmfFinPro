@@ -27,4 +27,7 @@ public class NotificationPreferencesJpaEntity {
 
     @Column(name = "das_enabled", nullable = false)
     private boolean dasEnabled;
+
+    @Column(name = "recurring_budgets_enabled", nullable = false)
+    private boolean recurringBudgetsEnabled;
 }

@@ -11,4 +11,6 @@ public record NotificationPreferencesRequest(
                 @Max(value = 15, message = "antecedência deve ser de 0 a 15 dias")
                 Integer billDaysBefore,
         @NotNull(message = "budgetsEnabled é obrigatório") Boolean budgetsEnabled,
-        @NotNull(message = "dasEnabled é obrigatório") Boolean dasEnabled) {}
+        @NotNull(message = "dasEnabled é obrigatório") Boolean dasEnabled,
+        @NotNull(message = "recurringBudgetsEnabled é obrigatório")
+                Boolean recurringBudgetsEnabled) {}

@@ -11,13 +11,15 @@ public record NotificationPreferences(
         boolean billsEnabled,
         int billDaysBefore,
         boolean budgetsEnabled,
-        boolean dasEnabled) {
+        boolean dasEnabled,
+        boolean recurringBudgetsEnabled) {
 
     public static final int DEFAULT_BILL_DAYS_BEFORE = 3;
     public static final int MAX_BILL_DAYS_BEFORE = 15;
 
     /** Quem nunca mexeu nas preferências recebe todos os alertas. */
     public static NotificationPreferences defaults(Long userId) {
-        return new NotificationPreferences(userId, true, DEFAULT_BILL_DAYS_BEFORE, true, true);
+        return new NotificationPreferences(
+                userId, true, DEFAULT_BILL_DAYS_BEFORE, true, true, true);
     }
 }

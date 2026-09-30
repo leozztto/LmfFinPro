@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.AlertDigest;
 import com.lmf.finpro.domain.model.AlertDigest.BillDue;
 import com.lmf.finpro.domain.model.AlertDigest.BudgetAlert;
 import com.lmf.finpro.domain.model.AlertDigest.DasReminder;
+import com.lmf.finpro.domain.model.AlertDigest.RecurringBudgetExpiring;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -64,6 +65,18 @@ public class SmtpAlertMailer implements AlertMailerPort {
                                         budget.threshold() >= 100
                                                 ? "limite ultrapassado"
                                                 : "passou de 80% do limite"));
+            }
+            text.append('\n');
+        }
+
+        if (!digest.recurringBudgetsExpiring().isEmpty()) {
+            text.append("Orçamentos recorrentes perto de expirar:\n");
+            for (RecurringBudgetExpiring expiring : digest.recurringBudgetsExpiring()) {
+                text.append(
+                        "  • %s — termina em %s%n"
+                                .formatted(
+                                        expiring.categoryName(),
+                                        expiring.endMonth().format(COMPETENCE)));
             }
             text.append('\n');
         }

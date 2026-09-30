@@ -9,10 +9,17 @@ import java.util.List;
  * Conteúdo do e-mail diário de alertas de um usuário; cada lista só tem o que ainda não foi
  * avisado.
  */
-public record AlertDigest(List<BillDue> bills, List<BudgetAlert> budgets, DasReminder das) {
+public record AlertDigest(
+        List<BillDue> bills,
+        List<BudgetAlert> budgets,
+        DasReminder das,
+        List<RecurringBudgetExpiring> recurringBudgetsExpiring) {
 
     public boolean isEmpty() {
-        return bills.isEmpty() && budgets.isEmpty() && das == null;
+        return bills.isEmpty()
+                && budgets.isEmpty()
+                && das == null
+                && recurringBudgetsExpiring.isEmpty();
     }
 
     public record BillDue(String description, BigDecimal amount, LocalDate dueDate) {}
@@ -27,4 +34,7 @@ public record AlertDigest(List<BillDue> bills, List<BudgetAlert> budgets, DasRem
      * @param estimatedValue valor da estimativa de imposto da competência, se cadastrada
      */
     public record DasReminder(YearMonth competence, LocalDate dueDate, BigDecimal estimatedValue) {}
+
+    /** Orçamento recorrente ativo cujo {@code endMonth} é o mês atual ou o próximo. */
+    public record RecurringBudgetExpiring(String categoryName, YearMonth endMonth) {}
 }

@@ -12,10 +12,11 @@ public class LoggingAlertMailer implements AlertMailerPort {
     public void sendDigest(String toEmail, String userName, AlertDigest digest) {
         log.info(
                 "SMTP não configurado (spring.mail.host) — resumo de alertas para {}: {} conta(s), {}"
-                        + " orçamento(s), DAS: {}",
+                        + " orçamento(s), {} recorrência(s) expirando, DAS: {}",
                 toEmail,
                 digest.bills().size(),
                 digest.budgets().size(),
+                digest.recurringBudgetsExpiring().size(),
                 digest.das() != null);
     }
 }

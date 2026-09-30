@@ -66,17 +66,19 @@ export function NetWorthPage() {
               última cotação), então a variação do câmbio aparece no patrimônio.
             </p>
           )}
-          <NetWorthChart history={netWorth.history} />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <InvestmentsCard netWorth={netWorth} onValue={setValuing} />
-            <DebtsCard
-              netWorth={netWorth}
-              onCreate={() => setCreatingDebt(true)}
-              onEdit={setEditingDebt}
-              onUpdateBalance={setUpdatingDebt}
-            />
+          <div className="space-y-4">
+            <NetWorthChart history={netWorth.history} />
+            <div className="grid gap-3 lg:grid-cols-2">
+              <InvestmentsCard netWorth={netWorth} onValue={setValuing} />
+              <DebtsCard
+                netWorth={netWorth}
+                onCreate={() => setCreatingDebt(true)}
+                onEdit={setEditingDebt}
+                onUpdateBalance={setUpdatingDebt}
+              />
+            </div>
+            <AccountsCard netWorth={netWorth} />
           </div>
-          <AccountsCard netWorth={netWorth} />
         </>
       )}
 
