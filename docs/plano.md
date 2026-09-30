@@ -170,6 +170,7 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 4. Correção manual do usuário (`PUT /api/import-batches/{id}/transactions/{id}`) reforça o peso da regra existente para aquele descritivo, ou cria uma nova regra própria — assim, uma próxima importação com o mesmo descritivo já chega categorizada, e passa a ter prioridade sobre uma eventual regra global para o mesmo padrão
 5. Regras também podem ser cadastradas manualmente, sem depender de uma importação (`CategoryRulesPanel`)
 6. **Regras padrão globais do sistema** — ✅ **feito** (migration `V25__seed_global_category_rules.sql`): ~48 regras com `user_id` nulo (mesmo conceito de "categoria global" que já existia em `Category`), cobrindo transporte, alimentação, mercado, saúde, educação, lazer, assinaturas, moradia, compras e salário (ex.: `"UBER"` → Transporte, `"NETFLIX"` → Lazer). Somente leitura via API — não aparecem para edição/remoção no `CategoryRulesPanel`, só com um selo "padrão do sistema"
+7. **Detecção de duplicidade na reimportação** — ✅ **feito** (migration `V29__add_transaction_time_and_import_duplicate_count.sql`): `Transaction` ganhou `transactionTime` opcional (hora real, capturada do CSV com cabeçalho `date,time,description,amount` ou do `DTPOSTED` do OFX); ao importar, uma linha com a mesma data, hora, descrição e valor de uma transação já existente na conta (ou repetida no próprio arquivo) é pulada e contabilizada em `ImportBatch.duplicateCount`, exibido na lista de importações
 
 ## 9. Módulo freelancer
 

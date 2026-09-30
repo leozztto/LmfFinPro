@@ -36,6 +36,7 @@ public class TransactionWebMapper {
                 transaction.originalAmount(),
                 transaction.baseAmount(),
                 attachmentCount,
-                TagSummaryResponse.of(tags));
+                TagSummaryResponse.of(tags),
+                transaction.transactionTime());
     }
 }

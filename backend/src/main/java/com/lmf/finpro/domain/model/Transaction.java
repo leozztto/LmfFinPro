@@ -3,6 +3,7 @@ package com.lmf.finpro.domain.model;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * @param amount valor na moeda da conta — é o que mexe no saldo dela
@@ -12,6 +13,12 @@ import java.time.LocalDateTime;
  * @param baseAmount valor em reais, usado em todo total que junta contas (dashboard, relatórios,
  *     orçamentos). Na conta em reais é o próprio {@code amount}; nas demais, a conversão pela
  *     cotação do dia da transação, gravada ao salvar
+ * @param transactionTime hora da transação, quando o extrato importado (CSV ou OFX) trouxer esse
+ *     dado; {@code null} em lançamentos manuais, transferências, recorrências e importações sem
+ *     hora. Usado hoje só para detectar duplicidade ao reimportar um extrato — não é editável pela
+ *     tela. Fica ao lado de {@code transactionDate} (que continua {@code LocalDate}) em vez de
+ *     virar um único campo {@code LocalDateTime}, para não tocar toda a lógica que já agrupa por
+ *     mês/dia (orçamento, dashboard, alertas, calendário, relatórios).
  */
 public record Transaction(
         Long id,
@@ -30,7 +37,8 @@ public record Transaction(
         TransactionStatus status,
         Currency originalCurrency,
         BigDecimal originalAmount,
-        BigDecimal baseAmount) {
+        BigDecimal baseAmount,
+        LocalTime transactionTime) {
 
     /** Transação sem moeda estrangeira: o valor em reais é o próprio {@code amount}. */
     public Transaction(
@@ -65,7 +73,8 @@ public record Transaction(
                 status,
                 null,
                 null,
-                amount);
+                amount,
+                null);
     }
 
     /** Transação paga e sem vínculo com recorrência (manual, importada ou de transferência). */
@@ -175,6 +184,7 @@ public record Transaction(
             String description,
             BigDecimal amount,
             LocalDate transactionDate,
+            LocalTime transactionTime,
             CategoryType type,
             Long importBatchId) {
         return new Transaction(
@@ -189,12 +199,19 @@ public record Transaction(
                 TransactionOrigin.IMPORTED,
                 LocalDateTime.now(),
                 null,
-                importBatchId);
+                importBatchId,
+                null,
+                TransactionStatus.PAID,
+                null,
+                null,
+                amount,
+                transactionTime);
     }
 
     /**
      * Novos dados. O valor em reais volta a ser o próprio {@code newAmount}: quem salva a transação
-     * de uma conta em outra moeda converte de novo ({@link #withBaseAmount}).
+     * de uma conta em outra moeda converte de novo ({@link #withBaseAmount}). A hora (quando veio
+     * de uma importação) não muda numa edição manual de categoria/cliente/descrição/valor/data.
      */
     public Transaction withDetails(
             Long newCategoryId,
@@ -220,7 +237,8 @@ public record Transaction(
                 status,
                 originalCurrency,
                 originalAmount,
-                newAmount);
+                newAmount,
+                transactionTime);
     }
 
     public Transaction withStatus(TransactionStatus newStatus) {
@@ -241,7 +259,8 @@ public record Transaction(
                 newStatus,
                 originalCurrency,
                 originalAmount,
-                baseAmount);
+                baseAmount,
+                transactionTime);
     }
 
     /** Moeda e valor da operação feita numa moeda diferente da conta; nulos quando não. */
@@ -263,7 +282,8 @@ public record Transaction(
                 status,
                 newOriginalCurrency,
                 newOriginalAmount,
-                baseAmount);
+                baseAmount,
+                transactionTime);
     }
 
     public Transaction withBaseAmount(BigDecimal newBaseAmount) {
@@ -284,7 +304,8 @@ public record Transaction(
                 status,
                 originalCurrency,
                 originalAmount,
-                newBaseAmount);
+                newBaseAmount,
+                transactionTime);
     }
 
     /**

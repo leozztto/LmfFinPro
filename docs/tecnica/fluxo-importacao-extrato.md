@@ -15,9 +15,9 @@ Duas entidades de domínio sustentam esse fluxo:
 ## 2. Tela
 
 - **Rota:** `/importacoes` (`ImportsPage`), organizada em duas abas (`Tabs`):
-  - **"Importar arquivo"**: `ImportUploadForm` (seleção de conta + arquivo, `accept=".csv,.ofx,text/csv"`; dica: "O formato é detectado pela extensão do arquivo. CSV: cabeçalho `date,description,amount`, data aaaa-mm-dd, valor com ponto decimal, positivo = receita / negativo = despesa. OFX: extrato exportado pelo banco.") seguido de `ImportBatchList`
+  - **"Importar arquivo"**: `ImportUploadForm` (seleção de conta + arquivo, `accept=".csv,.ofx,text/csv"`; dica: "O formato é detectado pela extensão do arquivo. CSV: cabeçalho `date,description,amount` ou, para incluir a hora, `date,time,description,amount` (hora no formato `HH:mm`), data aaaa-mm-dd, valor com ponto decimal, positivo = receita / negativo = despesa. OFX: extrato exportado pelo banco. Uma linha idêntica a uma transação já existente na conta (mesma data, hora, descrição e valor) não é importada de novo.") seguido de `ImportBatchList`
   - **"Regras de categorização"**: `CategoryRulesPanel` (do módulo `categoryRules` — CRUD das regras existentes; ver [`fluxo-categorias.md`](fluxo-categorias.md) pro detalhe desse painel)
-- **`ImportBatchList`**: um card recolhível por lote, mostrando nome do arquivo, um selo de **formato** (CSV/OFX), um selo de status (Pendente/Processando/Concluída/Falhou), um selo de alerta "N sem categoria" quando aplicável, data, conta usada e quantidade de transações. Ao expandir, mostra a `ImportBatchReviewTable` daquele lote.
+- **`ImportBatchList`**: um card recolhível por lote, mostrando nome do arquivo, um selo de **formato** (CSV/OFX), um selo de status (Pendente/Processando/Concluída/Falhou), um selo de alerta "N sem categoria" quando aplicável, um selo "N duplicata(s) ignorada(s)" quando `duplicateCount > 0`, data, conta usada e quantidade de transações. Ao expandir, mostra a `ImportBatchReviewTable` daquele lote.
 - **`ImportBatchReviewTable`**: uma linha por transação importada, com descrição, data, valor (colorido por tipo) e dois `<select>` — categoria e cliente — que disparam a revisão assim que trocados. Transações sem categoria têm a borda do select destacada em âmbar.
 - **Estados:** "Carregando importações...", vazio ("Nenhuma importação realizada ainda."), ou lista populada; dentro da tabela de revisão, "Carregando transações..." e "Nenhuma transação nesta importação."
 - **Ações do usuário:** subir um arquivo (bloqueia o envio no cliente se faltar conta ou arquivo), trocar a categoria/cliente de qualquer transação já importada.
@@ -114,24 +114,30 @@ sequenceDiagram
         Svc->>Svc: cria ImportBatch (status PROCESSING, guarda o format)
         Svc->>RuleRepo: findVisibleToUserOrderByPriorityDesc(userId)
         RuleRepo-->>Svc: regras do usuário (mais confiáveis primeiro)\n+ regras globais do sistema (por último)
+        Svc->>TxRepo: findAllByAccountIds([accountId])
+        TxRepo-->>Svc: transações já existentes na conta\n(monta um Set de chaves\ndata+hora+descrição+valor+tipo)
 
         loop para cada linha/transação do arquivo
             Svc->>Svc: tipo = valor negativo? EXPENSE : INCOME
-            Svc->>Svc: matchCategory(regras, descrição, tipo)\n(1ª regra cujo padrão bate\nE cuja categoria tem o tipo certo)
-            opt achou categoria compatível
-                Svc->>CatRepo: findById (confere se a categoria\nainda existe e é do tipo esperado)
-            end
-            Svc->>TxRepo: save(Transaction.createImported(...))
-            opt conta em moeda estrangeira
-                Svc->>Svc: withBaseAmount(conversão pela PTAX\nda data da transação)
+            alt já existe transação com a mesma\ndata, hora, descrição e valor\n(nessa conta ou já vista neste arquivo)
+                Svc->>Svc: pula a linha, incrementa duplicateCount
+            else linha nova
+                Svc->>Svc: matchCategory(regras, descrição, tipo)\n(1ª regra cujo padrão bate\nE cuja categoria tem o tipo certo)
+                opt achou categoria compatível
+                    Svc->>CatRepo: findById (confere se a categoria\nainda existe e é do tipo esperado)
+                end
+                Svc->>TxRepo: save(Transaction.createImported(...))
+                opt conta em moeda estrangeira
+                    Svc->>Svc: withBaseAmount(conversão pela PTAX\nda data da transação)
+                end
             end
         end
 
-        Svc->>Svc: batch.withStatus(COMPLETED)
+        Svc->>Svc: batch.withStatus(COMPLETED).withDuplicateCount(...)
         Svc-->>Ctrl: ImportBatch
-        Ctrl-->>API: 201 Created (ImportBatchResponse\ncom format/transactionCount/uncategorizedCount)
+        Ctrl-->>API: 201 Created (ImportBatchResponse\ncom format/transactionCount/uncategorizedCount/duplicateCount)
         API-->>Form: sucesso
-        Form-->>U: toast "Importação concluída:\nN transações, M sem categoria."
+        Form-->>U: toast "Importação concluída:\nN transações, M sem categoria, P duplicada(s) ignorada(s)."
     end
 ```
 
@@ -189,21 +195,23 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    Start(["parse(arquivo)"]) --> Header{"1ª linha é exatamente\n\"date,description,amount\"\n(espaços e caixa ignorados)?"}
+    Start(["parse(arquivo)"]) --> Header{"1ª linha é exatamente\n\"date,description,amount\"\nou \"date,time,description,amount\"\n(espaços e caixa ignorados)?"}
     Header -- não --> ErrHeader["ImportFileInvalidException\n(cabeçalho inválido)"]
     Header -- sim --> Loop["Para cada linha seguinte\n(linhas em branco são ignoradas)"]
-    Loop --> Cols{"exatamente 3 colunas?"}
+    Loop --> Cols{"exatamente 3 colunas (sem hora)\nou 4 colunas (com hora)?"}
     Cols -- não --> ErrCols["ImportFileInvalidException\n(linha malformada, com o nº da linha)"]
-    Cols -- sim --> Fields{"data ISO válida (aaaa-mm-dd),\ndescrição não vazia,\nvalor numérico e diferente de zero?"}
+    Cols -- sim --> Fields{"data ISO válida (aaaa-mm-dd),\nhora HH:mm ou HH:mm:ss quando presente\n(célula vazia vira null),\ndescrição não vazia,\nvalor numérico e diferente de zero?"}
     Fields -- não --> ErrFields["ImportFileInvalidException\n(detalha qual campo falhou)"]
-    Fields -- sim --> Row["ParsedRow(data, descrição,\nvalor com sinal original)"]
+    Fields -- sim --> Row["ParsedRow(data, hora,\ndescrição, valor com sinal original)"]
     Row --> Loop
     Loop --> Empty{"nenhuma linha de dados\nno arquivo inteiro?"}
     Empty -- sim --> ErrEmpty["ImportFileInvalidException\n(arquivo sem transações)"]
     Empty -- não --> Done(["List&lt;ParsedRow&gt;"])
 ```
 
-O sinal do valor decide o `CategoryType` (negativo → `EXPENSE`, positivo → `INCOME`) e é descartado depois — `ParsedTransactionRow.signedAmount()` guarda o valor com sinal, mas a `Transaction` salva sempre um valor absoluto (`row.signedAmount().abs()`), com o tipo carregando a informação de direção. `OfxTransactionParser` segue a mesma convenção de saída (`ParsedTransactionRow`), só que lendo blocos `<STMTTRN>...</STMTTRN>` (`<DTPOSTED>`, `<TRNAMT>`, `<MEMO>`/`<NAME>`) em vez de linhas de CSV — o diagrama acima é específico do parser de CSV.
+O sinal do valor decide o `CategoryType` (negativo → `EXPENSE`, positivo → `INCOME`) e é descartado depois — `ParsedTransactionRow.signedAmount()` guarda o valor com sinal, mas a `Transaction` salva sempre um valor absoluto (`row.signedAmount().abs()`), com o tipo carregando a informação de direção. `OfxTransactionParser` segue a mesma convenção de saída (`ParsedTransactionRow`), só que lendo blocos `<STMTTRN>...</STMTTRN>` (`<DTPOSTED>`, `<TRNAMT>`, `<MEMO>`/`<NAME>`) em vez de linhas de CSV — o diagrama acima é específico do parser de CSV. A hora vem de `DTPOSTED` quando o valor tem 14 dígitos ou mais (`HHmmss` nas posições 8-14); com só 8 dígitos (sem hora), ou se essa parte não for um horário válido, `time` fica `null` sem invalidar a linha.
+
+**Detecção de duplicidade:** antes de processar o arquivo, `ImportApplicationService` monta um conjunto com a chave (data, hora, descrição, valor, tipo) de todas as transações já existentes na conta de destino. Cada linha do arquivo cuja chave já está nesse conjunto — seja de uma importação anterior, seja de outra linha do mesmo arquivo — é pulada (não vira `Transaction`) e contabilizada em `ImportBatch.duplicateCount`. Como a hora é opcional, duas transações no mesmo dia, mesma descrição e mesmo valor só são consideradas a mesma transação se a hora também bater (ou se nenhuma das duas tiver hora).
 
 ## 7. Onde cada peça vive no repositório
 

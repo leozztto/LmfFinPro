@@ -3,6 +3,8 @@ package com.lmf.finpro.application.importbatch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +34,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -91,7 +94,8 @@ class ImportApplicationServiceTest {
                                             batch.originalFile(),
                                             batch.format(),
                                             batch.importedAt(),
-                                            batch.status())
+                                            batch.status(),
+                                            batch.duplicateCount())
                                     : batch;
                         });
         CategoryRule rule = new CategoryRule(1L, 10L, "UBER", 5L, 3);
@@ -187,6 +191,92 @@ class ImportApplicationServiceTest {
     }
 
     @Test
+    void importCsvSkipsRowThatExactlyMatchesAnExistingTransaction() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(importBatchRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
+                .thenReturn(List.of());
+        Transaction alreadyImported =
+                Transaction.createImported(
+                        1L,
+                        null,
+                        "Mercado",
+                        BigDecimal.valueOf(100),
+                        LocalDate.of(2026, 9, 1),
+                        null,
+                        CategoryType.EXPENSE,
+                        5L);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(List.of(alreadyImported));
+
+        ImportBatch result =
+                service.importFile(
+                        10L,
+                        1L,
+                        "extrato.csv",
+                        csv("date,description,amount\n2026-09-01,Mercado,-100\n"));
+
+        verify(transactionRepositoryPort, never()).save(any());
+        assertThat(result.duplicateCount()).isEqualTo(1);
+    }
+
+    @Test
+    void importCsvDoesNotSkipWhenOnlyTheTimeDiffers() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(importBatchRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
+                .thenReturn(List.of());
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        Transaction existingAtDifferentTime =
+                Transaction.createImported(
+                        1L,
+                        null,
+                        "Mercado",
+                        BigDecimal.valueOf(100),
+                        LocalDate.of(2026, 9, 1),
+                        LocalTime.of(8, 0),
+                        CategoryType.EXPENSE,
+                        5L);
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(List.of(existingAtDifferentTime));
+
+        ImportBatch result =
+                service.importFile(
+                        10L,
+                        1L,
+                        "extrato.csv",
+                        csv("date,time,description,amount\n2026-09-01,14:00,Mercado,-100\n"));
+
+        verify(transactionRepositoryPort).save(any());
+        assertThat(result.duplicateCount()).isEqualTo(0);
+    }
+
+    @Test
+    void importCsvSkipsARowRepeatedWithinTheSameFile() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(importBatchRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
+                .thenReturn(List.of());
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ImportBatch result =
+                service.importFile(
+                        10L,
+                        1L,
+                        "extrato.csv",
+                        csv(
+                                "date,description,amount\n2026-09-01,Mercado,-100\n2026-09-01,Mercado,-100\n"));
+
+        verify(transactionRepositoryPort, times(1)).save(any());
+        assertThat(result.duplicateCount()).isEqualTo(1);
+    }
+
+    @Test
     void reviewTransactionSucceedsWithoutChangingCategoryOrClient() {
         ImportBatch batch =
                 new ImportBatch(
@@ -196,7 +286,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction existing =
                 new Transaction(
@@ -231,7 +322,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction existing =
                 new Transaction(
@@ -264,7 +356,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction existing =
                 new Transaction(
@@ -310,7 +403,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction existing =
                 new Transaction(
@@ -359,7 +453,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction existing =
                 Transaction.createImported(
@@ -368,6 +463,7 @@ class ImportApplicationServiceTest {
                         "UBER TRIP",
                         BigDecimal.valueOf(45),
                         LocalDate.now(),
+                        null,
                         CategoryType.EXPENSE,
                         1L);
         Transaction existingWithId =
@@ -412,7 +508,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction existing =
                 new Transaction(
@@ -446,7 +543,8 @@ class ImportApplicationServiceTest {
                         "extrato.csv",
                         ImportFormat.CSV,
                         LocalDateTime.now(),
-                        ImportStatus.COMPLETED);
+                        ImportStatus.COMPLETED,
+                        0);
         when(importBatchRepositoryPort.findById(1L)).thenReturn(Optional.of(batch));
         Transaction fromAnotherBatch =
                 new Transaction(

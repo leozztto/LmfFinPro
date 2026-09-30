@@ -41,6 +41,7 @@ public class TransactionPersistenceMapper {
                 .originalCurrency(transaction.originalCurrency())
                 .originalAmount(transaction.originalAmount())
                 .baseAmount(transaction.baseAmount())
+                .transactionTime(transaction.transactionTime())
                 .build();
     }
 
@@ -62,6 +63,7 @@ public class TransactionPersistenceMapper {
                 entity.getStatus(),
                 entity.getOriginalCurrency(),
                 entity.getOriginalAmount(),
-                entity.getBaseAmount());
+                entity.getBaseAmount(),
+                entity.getTransactionTime());
     }
 }

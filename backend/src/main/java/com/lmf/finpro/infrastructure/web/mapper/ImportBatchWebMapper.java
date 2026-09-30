@@ -23,6 +23,7 @@ public class ImportBatchWebMapper {
                 batch.importedAt(),
                 batch.status(),
                 transactions.size(),
-                uncategorizedCount);
+                uncategorizedCount,
+                batch.duplicateCount());
     }
 }

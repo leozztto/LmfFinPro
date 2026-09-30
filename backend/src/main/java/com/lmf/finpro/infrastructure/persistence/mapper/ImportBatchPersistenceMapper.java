@@ -18,6 +18,7 @@ public class ImportBatchPersistenceMapper {
                 .format(importBatch.format())
                 .importedAt(importBatch.importedAt())
                 .status(importBatch.status())
+                .duplicateCount(importBatch.duplicateCount())
                 .build();
     }
 
@@ -29,6 +30,7 @@ public class ImportBatchPersistenceMapper {
                 entity.getOriginalFile(),
                 entity.getFormat(),
                 entity.getImportedAt(),
-                entity.getStatus());
+                entity.getStatus(),
+                entity.getDuplicateCount());
     }
 }
