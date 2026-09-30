@@ -77,6 +77,33 @@ class CategoryRuleIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void listIncludesGlobalRulesSeededBySystemAndTheyCannotBeDeleted() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+
+        ResponseEntity<CategoryRuleResponse[]> listResponse =
+                restTemplate.exchange(
+                        "/api/category-rules",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        CategoryRuleResponse[].class);
+        List<CategoryRuleResponse> rules = List.of(listResponse.getBody());
+        CategoryRuleResponse uberRule =
+                rules.stream()
+                        .filter(rule -> rule.pattern().equals("UBER"))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(uberRule.global()).isTrue();
+
+        ResponseEntity<ApiError> deleteResponse =
+                restTemplate.exchange(
+                        "/api/category-rules/" + uberRule.id(),
+                        HttpMethod.DELETE,
+                        new HttpEntity<>(user.authHeaders()),
+                        ApiError.class);
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void rejectsRuleForCategoryNotOwned() {
         TestUser owner = TestDataFactory.registerRandomUser(restTemplate);
         TestUser intruder = TestDataFactory.registerRandomUser(restTemplate);

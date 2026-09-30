@@ -56,7 +56,7 @@ class CategoryRuleApplicationServiceTest {
     @Test
     void listReturnsRulesOrderedByWeightDescending() {
         CategoryRule rule = new CategoryRule(1L, 10L, "UBER", 5L, 3);
-        when(categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(10L))
+        when(categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(10L))
                 .thenReturn(List.of(rule));
 
         assertThat(service.list(10L)).containsExactly(rule);
@@ -78,6 +78,16 @@ class CategoryRuleApplicationServiceTest {
         when(categoryRuleRepositoryPort.findById(1L)).thenReturn(Optional.of(rule));
 
         assertThatThrownBy(() -> service.delete(999L, 1L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(categoryRuleRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteThrowsWhenRuleIsGlobal() {
+        CategoryRule global = new CategoryRule(1L, null, "UBER", 5L, 1);
+        when(categoryRuleRepositoryPort.findById(1L)).thenReturn(Optional.of(global));
+
+        assertThatThrownBy(() -> service.delete(10L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(categoryRuleRepositoryPort, never()).deleteById(any());
     }

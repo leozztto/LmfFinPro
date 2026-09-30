@@ -22,7 +22,7 @@ public class CategoryRuleApplicationService {
     }
 
     public List<CategoryRule> list(Long currentUserId) {
-        return categoryRuleRepositoryPort.findAllByUserIdOrderByWeightDesc(currentUserId);
+        return categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentUserId);
     }
 
     public void delete(Long currentUserId, Long ruleId) {
