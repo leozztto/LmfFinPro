@@ -10,7 +10,7 @@ export function CollapsibleFilters({ activeCount, children }: CollapsibleFilters
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

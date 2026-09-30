@@ -25,7 +25,7 @@ export function BudgetVsActualReportForm({ format }: { format: ReportFormat }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Mês de referência" htmlFor="budget-vs-actual-month">
         <Input
           id="budget-vs-actual-month"

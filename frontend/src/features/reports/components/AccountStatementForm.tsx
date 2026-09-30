@@ -46,7 +46,7 @@ export function AccountStatementForm({ format }: { format: ReportFormat }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Conta" htmlFor="statement-account">
         <Select id="statement-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
           <option value="" disabled>

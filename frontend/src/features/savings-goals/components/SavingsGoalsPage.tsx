@@ -30,7 +30,7 @@ export function SavingsGoalsPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Metas de economia</h2>
           <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
             Caixinhas com valor-alvo e prazo: reserva de emergência, imposto, férias. Aporte e resgate são
@@ -60,7 +60,7 @@ export function SavingsGoalsPage() {
           Nenhuma meta cadastrada ainda. Crie a primeira no botão acima — que tal uma caixinha do imposto?
         </p>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {goals.map((goal) => (
             <SavingsGoalCard
               key={goal.id}

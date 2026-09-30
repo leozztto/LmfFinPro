@@ -22,6 +22,8 @@ public class UserPersistenceMapper {
                 .address(toEmbeddable(user.address()))
                 .createdAt(user.createdAt())
                 .sessionVersion(user.sessionVersion())
+                .photoKey(user.photoKey())
+                .photoContentType(user.photoContentType())
                 .build();
     }
 
@@ -37,7 +39,9 @@ public class UserPersistenceMapper {
                 entity.getTaxRegime(),
                 toDomain(entity.getAddress()),
                 entity.getCreatedAt(),
-                entity.getSessionVersion());
+                entity.getSessionVersion(),
+                entity.getPhotoKey(),
+                entity.getPhotoContentType());
     }
 
     private AddressEmbeddable toEmbeddable(Address address) {

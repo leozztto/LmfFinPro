@@ -67,7 +67,7 @@ export function BudgetList() {
           </Select>
         </div>
       )}
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {sorted.map((budget) => {
         const category = categoryById.get(budget.categoryId)
         const categoryName = category?.name ?? 'Categoria removida'

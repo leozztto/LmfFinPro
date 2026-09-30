@@ -70,7 +70,7 @@ export function AccountList() {
   return (
     <div className="space-y-4">
       <CollapsibleFilters activeCount={activeFiltersCount}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Nome" htmlFor="filter-name">
             <Input
               id="filter-name"
@@ -108,7 +108,7 @@ export function AccountList() {
           Nenhuma conta encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {filtered.map((account) => (
             <Card key={account.id} className="flex items-end justify-between gap-3">
               <div className="min-w-0">

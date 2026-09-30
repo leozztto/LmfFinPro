@@ -42,7 +42,7 @@ export function TaxEstimateList() {
   const sorted = [...taxEstimates].sort((a, b) => b.referenceMonth.localeCompare(a.referenceMonth))
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {sorted.map((taxEstimate) => {
         const monthLabel = formatMonthLabel(taxEstimate.referenceMonth)
         return (

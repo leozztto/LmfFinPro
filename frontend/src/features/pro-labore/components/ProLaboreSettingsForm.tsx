@@ -208,7 +208,7 @@ function SettingsSection({ title, children }: { title: string; children: ReactNo
   return (
     <fieldset className="space-y-3">
       <legend className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{title}</legend>
-      <div className="grid gap-4 @md:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">{children}</div>
     </fieldset>
   )
 }

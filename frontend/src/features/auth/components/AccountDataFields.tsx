@@ -52,7 +52,7 @@ export function AccountDataFields() {
     <>
       <section className="space-y-4">
         <h2 className={formSectionTitleClassName}>Dados pessoais</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Nome completo" htmlFor="name" error={errors.name?.message}>
             <Input id="name" type="text" autoComplete="name" placeholder="Ana Freelancer" {...register('name')} />
           </FormField>
@@ -64,7 +64,7 @@ export function AccountDataFields() {
 
       <section className="space-y-4">
         <h2 className={formSectionTitleClassName}>Documento e regime</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label="Regime tributário" htmlFor="taxRegime" error={errors.taxRegime?.message}>
             <Select id="taxRegime" {...register('taxRegime')}>
               <option value="" disabled>
@@ -116,7 +116,7 @@ export function AccountDataFields() {
 
       <section className="space-y-4">
         <h2 className={formSectionTitleClassName}>Endereço</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label="CEP" htmlFor="address.zipCode" error={errors.address?.zipCode?.message ?? cepErrorMessage}>
             <Controller
               name="address.zipCode"
@@ -157,7 +157,7 @@ export function AccountDataFields() {
             {...register('address.street')}
           />
         </FormField>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label="Bairro" htmlFor="address.neighborhood" error={errors.address?.neighborhood?.message}>
             <Input
               id="address.neighborhood"

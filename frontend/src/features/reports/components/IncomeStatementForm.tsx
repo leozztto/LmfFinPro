@@ -30,7 +30,7 @@ export function IncomeStatementForm({ format }: { format: ReportFormat }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Ano" htmlFor="income-statement-year">
         <Select id="income-statement-year" value={year} onChange={(e) => setYear(e.target.value)}>
           {YEAR_OPTIONS.map((option) => (

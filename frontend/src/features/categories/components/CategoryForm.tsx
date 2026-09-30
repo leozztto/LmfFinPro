@@ -58,7 +58,7 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Nome" htmlFor="category-name" error={errors.name?.message}>
         <Input id="category-name" placeholder="Consultoria" {...register('name')} />
       </FormField>

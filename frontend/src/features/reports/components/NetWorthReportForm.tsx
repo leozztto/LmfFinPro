@@ -26,7 +26,7 @@ export function NetWorthReportForm({ format }: { format: ReportFormat }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Período" htmlFor="net-worth-months">
         <Select id="net-worth-months" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
           {PERIOD_OPTIONS.map((option) => (

@@ -173,7 +173,7 @@ export function CalendarPage() {
         <StatCard label="Já pago" value={calendar ? formatCurrency(calendar.paidExpense) : '—'} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0">
           {isWaiting ? (
             <div className="h-80 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />

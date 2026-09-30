@@ -66,7 +66,7 @@ export function RecurringTransactionList() {
 
   return (
     <>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {recurrences.map((recurrence) => {
           const badge = statusBadge(recurrence)
           const isIncome = recurrence.type === 'INCOME'

@@ -31,7 +31,7 @@ export function ChangePasswordForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <FormField label="Senha atual" htmlFor="currentPassword" error={errors.currentPassword?.message}>
           <Input id="currentPassword" type="password" autoComplete="current-password" {...register('currentPassword')} />
         </FormField>

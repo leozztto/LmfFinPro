@@ -26,7 +26,7 @@ export function AppLayout() {
   }, [mobileNavOpen])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-white dark:bg-zinc-900">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white dark:bg-zinc-900">
       <header className="z-30 flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
         <div className="flex items-center gap-3">
           <button
@@ -91,9 +91,9 @@ export function AppLayout() {
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="flex min-h-full flex-col">
-            <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+            <div className="mx-auto w-full min-w-0 max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
               <Outlet />
             </div>
             <Footer />

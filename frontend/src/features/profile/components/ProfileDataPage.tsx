@@ -1,6 +1,7 @@
 import { Card } from '@/shared/ui'
 import { useProfile } from '../hooks/useProfile'
 import { ProfileForm } from './ProfileForm'
+import { ProfilePhotoEditor } from './ProfilePhotoEditor'
 
 export function ProfileDataPage() {
   const profile = useProfile()
@@ -14,7 +15,12 @@ export function ProfileDataPage() {
 
       {profile.isPending && <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando...</p>}
       {profile.isError && <p className="text-sm text-red-600">Não foi possível carregar seus dados.</p>}
-      {profile.data && <ProfileForm profile={profile.data} />}
+      {profile.data && (
+        <>
+          <ProfilePhotoEditor name={profile.data.name} hasPhoto={profile.data.hasPhoto} />
+          <ProfileForm profile={profile.data} />
+        </>
+      )}
     </Card>
   )
 }

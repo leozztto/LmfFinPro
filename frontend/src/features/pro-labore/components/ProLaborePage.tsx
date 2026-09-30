@@ -42,7 +42,7 @@ export function ProLaborePage() {
       {summary?.hasBusinessAccounts && (
         <div className="space-y-4">
           <SettingsCard summary={summary} />
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <AvailableCard summary={summary} onPay={() => setIsPaying(true)} />
             <BreakdownCard summary={summary} />
             <WithdrawalsCard summary={summary} />

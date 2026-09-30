@@ -50,6 +50,12 @@ public class UserJpaEntity {
     @Column(name = "session_version", nullable = false)
     private int sessionVersion;
 
+    @Column(name = "photo_key", length = 100)
+    private String photoKey;
+
+    @Column(name = "photo_content_type", length = 50)
+    private String photoContentType;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {
