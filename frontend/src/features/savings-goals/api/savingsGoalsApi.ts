@@ -1,10 +1,18 @@
 import { httpClient } from '@/shared/api/httpClient'
-import type { GoalContribution, GoalContributionInput, SavingsGoal, SavingsGoalInput } from '../types'
+import type {
+  GoalContribution,
+  GoalContributionInput,
+  SavingsGoal,
+  SavingsGoalCreateInput,
+  SavingsGoalUpdateInput,
+} from '../types'
 
 export const savingsGoalsApi = {
   list: () => httpClient.get<SavingsGoal[]>('/savings-goals'),
-  create: (input: SavingsGoalInput) => httpClient.post<SavingsGoal, SavingsGoalInput>('/savings-goals', input),
-  update: (id: number, input: SavingsGoalInput) => httpClient.put<SavingsGoal>(`/savings-goals/${id}`, input),
+  create: (input: SavingsGoalCreateInput) =>
+    httpClient.post<SavingsGoal, SavingsGoalCreateInput>('/savings-goals', input),
+  update: (id: number, input: SavingsGoalUpdateInput) =>
+    httpClient.put<SavingsGoal, SavingsGoalUpdateInput>(`/savings-goals/${id}`, input),
   remove: (id: number) => httpClient.delete(`/savings-goals/${id}`),
   suggestedTaxRate: () => httpClient.get<{ incomeRate: number }>('/savings-goals/suggested-tax-rate'),
   listContributions: (goalId: number) => httpClient.get<GoalContribution[]>(`/savings-goals/${goalId}/contributions`),

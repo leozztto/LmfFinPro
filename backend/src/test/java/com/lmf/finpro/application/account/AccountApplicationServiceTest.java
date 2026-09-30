@@ -19,6 +19,7 @@ import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
+import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
@@ -41,6 +42,7 @@ class AccountApplicationServiceTest {
     @Mock private TransferRepositoryPort transferRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     @Mock private AccountValuationRepositoryPort accountValuationRepositoryPort;
+    @Mock private SavingsGoalRepositoryPort savingsGoalRepositoryPort;
 
     @InjectMocks private AccountApplicationService service;
 
@@ -192,6 +194,18 @@ class AccountApplicationServiceTest {
     }
 
     @Test
+    void reserveAccountLinkedToASavingsGoalCannotChangeItsType() {
+        Account reserve =
+                new Account(1L, 10L, "Caixinha", AccountType.RESERVE, BigDecimal.ZERO, null);
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(reserve));
+        when(savingsGoalRepositoryPort.existsByAccountId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.update(10L, 1L, "Caixinha", AccountType.CHECKING, null))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(accountRepositoryPort, never()).save(any());
+    }
+
+    @Test
     void updateThrowsWhenAccountNotOwned() {
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.empty());
 
@@ -237,6 +251,19 @@ class AccountApplicationServiceTest {
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(existingAccount));
         when(transactionRepositoryPort.existsByAccountId(1L)).thenReturn(false);
         when(transferRepositoryPort.existsByAccountId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(10L, 1L))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(accountRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteThrowsWhenAccountHasLinkedSavingsGoals() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(existingAccount));
+        when(transactionRepositoryPort.existsByAccountId(1L)).thenReturn(false);
+        when(transferRepositoryPort.existsByAccountId(1L)).thenReturn(false);
+        when(recurringTransactionRepositoryPort.existsByAccountId(1L)).thenReturn(false);
+        when(savingsGoalRepositoryPort.existsByAccountId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.delete(10L, 1L))
                 .isInstanceOf(EntityHasLinkedRecordsException.class);

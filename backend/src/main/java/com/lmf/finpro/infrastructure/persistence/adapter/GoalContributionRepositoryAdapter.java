@@ -27,6 +27,7 @@ public class GoalContributionRepositoryAdapter implements GoalContributionReposi
                                 .contributionDate(contribution.contributionDate())
                                 .note(contribution.note())
                                 .createdAt(contribution.createdAt())
+                                .transferId(contribution.transferId())
                                 .build()));
     }
 
@@ -55,6 +56,7 @@ public class GoalContributionRepositoryAdapter implements GoalContributionReposi
                 entity.getAmount(),
                 entity.getContributionDate(),
                 entity.getNote(),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                entity.getTransferId());
     }
 }

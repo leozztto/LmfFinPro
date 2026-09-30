@@ -10,4 +10,5 @@ public record GoalContributionResponse(
         ContributionType type,
         BigDecimal amount,
         LocalDate contributionDate,
-        String note) {}
+        String note,
+        Long transferId) {}

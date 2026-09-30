@@ -164,20 +164,32 @@ flowchart TD
 
 ## 6. Projeção de fluxo de caixa — cálculo (backend, `DashboardAggregator`)
 
-Endpoint `GET /api/dashboard/cash-flow-projection?months=N`, resolvido por `DashboardApplicationService` → `DashboardAggregator.cashFlowProjection(transacoes, saldoAtual, meses)` — método estático, puro, sem dependência de banco (recebe a lista de transações do usuário já carregada pelo service).
+Endpoint `GET /api/dashboard/cash-flow-projection?months=N&scope=`, resolvido por `DashboardApplicationService.getCashFlowProjection` → `DashboardAggregator.cashFlowProjection(transações, saldoAtual, mêsAtual, meses, recorrências)` — método estático, puro, sem dependência de banco (recebe as transações e as `RecurringTransaction` ativas do usuário já carregadas pelo service).
+
+Cada mês futuro soma **duas partes**, não só uma média:
+
+- **Variável**: o líquido real das transações avulsas já cadastradas para o mês, ou, se não houver nenhuma, a **média móvel do líquido dos últimos 3 meses** — calculada só sobre transações que **não** vieram de uma recorrência ativa (senão a recorrência entraria duas vezes: uma pela média, outra pela parte abaixo).
+- **Recorrente**: as ocorrências ainda não lançadas das `RecurringTransaction` ativas que caem naquele mês, pelas datas exatas de cada uma (`pendingRecurringNetByMonth`).
+
+O saldo de partida (`currentBalance`, saldo atual da conta) também é ajustado pelas ocorrências recorrentes pendentes até o fim do **mês atual** (inclusive atrasadas) antes de começar a projetar os meses futuros — assim uma recorrência do dia 28 que ainda não rodou hoje já entra no ponto de partida, em vez de só aparecer na projeção do mês seguinte.
 
 ```mermaid
 flowchart TD
-    Start(["GET /api/dashboard/cash-flow-projection"]) --> Load["DashboardApplicationService\ncarrega transações + saldo atual do usuário"]
-    Load --> Anchor["saldo atual\n(Account.calculateCurrentBalance, sem transações futuras)"]
+    Start(["GET /api/dashboard/cash-flow-projection?months=N&scope="]) --> Load["DashboardApplicationService\ncarrega transações + recorrências ativas\n+ saldo atual do usuário (filtrado por scope, se informado)"]
+    Load --> Split["Separa transações 'variáveis'\n(sem recurringTransactionId de\numa recorrência ativa) das demais"]
+    Split --> Media["Média móvel do líquido\ndas variáveis nos últimos 3 meses"]
+    Split --> Rec["pendingRecurringNetByMonth:\nlíquido das ocorrências ainda não\nlançadas de cada recorrência ativa,\npor mês, até o fim do período"]
+    Media --> Anchor
+    Rec --> Anchor["saldo de partida = saldo atual\n+ recorrências pendentes até o fim do mês atual"]
     Anchor --> Loop["Para cada um dos próximos N meses\n(DashboardAggregator.nextMonths)"]
 
-    Loop --> Check{"Já existem transações\ncadastradas nesse mês futuro?"}
-    Check -- "Sim (recebível/despesa já lançado)" --> Real["líquido = receita − despesa\ndessas transações reais"]
-    Check -- "Não" --> Media["líquido = média móvel do\nlíquido dos últimos 3 meses"]
+    Loop --> Check{"Já existem transações\nvariáveis cadastradas\nnesse mês futuro?"}
+    Check -- "Sim" --> Real["líquido variável = receita − despesa\ndessas transações reais"]
+    Check -- "Não" --> UsaMedia["líquido variável = média móvel"]
 
-    Real --> Acumula["saldo projetado += líquido"]
-    Media --> Acumula
+    Real --> Soma["líquido do mês = líquido variável\n+ líquido recorrente do mês (Rec)"]
+    UsaMedia --> Soma
+    Soma --> Acumula["saldo projetado += líquido do mês"]
     Acumula --> Loop
 
     Loop --> Result["List&lt;CashFlowProjectionPoint&gt;\n(mês, saldo, projected: true)"]
@@ -187,14 +199,14 @@ flowchart TD
     Hook --> Chart["CashFlowProjectionChart\n(Recharts) — histórico linha sólida\n+ projeção linha tracejada"]
 ```
 
-**Por que fica no backend:** o resto do Dashboard (receita x despesa por mês, evolução do saldo, breakdown por categoria/cliente) segue essa mesma convenção desde a migração das agregações do frontend pro backend — toda a lógica de cálculo mora em `DashboardAggregator`, uma classe de domínio pura e testável isoladamente (sem precisar de `@SpringBootTest`), e o frontend só busca e exibe. Isso elimina duplicação de lógica de negócio entre cliente e servidor e garante que qualquer consumidor futuro da API (mobile, outro frontend) tenha a mesma regra de projeção sem reimplementá-la.
+**Por que fica no backend:** o resto do Dashboard (receita x despesa por mês, evolução do saldo, breakdown por categoria/cliente) segue essa mesma convenção desde a migração das agregações do frontend pro backend — toda a lógica de cálculo mora em `DashboardAggregator`, uma classe de domínio pura e testável isoladamente (sem precisar de `@SpringBootTest`), e o frontend só busca e exibe. Isso elimina duplicação de lógica de negócio entre cliente e servidor e garante que qualquer consumidor futuro da API (mobile, outro frontend) tenha a mesma regra de projeção sem reimplementá-la. Ver [`fluxo-dashboard.md`](fluxo-dashboard.md) para o filtro PF/PJ (`scope`) que também se aplica aqui.
 
 ## 7. Onde cada peça vive no repositório
 
 | Camada | Estimativa de imposto | Projeção de fluxo de caixa |
 |---|---|---|
-| Domínio | `domain/model/{TaxEstimate,TaxRegime,TaxRateEstimator}.java` | `domain/model/DashboardAggregator.java` (`cashFlowProjection`) + `domain/model/CashFlowProjectionPoint.java` |
-| Port/Adapter | `domain/port/out/TaxEstimateRepositoryPort.java` + `infrastructure/persistence/adapter/TaxEstimateRepositoryAdapter.java` | — (lê `TransactionRepositoryPort`, sem persistência própria) |
+| Domínio | `domain/model/{TaxEstimate,TaxRegime,TaxRateEstimator}.java` | `domain/model/DashboardAggregator.java` (`cashFlowProjection`, com sobrecarga que recebe `RecurringTransaction`) + `domain/model/CashFlowProjectionPoint.java` |
+| Port/Adapter | `domain/port/out/TaxEstimateRepositoryPort.java` + `infrastructure/persistence/adapter/TaxEstimateRepositoryAdapter.java` | — (lê `TransactionRepositoryPort` + `RecurringTransactionRepositoryPort`, sem persistência própria) |
 | Aplicação | `application/taxestimate/TaxEstimateApplicationService.java` | `application/dashboard/DashboardApplicationService.java` |
 | API | `infrastructure/web/controller/TaxEstimateController.java` (`/api/tax-estimates`) | `infrastructure/web/controller/DashboardController.java` (`/api/dashboard/cash-flow-projection`) |
 | Migration | `db/migration/V10__add_regime_to_tax_estimates.sql` | — |

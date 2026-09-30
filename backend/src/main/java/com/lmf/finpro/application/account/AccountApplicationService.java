@@ -13,6 +13,7 @@ import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
+import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ public class AccountApplicationService {
     private final TransferRepositoryPort transferRepositoryPort;
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     private final AccountValuationRepositoryPort accountValuationRepositoryPort;
+    private final SavingsGoalRepositoryPort savingsGoalRepositoryPort;
 
     public Account create(
             Long currentUserId,
@@ -94,6 +96,12 @@ public class AccountApplicationService {
             throw new EntityHasLinkedRecordsException(
                     "Esta conta de investimento tem valores de mercado informados. Exclua-os antes de mudar o tipo da conta.");
         }
+        if (existing.type() == AccountType.RESERVE
+                && type != AccountType.RESERVE
+                && savingsGoalRepositoryPort.existsByAccountId(accountId)) {
+            throw new EntityHasLinkedRecordsException(
+                    "Esta conta é a conta reserva de uma meta de economia. Exclua a meta antes de mudar o tipo da conta.");
+        }
         return accountRepositoryPort.save(
                 existing.withDetails(
                         name,
@@ -121,6 +129,10 @@ public class AccountApplicationService {
         if (recurringTransactionRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
                     "Esta conta possui lançamentos recorrentes vinculados. Exclua-os antes de remover a conta.");
+        }
+        if (savingsGoalRepositoryPort.existsByAccountId(accountId)) {
+            throw new EntityHasLinkedRecordsException(
+                    "Esta conta possui metas de economia vinculadas. Exclua-as antes de remover a conta.");
         }
         accountRepositoryPort.deleteById(accountId);
     }

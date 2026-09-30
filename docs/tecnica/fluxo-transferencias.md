@@ -18,6 +18,7 @@ Por serem transações "espelhadas" (uma saída = uma entrada, sem gerar receita
 - **Estados:** "Carregando transferências...", vazio ("Nenhuma transferência registrada ainda." / "Nenhuma transferência encontrada com os filtros aplicados."), ou lista populada
 - **Ações do usuário:** criar transferência, remover transferência (com confirmação via `ConfirmContext`, mostra toast de sucesso/erro)
 - **Regra de formulário (client-side):** o `TransferForm` só aparece funcional se o usuário já tiver ao menos duas contas cadastradas — senão mostra um aviso pra cadastrar contas primeiro. O schema Zod (`transferSchema`) já bloqueia no cliente selecionar a mesma conta como origem e destino, mas o backend também valida isso (nunca confia só na validação do formulário).
+- **Entre contas de moedas diferentes**: o campo "Valor" mostra a moeda de origem e um segundo campo "Valor recebido" aparece, pré-preenchido pela cotação PTAX do dia (editável, pra registrar o câmbio efetivo com spread/taxas da remessa) — ver seção 4.1.
 
 ## 3. Arquitetura (hexagonal)
 
@@ -35,10 +36,12 @@ flowchart TD
     subgraph application["application/transfer"]
         Service["TransferApplicationService\ncreate · list · delete"]
         Result["TransferResult\n(Transfer + os 2 ids de transação)"]
+        ExRate["ExchangeRateApplicationService\n(baseAmount entre moedas)"]
+        AttSvc["TransactionAttachmentApplicationService\n(apaga arquivos dos anexos no delete)"]
     end
 
     subgraph domain["domain"]
-        Model["Transfer\n(record + create())"]
+        Model["Transfer\n(record + create(); receivedAmount\nquando as moedas são diferentes)"]
         Tx["Transaction\ncreateForTransfer()"]
         PortT["TransferRepositoryPort"]
         PortTx["TransactionRepositoryPort"]
@@ -61,6 +64,8 @@ flowchart TD
     Service --> PortT
     Service --> PortTx
     Service --> PortAcc
+    Service --> ExRate
+    Service --> AttSvc
     Service --> Result
     PortT -.->|implementa| AdapterT
     PortTx -.->|implementa| AdapterTx
@@ -125,9 +130,13 @@ sequenceDiagram
 
 **Descrição das pernas:** se o usuário não informar uma descrição customizada, o backend gera uma padrão — `"Transferência para <conta destino>"` na perna de saída e `"Transferência de <conta origem>"` na perna de entrada. Se o usuário informar uma descrição, ela é usada nas duas pernas.
 
+### 4.1 Transferência entre moedas diferentes
+
+Quando a conta de origem e a de destino têm moedas diferentes, `amount` (validado contra o saldo da origem) é o valor que sai, na moeda dela, e o request precisa informar também `receivedAmount` — o valor que entra no destino, na moeda dele; sem ele, `TransferApplicationService.create` recusa com `IllegalArgumentException` (400). As duas pernas recebem o **mesmo** `baseAmount` (o valor em reais, convertido pela PTAX do dia via `ExchangeRateApplicationService` quando nenhuma das duas contas é em reais, ou o próprio valor na moeda quando uma delas é BRL), pra continuarem se anulando no saldo consolidado do Dashboard. O frontend sugere `receivedAmount` pela PTAX do dia (editável, é o câmbio efetivo com spread/taxas da remessa) — ver `useConversion` em `TransferForm.tsx`.
+
 ## 5. Exclusão de uma transferência
 
-Excluir a transferência remove as duas transações junto — não existe fluxo pra excluir só uma perna. Isso é garantido no nível do banco: `transactions.transfer_id` tem `ON DELETE CASCADE` pra `transfers.id`, então `TransferRepositoryAdapter.deleteById` só precisa apagar a linha de `transfers`; o Postgres cuida do resto.
+Excluir a transferência remove as duas transações junto — não existe fluxo pra excluir só uma perna. As duas `Transaction` saem em cascata no banco (`transactions.transfer_id` com `ON DELETE CASCADE` pra `transfers.id`, junto com os registros de anexos vinculados a elas), mas os **arquivos** dos anexos não — `TransferApplicationService.delete()` busca as chaves de armazenamento das duas pernas (`TransactionAttachmentApplicationService.storageKeysOf`) *antes* de apagar a transferência, e só depois do `deleteById` apaga os arquivos do disco (`deleteStoredFiles`) — ver [`fluxo-anexos.md`](fluxo-anexos.md).
 
 ```mermaid
 flowchart LR
@@ -136,8 +145,10 @@ flowchart LR
     Confirm -- sim --> Del["DELETE /transfers/{id}"]
     Del --> Check{"Transferência pertence\nao usuário logado?"}
     Check -- não --> NotFound["404\n(mesmo tratamento de\nacesso indevido dos outros módulos)"]
-    Check -- sim --> Cascade["DELETE FROM transfers\n(cascata apaga as 2 transactions)"]
-    Cascade --> Invalidate["Frontend invalida cache de\ntransfers + transactions + accounts"]
+    Check -- sim --> Keys["Busca as chaves de armazenamento\ndos anexos das 2 transações"]
+    Keys --> Cascade["DELETE FROM transfers\n(cascata apaga as 2 transactions\n+ registros de anexos)"]
+    Cascade --> Files["Apaga os arquivos dos anexos\ndo disco (as chaves já foram lidas)"]
+    Files --> Invalidate["Frontend invalida cache de\ntransfers + transactions + accounts"]
 ```
 
 Do lado da tela de **Transações**, uma perna individual de transferência (`transaction.transferId != null`) não pode ser editada nem excluída isoladamente — a UI/API bloqueia essa ação e direciona o usuário a excluir a transferência inteira aqui (ver [`fluxo-transacoes.md`](fluxo-transacoes.md)).
@@ -161,8 +172,8 @@ Esse filtro vive em `DashboardApplicationService.ownedNonTransferTransactions()`
 |---|---|
 | Domínio | `domain/model/Transfer.java` (usa `Transaction.createForTransfer()` de `domain/model/Transaction.java`) |
 | Port/Adapter | `domain/port/out/TransferRepositoryPort.java` + `infrastructure/persistence/adapter/TransferRepositoryAdapter.java` |
-| Aplicação | `application/transfer/{TransferApplicationService,TransferResult}.java` |
-| API | `infrastructure/web/controller/TransferController.java` (`/api/transfers`), DTOs em `infrastructure/web/dto/transfer/`, `infrastructure/web/mapper/TransferWebMapper.java` |
+| Aplicação | `application/transfer/{TransferApplicationService,TransferResult}.java` (+ `ExchangeRateApplicationService`, `TransactionAttachmentApplicationService`) |
+| API | `infrastructure/web/controller/TransferController.java` (`/api/transfers`), DTOs em `infrastructure/web/dto/transfer/` (`TransferRequest`/`TransferResponse` com `receivedAmount`), `infrastructure/web/mapper/TransferWebMapper.java` |
 | Exceções de domínio | `domain/exception/{SameAccountTransferException,InsufficientBalanceException}.java` |
 | Frontend | `frontend/src/features/transfers/**` (`TransfersPage`, `TransferForm`, `TransferList`, `TransferCard`, hooks, `transfersApi`, `schemas.ts`, `types.ts`) |
 | Filtro no Dashboard | `application/dashboard/DashboardApplicationService.java` (`ownedNonTransferTransactions`) |

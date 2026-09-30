@@ -3,17 +3,24 @@ package com.lmf.finpro.application.savingsgoal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.transfer.TransferApplicationService;
+import com.lmf.finpro.application.transfer.TransferResult;
+import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.exception.SameAccountTransferException;
 import com.lmf.finpro.domain.model.Account;
+import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.ContributionType;
+import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.GoalContribution;
 import com.lmf.finpro.domain.model.SavingsGoal;
 import com.lmf.finpro.domain.model.SavingsGoalType;
@@ -21,6 +28,7 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.TransactionStatus;
+import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.GoalContributionRepositoryPort;
@@ -47,12 +55,16 @@ class SavingsGoalApplicationServiceTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 26);
     private static final Long USER_ID = 10L;
     private static final Long GOAL_ID = 1L;
+    private static final Long ACCOUNT_ID = 5L;
+    private static final Long FUNDING_ACCOUNT_ID = 6L;
+    private static final Long TRANSFER_ID = 77L;
 
     @Mock private SavingsGoalRepositoryPort savingsGoalRepositoryPort;
     @Mock private GoalContributionRepositoryPort goalContributionRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private UserRepositoryPort userRepositoryPort;
+    @Mock private TransferApplicationService transferApplicationService;
 
     private SavingsGoalApplicationService service;
 
@@ -65,13 +77,14 @@ class SavingsGoalApplicationServiceTest {
                         accountRepositoryPort,
                         transactionRepositoryPort,
                         userRepositoryPort,
+                        transferApplicationService,
                         Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE));
         lenient()
                 .when(accountRepositoryPort.findAllByUserId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
-                                        5L,
+                                        ACCOUNT_ID,
                                         USER_ID,
                                         "Conta",
                                         AccountType.CHECKING,
@@ -81,12 +94,30 @@ class SavingsGoalApplicationServiceTest {
         lenient()
                 .when(goalContributionRepositoryPort.findAllByGoalId(GOAL_ID))
                 .thenReturn(List.of());
+        // Transferência real por trás de cada aporte/resgate: por padrão, devolve um id fixo com as
+        // contas/valor/data recebidos, pra testes que só precisam de um GoalContribution válido.
+        lenient()
+                .when(transferApplicationService.create(any(), any(), any(), any(), any(), any()))
+                .thenAnswer(
+                        invocation ->
+                                new TransferResult(
+                                        new Transfer(
+                                                TRANSFER_ID,
+                                                USER_ID,
+                                                invocation.getArgument(1),
+                                                invocation.getArgument(2),
+                                                invocation.getArgument(3),
+                                                invocation.getArgument(4),
+                                                invocation.getArgument(5),
+                                                null),
+                                        100L,
+                                        101L));
     }
 
     @Test
     void listSummarizesSavedAmountAndSuggestionFromPaidIncomeOfTheMonth() {
         givenGoal(goal("10000", "0.06"));
-        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(ACCOUNT_ID)))
                 .thenReturn(
                         List.of(
                                 income("5000", TODAY.minusDays(3), TransactionStatus.PAID, null),
@@ -126,6 +157,8 @@ class SavingsGoalApplicationServiceTest {
                                         null))
                 .isInstanceOf(InsufficientBalanceException.class);
         verify(goalContributionRepositoryPort, never()).save(any());
+        verify(transferApplicationService, never())
+                .create(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -145,6 +178,47 @@ class SavingsGoalApplicationServiceTest {
 
         assertThat(saved.amount()).isEqualByComparingTo("50");
         assertThat(saved.note()).isNull();
+        assertThat(saved.transferId()).isEqualTo(TRANSFER_ID);
+    }
+
+    @Test
+    void depositTransfersFromFundingAccountToReserveAccount() {
+        givenGoal(goal("1000", null));
+        when(goalContributionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.addContribution(
+                USER_ID, GOAL_ID, ContributionType.DEPOSIT, new BigDecimal("50"), TODAY, null);
+
+        verify(transferApplicationService)
+                .create(
+                        eq(USER_ID),
+                        eq(FUNDING_ACCOUNT_ID),
+                        eq(ACCOUNT_ID),
+                        eq(new BigDecimal("50")),
+                        eq(TODAY),
+                        eq("Aporte na meta \"Caixinha do imposto\""));
+    }
+
+    @Test
+    void withdrawalTransfersFromReserveAccountToFundingAccount() {
+        givenGoal(goal("1000", null));
+        when(goalContributionRepositoryPort.findAllByGoalId(GOAL_ID))
+                .thenReturn(List.of(contribution(ContributionType.DEPOSIT, "300", TODAY)));
+        when(goalContributionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.addContribution(
+                USER_ID, GOAL_ID, ContributionType.WITHDRAWAL, new BigDecimal("100"), TODAY, null);
+
+        verify(transferApplicationService)
+                .create(
+                        eq(USER_ID),
+                        eq(ACCOUNT_ID),
+                        eq(FUNDING_ACCOUNT_ID),
+                        eq(new BigDecimal("100")),
+                        eq(TODAY),
+                        eq("Resgate da meta \"Caixinha do imposto\""));
     }
 
     @Test
@@ -158,13 +232,25 @@ class SavingsGoalApplicationServiceTest {
 
         assertThatThrownBy(() -> service.deleteContribution(USER_ID, GOAL_ID, 7L))
                 .isInstanceOf(InsufficientBalanceException.class);
-        verify(goalContributionRepositoryPort, never()).deleteById(any());
+        verify(transferApplicationService, never()).delete(any(), any());
+    }
+
+    @Test
+    void deleteContributionDeletesTheLinkedTransfer() {
+        givenGoal(goal("1000", null));
+        GoalContribution deposit = contribution(ContributionType.DEPOSIT, "300", TODAY);
+        when(goalContributionRepositoryPort.findById(7L)).thenReturn(Optional.of(deposit));
+        when(goalContributionRepositoryPort.findAllByGoalId(GOAL_ID)).thenReturn(List.of(deposit));
+
+        service.deleteContribution(USER_ID, GOAL_ID, 7L);
+
+        verify(transferApplicationService).delete(USER_ID, TRANSFER_ID);
     }
 
     @Test
     void applySuggestionCreatesDepositWithTheSuggestedAmount() {
         givenGoal(goal("10000", "0.06"));
-        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(ACCOUNT_ID)))
                 .thenReturn(List.of(income("5000", TODAY, TransactionStatus.PAID, null)));
         when(goalContributionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -191,7 +277,7 @@ class SavingsGoalApplicationServiceTest {
     @Test
     void applyAutomaticContributionIfDueCreatesDepositWithAnAutomaticNote() {
         SavingsGoal goal = goal("10000", "0.06");
-        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(ACCOUNT_ID)))
                 .thenReturn(List.of(income("5000", TODAY, TransactionStatus.PAID, null)));
         when(goalContributionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -228,9 +314,80 @@ class SavingsGoalApplicationServiceTest {
                 new SavingsGoalCommand(
                         "Caixinha", SavingsGoalType.OTHER, BigDecimal.TEN, null, null, true);
 
-        assertThatThrownBy(() -> service.create(USER_ID, command))
+        assertThatThrownBy(() -> service.create(USER_ID, ACCOUNT_ID, FUNDING_ACCOUNT_ID, command))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(savingsGoalRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void createSavesGoalWithTheGivenAccountLinks() {
+        givenAccounts(Currency.BRL, Currency.BRL);
+        when(savingsGoalRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        SavingsGoalCommand command =
+                new SavingsGoalCommand(
+                        "Viagem", SavingsGoalType.VACATION, BigDecimal.TEN, null, null, false);
+
+        SavingsGoalSummary summary =
+                service.create(USER_ID, ACCOUNT_ID, FUNDING_ACCOUNT_ID, command);
+
+        assertThat(summary.goal().accountId()).isEqualTo(ACCOUNT_ID);
+        assertThat(summary.goal().fundingAccountId()).isEqualTo(FUNDING_ACCOUNT_ID);
+    }
+
+    @Test
+    void createRejectsWhenReserveAndFundingAccountsAreTheSame() {
+        SavingsGoalCommand command =
+                new SavingsGoalCommand(
+                        "Viagem", SavingsGoalType.VACATION, BigDecimal.TEN, null, null, false);
+
+        assertThatThrownBy(() -> service.create(USER_ID, ACCOUNT_ID, ACCOUNT_ID, command))
+                .isInstanceOf(SameAccountTransferException.class);
+        verify(savingsGoalRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void createRejectsWhenAccountsHaveDifferentCurrencies() {
+        givenAccounts(Currency.BRL, Currency.USD);
+        SavingsGoalCommand command =
+                new SavingsGoalCommand(
+                        "Viagem", SavingsGoalType.VACATION, BigDecimal.TEN, null, null, false);
+
+        assertThatThrownBy(() -> service.create(USER_ID, ACCOUNT_ID, FUNDING_ACCOUNT_ID, command))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(savingsGoalRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void createRejectsWhenReserveAccountIsNotOfReserveType() {
+        givenAccounts(AccountType.CHECKING, Currency.BRL, Currency.BRL);
+        SavingsGoalCommand command =
+                new SavingsGoalCommand(
+                        "Viagem", SavingsGoalType.VACATION, BigDecimal.TEN, null, null, false);
+
+        assertThatThrownBy(() -> service.create(USER_ID, ACCOUNT_ID, FUNDING_ACCOUNT_ID, command))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(savingsGoalRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void deleteRejectsWhenGoalHasSavedBalance() {
+        givenGoal(goal("1000", null));
+        when(goalContributionRepositoryPort.findAllByGoalId(GOAL_ID))
+                .thenReturn(List.of(contribution(ContributionType.DEPOSIT, "300", TODAY)));
+
+        assertThatThrownBy(() -> service.delete(USER_ID, GOAL_ID))
+                .isInstanceOf(EntityHasLinkedRecordsException.class);
+        verify(savingsGoalRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteSucceedsWhenSavedBalanceIsZero() {
+        givenGoal(goal("1000", null));
+
+        service.delete(USER_ID, GOAL_ID);
+
+        verify(savingsGoalRepositoryPort).deleteById(GOAL_ID);
     }
 
     @Test
@@ -246,7 +403,10 @@ class SavingsGoalApplicationServiceTest {
                                         BigDecimal.TEN,
                                         null,
                                         null,
-                                        null)));
+                                        null,
+                                        false,
+                                        1L,
+                                        2L)));
 
         assertThatThrownBy(() -> service.delete(USER_ID, GOAL_ID))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -258,7 +418,7 @@ class SavingsGoalApplicationServiceTest {
                 .thenReturn(Optional.of(user(TaxRegime.AUTONOMO)));
         // Média de 3000/mês nos 3 meses anteriores → faixa de 15%; a receita do mês atual não
         // conta.
-        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(ACCOUNT_ID)))
                 .thenReturn(
                         List.of(
                                 income("3000", TODAY.minusMonths(1), TransactionStatus.PAID, null),
@@ -288,6 +448,37 @@ class SavingsGoalApplicationServiceTest {
                 .thenReturn(List.of(goal));
     }
 
+    private void givenAccounts(Currency reserveCurrency, Currency fundingCurrency) {
+        givenAccounts(AccountType.RESERVE, reserveCurrency, fundingCurrency);
+    }
+
+    private void givenAccounts(
+            AccountType reserveAccountType, Currency reserveCurrency, Currency fundingCurrency) {
+        lenient()
+                .when(accountRepositoryPort.findById(ACCOUNT_ID))
+                .thenReturn(Optional.of(account(ACCOUNT_ID, reserveAccountType, reserveCurrency)));
+        lenient()
+                .when(accountRepositoryPort.findById(FUNDING_ACCOUNT_ID))
+                .thenReturn(
+                        Optional.of(
+                                account(
+                                        FUNDING_ACCOUNT_ID,
+                                        AccountType.CHECKING,
+                                        fundingCurrency)));
+    }
+
+    private static Account account(Long id, AccountType type, Currency currency) {
+        return new Account(
+                id,
+                USER_ID,
+                "Conta " + id,
+                type,
+                BigDecimal.ZERO,
+                null,
+                AccountScope.PERSONAL,
+                currency);
+    }
+
     private static SavingsGoal goal(String target, String rate) {
         return new SavingsGoal(
                 GOAL_ID,
@@ -297,19 +488,23 @@ class SavingsGoalApplicationServiceTest {
                 new BigDecimal(target),
                 null,
                 rate == null ? null : new BigDecimal(rate),
-                null);
+                null,
+                false,
+                ACCOUNT_ID,
+                FUNDING_ACCOUNT_ID);
     }
 
     private static GoalContribution contribution(
             ContributionType type, String amount, LocalDate date) {
-        return new GoalContribution(7L, GOAL_ID, type, new BigDecimal(amount), date, null, null);
+        return new GoalContribution(
+                7L, GOAL_ID, type, new BigDecimal(amount), date, null, null, TRANSFER_ID);
     }
 
     private static Transaction income(
             String amount, LocalDate date, TransactionStatus status, Long transferId) {
         return new Transaction(
                 null,
-                5L,
+                ACCOUNT_ID,
                 null,
                 null,
                 "Receita",

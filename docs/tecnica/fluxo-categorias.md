@@ -74,6 +74,8 @@ flowchart TD
         Type["CategoryType\n(INCOME/EXPENSE)"]
         Port["CategoryRepositoryPort"]
         TxPort["TransactionRepositoryPort\n(só p/ checar vínculo no delete)"]
+        RecBudgetPort["RecurringBudgetRepositoryPort\n(idem)"]
+        BudgetPort["BudgetRepositoryPort\n(idem — budgets.category_id\né ON DELETE CASCADE, sem\nesta checagem sumiria em silêncio)"]
     end
 
     subgraph infra["infrastructure/persistence"]
@@ -91,6 +93,8 @@ flowchart TD
     Model --> Type
     Service --> Port
     Service --> TxPort
+    Service --> RecBudgetPort
+    Service --> BudgetPort
     Port -.->|implementa| Adapter
     Adapter --> PMapper
     Adapter --> JpaRepo
@@ -140,7 +144,7 @@ sequenceDiagram
     Ctrl-->>API: 200 OK
     API-->>List: invalida cache
 
-    Note over U,DB: Remoção — bloqueada se houver transação vinculada
+    Note over U,DB: Remoção — bloqueada se houver transação, orçamento recorrente ou orçamento vinculado
     U->>List: clica em remover, confirma no ConfirmContext
     List->>API: DELETE /categories/{id}
     API->>Ctrl: delete(id)
@@ -149,16 +153,23 @@ sequenceDiagram
     Svc->>TxRepo: existsByCategoryId(id)
     alt existe transação vinculada
         TxRepo-->>Svc: true
-        Svc-->>Ctrl: EntityHasLinkedRecordsException
+        Svc-->>Ctrl: EntityHasLinkedRecordsException\n("transações vinculadas")
         Ctrl-->>API: 409 Conflict
         API-->>List: toast de erro
-    else sem vínculo
+    else sem transação
         TxRepo-->>Svc: false
-        Svc->>DB: DELETE
-        DB-->>Svc: ok
-        Svc-->>Ctrl: void
-        Ctrl-->>API: 204 No Content
-        API-->>List: invalida cache + toast de sucesso
+        Svc->>Svc: existsByCategoryId em\nRecurringBudgetRepositoryPort,\ndepois em BudgetRepositoryPort
+        alt orçamento recorrente ou orçamento vinculado
+            Svc-->>Ctrl: EntityHasLinkedRecordsException\n("orçamento recorrente/orçamentos vinculados")
+            Ctrl-->>API: 409 Conflict
+            API-->>List: toast de erro
+        else sem nenhum vínculo
+            Svc->>DB: DELETE
+            DB-->>Svc: ok
+            Svc-->>Ctrl: void
+            Ctrl-->>API: 204 No Content
+            API-->>List: invalida cache + toast de sucesso
+        end
     end
 ```
 

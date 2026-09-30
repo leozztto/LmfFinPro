@@ -9,14 +9,8 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * @param incomeRate fração das receitas a separar (0.06 = 6%), opcional
- * @param autoContribute liga a separação automática diária da sugestão (exige {@code incomeRate})
- * @param accountId conta reserva onde o dinheiro guardado fica — fixa depois de criada
- * @param fundingAccountId conta de onde o aporte sai (e para onde o resgate volta) — fixa depois de
- *     criada
- */
-public record SavingsGoalRequest(
+/** Conta reserva e conta de origem não são editáveis depois de criada a meta. */
+public record SavingsGoalUpdateRequest(
         @NotBlank(message = "nome é obrigatório")
                 @Size(max = 100, message = "nome deve ter no máximo 100 caracteres")
                 String name,
@@ -31,6 +25,4 @@ public record SavingsGoalRequest(
         @DecimalMin(value = "0.0", message = "percentual não pode ser negativo")
                 @DecimalMax(value = "1.0", message = "percentual deve ser no máximo 100%")
                 BigDecimal incomeRate,
-        boolean autoContribute,
-        @NotNull(message = "conta reserva é obrigatória") Long accountId,
-        @NotNull(message = "conta de origem é obrigatória") Long fundingAccountId) {}
+        boolean autoContribute) {}

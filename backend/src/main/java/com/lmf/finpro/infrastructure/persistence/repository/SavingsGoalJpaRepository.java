@@ -8,4 +8,6 @@ public interface SavingsGoalJpaRepository extends JpaRepository<SavingsGoalJpaEn
     List<SavingsGoalJpaEntity> findByUserIdOrderByCreatedAtAsc(Long userId);
 
     List<SavingsGoalJpaEntity> findByAutoContributeTrue();
+
+    boolean existsByAccountIdOrFundingAccountId(Long accountId, Long fundingAccountId);
 }

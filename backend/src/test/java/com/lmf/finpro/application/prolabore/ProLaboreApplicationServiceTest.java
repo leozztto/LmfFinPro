@@ -333,7 +333,10 @@ class ProLaboreApplicationServiceTest {
                         new BigDecimal("50000"),
                         null,
                         new BigDecimal("0.10"),
-                        null);
+                        null,
+                        false,
+                        20L,
+                        21L);
         when(savingsGoalRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of(taxBox));
         when(goalContributionRepositoryPort.findAllByGoalId(5L))
                 .thenReturn(
@@ -345,7 +348,8 @@ class ProLaboreApplicationServiceTest {
                                         new BigDecimal("5000"),
                                         TODAY,
                                         null,
-                                        null)));
+                                        null,
+                                        9L)));
 
         ProLaboreSummary summary = service.summary(USER_ID);
 

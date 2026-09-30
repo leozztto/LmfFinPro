@@ -6,9 +6,9 @@ Diferente de um "CRUD de receita/despesa" genérico, o FinPro foca em três cois
 
 - **Importação inteligente**: sobe um CSV/OFX do banco e o sistema categoriza as transações sozinho, aprendendo com as correções do usuário.
 - **Foco em freelancer**: receita organizada por cliente/projeto, estimativa de imposto e projeção de fluxo de caixa irregular.
-- **Base técnica sólida**: arquitetura em camadas, testes automatizados, CI e deploy ao vivo.
+- **Base técnica sólida**: arquitetura em camadas, testes automatizados (backend e frontend), CI no GitHub Actions.
 
-O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/plano.md`](docs/plano.md). O fluxo de estimativa de imposto e projeção de fluxo de caixa, com diagramas, está em [`docs/fluxo-imposto-fluxo-caixa.md`](docs/fluxo-imposto-fluxo-caixa.md).
+O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/plano.md`](docs/plano.md). Cada módulo tem seu próprio fluxo técnico, com diagramas, em `docs/tecnica/` — ex.: [`fluxo-imposto-fluxo-caixa.md`](docs/tecnica/fluxo-imposto-fluxo-caixa.md).
 
 ## Stack
 
@@ -92,4 +92,4 @@ Cria (ou reaproveita, se já existir) o usuário `demo@finpro.app` / `Demo@12345
 
 ## Status
 
-🚧 Em desenvolvimento — MVP em andamento. Veja o roadmap em [`docs/plano.md`](docs/plano.md#11-roadmap-sugerido).
+✅ Escopo de MVP + Fase 2 + Fase 3 concluído (autenticação, importação CSV/OFX, orçamentos e recorrências, alertas, metas de economia, pró-labore, anexos, tags, calendário, patrimônio, multi-moeda, relatórios em PDF/CSV, entre outros). Falta só o deploy real. Veja o detalhamento em [`docs/plano.md`](docs/plano.md#1-status-atual-da-implementação) e o roadmap em [`docs/plano.md`](docs/plano.md#12-roadmap-sugerido-atualizado).
