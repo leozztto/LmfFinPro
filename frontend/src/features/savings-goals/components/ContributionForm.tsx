@@ -5,6 +5,7 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { formatCurrency } from '@/shared/format/currency'
 import { getCurrentIsoDate } from '@/shared/format/date'
+import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useAddContribution } from '../hooks/useSavingsGoals'
 import { contributionSchema, type ContributionFormValues } from '../schemas'
 import type { SavingsGoal } from '../types'
@@ -15,6 +16,7 @@ interface ContributionFormProps {
 }
 
 export function ContributionForm({ goal, onSuccess }: ContributionFormProps) {
+  const { data: accounts } = useAccounts()
   const addContribution = useAddContribution()
   const { showToast } = useToast()
   const {
@@ -30,6 +32,7 @@ export function ContributionForm({ goal, onSuccess }: ContributionFormProps) {
   })
 
   const isWithdrawal = watch('type') === 'WITHDRAWAL'
+  const accountName = (accountId: number) => accounts?.find((account) => account.id === accountId)?.name ?? '—'
 
   async function onSubmit(values: ContributionFormValues) {
     try {
@@ -52,7 +55,9 @@ export function ContributionForm({ goal, onSuccess }: ContributionFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        O valor fica separado só aqui na meta: nenhuma transação é criada e o saldo das contas não muda.
+        {isWithdrawal
+          ? `O resgate vira uma transferência de ${accountName(goal.accountId)} para ${accountName(goal.fundingAccountId)}.`
+          : `O aporte vira uma transferência de ${accountName(goal.fundingAccountId)} para ${accountName(goal.accountId)}.`}
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Movimentação" htmlFor="contribution-type" error={errors.type?.message}>

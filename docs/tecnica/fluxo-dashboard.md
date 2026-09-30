@@ -18,6 +18,8 @@ Toda a agregação (somar transações, calcular saldo mês a mês, projetar flu
 
 A aba ativa fica na URL (parâmetro `aba`), então dá para linkar, voltar pelo navegador e abrir direto. Os atalhos para a aba Clientes usam `CLIENTS_ANALYSIS_PATH` (`features/dashboard/routes.ts`). Cada aba só é montada quando está ativa, então a análise de clientes não é buscada enquanto a Visão geral está aberta.
 
+**Filtro por uso da conta (PF/PJ)**: um `<Select>` ("Filtrar por uso da conta" — Pessoal e empresa / só Pessoal (PF) / só Empresa (PJ)) acima das abas, também guardado na URL (parâmetro `escopo`). Ele filtra a Visão geral inteira — todos os seis hooks recebem o `scope` e repassam como `AccountScope` opcional pra API; sem escolha, o backend agrega as contas de ambos os usos. A aba Clientes não usa esse filtro (a análise de clientes já é por receita, não por conta).
+
 A **Visão geral** é composta por blocos empilhados verticalmente, cada um alimentado por um hook do React Query independente:
 
 0. **Aviso de concentração** (`ConcentrationNotice`): só aparece quando um cliente responde por 50% ou mais da receita dos últimos 12 meses, com link para a aba Clientes. Usa o mesmo `useClientAnalytics(12, false)` da análise.
@@ -29,7 +31,7 @@ A **Visão geral** é composta por blocos empilhados verticalmente, cada um alim
 
 **Estados:** cada bloco de gráfico mostra um placeholder próprio (`Carregando...`, num box tracejado) enquanto seus dados ainda não chegaram — não existe um "loading" de tela inteira. Os `BreakdownChart` também tratam o caso de mês sem nenhuma transação daquele tipo com uma mensagem vazia específica (ex: "Nenhuma despesa registrada neste mês ainda"). `AccountBalanceChart` trata separadamente o caso de nenhuma conta cadastrada.
 
-**Interações:** a tela é somente leitura. Na Visão geral não há filtros, seletor de mês ou edição; os dados refletem sempre o mês corrente (breakdown por categoria/cliente) ou os últimos 6 meses + próximos 3 (séries temporais). Para editar dados, o usuário navega para as telas de Transações, Contas, etc.
+**Interações:** a tela é somente leitura, à parte do filtro de uso da conta descrito acima. Não há seletor de mês ou edição; os dados refletem sempre o mês corrente (breakdown por categoria/cliente) ou os últimos 6 meses + próximos 3 (séries temporais). Para editar dados, o usuário navega para as telas de Transações, Contas, etc.
 
 ## 3. Arquitetura (hexagonal)
 
@@ -44,7 +46,7 @@ flowchart TD
     end
 
     subgraph application["application/dashboard"]
-        Service["DashboardApplicationService\noverview · monthlyFlow · balanceEvolution\ncashFlowProjection · categoryBreakdown · clientBreakdown"]
+        Service["DashboardApplicationService\ngetOverview · getMonthlyFlow · getBalanceEvolution\ngetCashFlowProjection · getCategoryBreakdown · getClientBreakdown\n(todos recebem um AccountScope opcional)"]
     end
 
     subgraph domain["domain/model"]
@@ -52,6 +54,7 @@ flowchart TD
         Points["MonthlyFlowPoint · BalancePoint\nCashFlowProjectionPoint · BreakdownPoint\nDashboardOverview (records)"]
         AccountPort["AccountRepositoryPort"]
         TxPort["TransactionRepositoryPort"]
+        Scope["AccountScope (PERSONAL/BUSINESS)\nfiltra as contas antes de agregar"]
     end
 
     subgraph infra["infrastructure/persistence"]
@@ -62,8 +65,9 @@ flowchart TD
     DB[("accounts, transactions\n(Postgres)")]
 
     Controller --> Service
-    Service -- "busca contas + transações\n(filtra transferências)" --> AccountPort
+    Service -- "busca contas (filtra por scope,\nse informado) + transações\n(filtra transferências)" --> AccountPort
     Service --> TxPort
+    Service --> Scope
     Service -- "delega o cálculo" --> Aggregator
     Aggregator --> Points
     AccountPort -.->|implementa| AccountAdapter
@@ -96,8 +100,8 @@ sequenceDiagram
     U->>Page: navega para "/"
     par 6 requisições em paralelo (React Query)
         Page->>OverviewH: monta
-        OverviewH->>Ctrl: GET /dashboard/overview
-        Ctrl->>Svc: getOverview(userId)
+        OverviewH->>Ctrl: GET /dashboard/overview?scope=
+        Ctrl->>Svc: getOverview(userId, scope)
         Svc->>Agg: monthlyFlow(2) + balanceOverTime(2)
         Agg-->>Svc: pontos
         Svc-->>Ctrl: DashboardOverview
@@ -105,31 +109,31 @@ sequenceDiagram
         OverviewH-->>Page: preenche os 3 StatCard
     and
         Page->>FlowH: monta
-        FlowH->>Ctrl: GET /dashboard/monthly-flow?months=6
+        FlowH->>Ctrl: GET /dashboard/monthly-flow?months=6&scope=
         Ctrl-->>FlowH: 200 OK
         FlowH-->>Page: preenche MonthlyFlowChart
     and
         Page->>BalH: monta
-        BalH->>Ctrl: GET /dashboard/balance-evolution?months=6
+        BalH->>Ctrl: GET /dashboard/balance-evolution?months=6&scope=
         Ctrl-->>BalH: 200 OK
         BalH-->>Page: preenche BalanceEvolutionChart\n+ metade de CashFlowProjectionChart
     and
         Page->>ProjH: monta
-        ProjH->>Ctrl: GET /dashboard/cash-flow-projection?months=3
+        ProjH->>Ctrl: GET /dashboard/cash-flow-projection?months=3&scope=
         Ctrl-->>ProjH: 200 OK
         ProjH-->>Page: completa CashFlowProjectionChart
     and
         Page->>CatH: monta (type=EXPENSE e type=INCOME)
-        CatH->>Ctrl: GET /dashboard/category-breakdown?type&month=atual
+        CatH->>Ctrl: GET /dashboard/category-breakdown?type&month=atual&scope=
         Ctrl-->>CatH: 200 OK
         CatH-->>Page: preenche os 2 BreakdownChart de categoria
     and
         Page->>CliH: monta
-        CliH->>Ctrl: GET /dashboard/client-breakdown?month=atual
+        CliH->>Ctrl: GET /dashboard/client-breakdown?month=atual&scope=
         Ctrl-->>CliH: 200 OK
         CliH-->>Page: preenche BreakdownChart de cliente
     end
-    Note over Page: cada bloco troca seu placeholder\npelo gráfico assim que a própria resposta chega —\nnenhum gráfico espera os outros.
+    Note over Page: cada bloco troca seu placeholder\npelo gráfico assim que a própria resposta chega —\nnenhum gráfico espera os outros.\n"scope=" fica vazio (ambos os usos) a menos\nque o filtro PF/PJ esteja selecionado.
 ```
 
 ## 5. Lógica de cada agregação (`DashboardAggregator`)
@@ -163,7 +167,7 @@ flowchart TD
 | Domínio (cálculo puro) | `domain/model/DashboardAggregator.java` |
 | Domínio (records) | `domain/model/{MonthlyFlowPoint,BalancePoint,CashFlowProjectionPoint,BreakdownPoint,DashboardOverview}.java` |
 | Aplicação | `application/dashboard/DashboardApplicationService.java` |
-| API | `infrastructure/web/controller/DashboardController.java` (`/api/dashboard/{overview,monthly-flow,balance-evolution,cash-flow-projection,category-breakdown,client-breakdown}`) |
+| API | `infrastructure/web/controller/DashboardController.java` (`/api/dashboard/{overview,monthly-flow,balance-evolution,cash-flow-projection,category-breakdown,client-breakdown}`, todos com `scope` opcional) |
 | DTOs/Mapper | `infrastructure/web/dto/dashboard/*.java`, `infrastructure/web/mapper/DashboardWebMapper.java` |
 | Frontend — tela | `../../frontend/src/features/dashboard/components/DashboardPage.tsx` |
 | Frontend — gráficos | `frontend/src/features/dashboard/components/{MonthlyFlowChart,BalanceEvolutionChart,CashFlowProjectionChart,AccountBalanceChart,BreakdownChart}.tsx` |

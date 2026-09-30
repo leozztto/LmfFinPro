@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const accountSchema = z.object({
   name: z.string().min(1, 'nome é obrigatório'),
-  type: z.enum(['CHECKING', 'SAVINGS', 'WALLET', 'INVESTMENT']),
+  type: z.enum(['CHECKING', 'SAVINGS', 'WALLET', 'INVESTMENT', 'RESERVE']),
   initialBalance: z.coerce.number({ invalid_type_error: 'informe um valor numérico' }),
   scope: z.enum(['PERSONAL', 'BUSINESS']).default('PERSONAL'),
   currency: z.enum(['BRL', 'USD', 'EUR']).default('BRL'),

@@ -20,10 +20,22 @@ export const savingsGoalSchema = z
     /** Percentual (0 a 100) na tela; o backend recebe a fração. */
     incomePercent: optionalPercent,
     autoContribute: z.boolean(),
+    // Fixas depois de criada a meta; na edição, vêm preenchidas pela meta existente e não são
+    // exibidas como campo editável.
+    accountId: z.coerce
+      .number({ invalid_type_error: 'selecione a conta reserva' })
+      .positive('selecione a conta reserva'),
+    fundingAccountId: z.coerce
+      .number({ invalid_type_error: 'selecione a conta de origem' })
+      .positive('selecione a conta de origem'),
   })
   .refine((values) => !values.autoContribute || values.incomePercent !== undefined, {
     message: 'defina o percentual para ligar o aporte automático',
     path: ['incomePercent'],
+  })
+  .refine((values) => values.accountId !== values.fundingAccountId, {
+    message: 'a conta reserva e a conta de origem devem ser diferentes',
+    path: ['fundingAccountId'],
   })
 
 export type SavingsGoalFormValues = z.infer<typeof savingsGoalSchema>

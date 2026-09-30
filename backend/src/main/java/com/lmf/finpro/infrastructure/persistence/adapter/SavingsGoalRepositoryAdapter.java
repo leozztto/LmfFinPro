@@ -29,6 +29,8 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
                                 .incomeRate(goal.incomeRate())
                                 .createdAt(goal.createdAt())
                                 .autoContribute(goal.autoContribute())
+                                .accountId(goal.accountId())
+                                .fundingAccountId(goal.fundingAccountId())
                                 .build()));
     }
 
@@ -50,6 +52,11 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
     }
 
     @Override
+    public boolean existsByAccountId(Long accountId) {
+        return repository.existsByAccountIdOrFundingAccountId(accountId, accountId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         repository.deleteById(id);
     }
@@ -64,6 +71,8 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
                 entity.getDeadline(),
                 entity.getIncomeRate(),
                 entity.getCreatedAt(),
-                entity.isAutoContribute());
+                entity.isAutoContribute(),
+                entity.getAccountId(),
+                entity.getFundingAccountId());
     }
 }

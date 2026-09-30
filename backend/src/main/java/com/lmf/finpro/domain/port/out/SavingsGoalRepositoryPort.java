@@ -14,6 +14,9 @@ public interface SavingsGoalRepositoryPort {
     /** Metas com aporte automático ligado, de todos os usuários — usado pelo scheduler diário. */
     List<SavingsGoal> findAllAutoContribute();
 
+    /** Conta usada como reserva ou como origem de aportes por alguma meta. */
+    boolean existsByAccountId(Long accountId);
+
     /** Os aportes da meta são removidos junto (FK ON DELETE CASCADE). */
     void deleteById(Long id);
 }

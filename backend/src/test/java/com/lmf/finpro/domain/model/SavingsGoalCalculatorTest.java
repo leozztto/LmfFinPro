@@ -135,10 +135,13 @@ class SavingsGoalCalculatorTest {
                 new BigDecimal(target),
                 deadline,
                 rate == null ? null : new BigDecimal(rate),
-                null);
+                null,
+                false,
+                5L,
+                6L);
     }
 
     private static GoalContribution contribution(ContributionType type, String amount) {
-        return new GoalContribution(1L, 1L, type, new BigDecimal(amount), TODAY, null, null);
+        return new GoalContribution(1L, 1L, type, new BigDecimal(amount), TODAY, null, null, 9L);
     }
 }

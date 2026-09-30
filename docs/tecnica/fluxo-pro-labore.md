@@ -67,9 +67,11 @@ orçamento = max(0, saldo PJ − contas a pagar − imposto a reservar − colch
 imposto a reservar = max(alíquota × receitas do mês, guardado nas caixinhas do imposto)
 colchão            = despesa média PJ dos 3 meses anteriores × cashCushionMonths
 ```
-O "+ já retirado" existe porque essas transferências já saíram do saldo, mas pertencem ao pró-labore do mês. Na etapa seguinte elas são descontadas uma única vez. O imposto usa o maior dos dois valores porque a caixinha é virtual: o dinheiro dela continua no saldo.
+O "+ já retirado" existe porque essas transferências já saíram do saldo, mas pertencem ao pró-labore do mês. Na etapa seguinte elas são descontadas uma única vez. O imposto usa o maior dos dois valores (alíquota × receita, ou o que já está guardado na caixinha) para nunca reservar menos do que o usuário já separou de propósito.
 
 **Alíquota do imposto da empresa**: no modo `MANUAL`, a informada. No `AUTOMATIC`, a da caixinha do imposto (`SavingsGoal` do tipo `TAX_RESERVE` com percentual) ou, sem ela, `TaxRateEstimator.suggestRate(regime, receita PJ do mês)`.
+
+**Limitação conhecida**: desde que aportes/resgates de meta viraram transferências reais entre uma conta reserva e uma conta de origem (ver [`fluxo-metas.md`](fluxo-metas.md)), essa conta só continua "dentro" do `businessBalance` se a **conta reserva** da caixinha do imposto também for PJ. `SavingsGoal` não valida o uso (PF/PJ) das contas que escolhe. Se a conta reserva for PF, o dinheiro sai de `businessBalance` de verdade (saldo PJ já cai) e ainda assim é subtraído de novo como "guardado" na fórmula acima — reserva em dobro, deixando o disponível pra retirada menor do que devia. Não há checagem cruzada entre os dois módulos hoje.
 
 ### 4.2 Encargos (`PayrollTaxCalculator`, valores de referência de 2026)
 - **Retenção**: `ProLaboreWithholdingMode.AUTOMATIC` liga para `SIMPLES_NACIONAL` e `LUCRO_PRESUMIDO`; `ENABLED` e `DISABLED` forçam.

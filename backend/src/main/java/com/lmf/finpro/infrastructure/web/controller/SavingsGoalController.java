@@ -10,6 +10,7 @@ import com.lmf.finpro.infrastructure.web.dto.savingsgoal.GoalContributionRequest
 import com.lmf.finpro.infrastructure.web.dto.savingsgoal.GoalContributionResponse;
 import com.lmf.finpro.infrastructure.web.dto.savingsgoal.SavingsGoalRequest;
 import com.lmf.finpro.infrastructure.web.dto.savingsgoal.SavingsGoalResponse;
+import com.lmf.finpro.infrastructure.web.dto.savingsgoal.SavingsGoalUpdateRequest;
 import com.lmf.finpro.infrastructure.web.dto.savingsgoal.SuggestedTaxRateResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -45,7 +46,11 @@ public class SavingsGoalController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody SavingsGoalRequest request) {
         SavingsGoalSummary created =
-                savingsGoalApplicationService.create(currentUser.userId(), toCommand(request));
+                savingsGoalApplicationService.create(
+                        currentUser.userId(),
+                        request.accountId(),
+                        request.fundingAccountId(),
+                        toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
@@ -53,7 +58,7 @@ public class SavingsGoalController {
     public SavingsGoalResponse update(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long id,
-            @Valid @RequestBody SavingsGoalRequest request) {
+            @Valid @RequestBody SavingsGoalUpdateRequest request) {
         return toResponse(
                 savingsGoalApplicationService.update(currentUser.userId(), id, toCommand(request)));
     }
@@ -117,6 +122,16 @@ public class SavingsGoalController {
                 request.autoContribute());
     }
 
+    private SavingsGoalCommand toCommand(SavingsGoalUpdateRequest request) {
+        return new SavingsGoalCommand(
+                request.name(),
+                request.type(),
+                request.targetAmount(),
+                request.deadline(),
+                request.incomeRate(),
+                request.autoContribute());
+    }
+
     private SavingsGoalResponse toResponse(SavingsGoalSummary summary) {
         SavingsGoal goal = summary.goal();
         return new SavingsGoalResponse(
@@ -131,7 +146,9 @@ public class SavingsGoalController {
                 summary.monthlyNeeded(),
                 summary.monthPaidIncome(),
                 summary.suggestedContribution(),
-                goal.autoContribute());
+                goal.autoContribute(),
+                goal.accountId(),
+                goal.fundingAccountId());
     }
 
     private GoalContributionResponse toResponse(GoalContribution contribution) {
@@ -141,6 +158,7 @@ public class SavingsGoalController {
                 contribution.type(),
                 contribution.amount(),
                 contribution.contributionDate(),
-                contribution.note());
+                contribution.note(),
+                contribution.transferId());
     }
 }

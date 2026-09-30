@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Checkbox, FormField, Input, Select } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
+import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCreateSavingsGoal, useSuggestedTaxRate, useUpdateSavingsGoal } from '../hooks/useSavingsGoals'
 import { savingsGoalSchema, type SavingsGoalFormValues } from '../schemas'
-import type { SavingsGoal, SavingsGoalInput } from '../types'
+import type { SavingsGoal, SavingsGoalCreateInput, SavingsGoalUpdateInput } from '../types'
 import { GOAL_TYPE_LABELS, formatPercent, percentToRate, rateToPercent } from '../utils'
 
 interface SavingsGoalFormProps {
@@ -24,10 +25,13 @@ function toFormValues(goal?: SavingsGoal): Partial<SavingsGoalFormValues> {
     deadline: goal.deadline ?? '',
     incomePercent: goal.incomeRate === null ? undefined : rateToPercent(goal.incomeRate),
     autoContribute: goal.autoContribute,
+    accountId: goal.accountId,
+    fundingAccountId: goal.fundingAccountId,
   }
 }
 
 export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
+  const { data: accounts } = useAccounts()
   const createGoal = useCreateSavingsGoal()
   const updateGoal = useUpdateSavingsGoal()
   const { showToast } = useToast()
@@ -60,19 +64,30 @@ export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
   const isPending = createGoal.isPending || updateGoal.isPending
 
   async function onSubmit(values: SavingsGoalFormValues) {
-    const input: SavingsGoalInput = {
-      name: values.name,
-      type: values.type,
-      targetAmount: values.targetAmount,
-      deadline: values.deadline ? values.deadline : null,
-      incomeRate: values.incomePercent === undefined ? null : percentToRate(values.incomePercent),
-      autoContribute: values.autoContribute,
-    }
+    const incomeRate = values.incomePercent === undefined ? null : percentToRate(values.incomePercent)
     try {
       if (goal) {
+        const input: SavingsGoalUpdateInput = {
+          name: values.name,
+          type: values.type,
+          targetAmount: values.targetAmount,
+          deadline: values.deadline ? values.deadline : null,
+          incomeRate,
+          autoContribute: values.autoContribute,
+        }
         await updateGoal.mutateAsync({ id: goal.id, input })
         showToast('Meta atualizada com sucesso.', 'success')
       } else {
+        const input: SavingsGoalCreateInput = {
+          name: values.name,
+          type: values.type,
+          targetAmount: values.targetAmount,
+          deadline: values.deadline ? values.deadline : null,
+          incomeRate,
+          autoContribute: values.autoContribute,
+          accountId: values.accountId,
+          fundingAccountId: values.fundingAccountId,
+        }
         await createGoal.mutateAsync(input)
         showToast('Meta criada com sucesso.', 'success')
       }
@@ -80,6 +95,18 @@ export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'Não foi possível salvar a meta.')
     }
+  }
+
+  const accountName = (accountId: number) => accounts?.find((account) => account.id === accountId)?.name ?? '—'
+  const reserveAccounts = accounts?.filter((account) => account.type === 'RESERVE') ?? []
+
+  if (!goal && (reserveAccounts.length === 0 || !accounts || accounts.length < 2)) {
+    return (
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        Cadastre ao menos uma conta do tipo "Conta reserva", onde o dinheiro guardado fica, e outra conta, de onde o
+        aporte sai, para criar uma meta.
+      </p>
+    )
   }
 
   return (
@@ -103,6 +130,55 @@ export function SavingsGoalForm({ goal, onSuccess }: SavingsGoalFormProps) {
         <FormField label="Prazo (opcional)" htmlFor="goal-deadline" error={errors.deadline?.message}>
           <Input id="goal-deadline" type="date" {...register('deadline')} />
         </FormField>
+
+        {goal ? (
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg bg-zinc-100 p-3 text-sm dark:bg-zinc-800 sm:col-span-2">
+            <div className="min-w-0">
+              <dt className="text-xs text-zinc-500 dark:text-zinc-400">Conta reserva</dt>
+              <dd className="truncate text-zinc-800 dark:text-zinc-100">{accountName(goal.accountId)}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs text-zinc-500 dark:text-zinc-400">Conta de origem dos aportes</dt>
+              <dd className="truncate text-zinc-800 dark:text-zinc-100">{accountName(goal.fundingAccountId)}</dd>
+            </div>
+          </dl>
+        ) : (
+          <>
+            <FormField label="Conta reserva" htmlFor="goal-account" error={errors.accountId?.message}>
+              <Select id="goal-account" defaultValue="" {...register('accountId')}>
+                <option value="" disabled>
+                  Selecione...
+                </option>
+                {reserveAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField
+              label="Conta de origem dos aportes"
+              htmlFor="goal-funding-account"
+              error={errors.fundingAccountId?.message}
+            >
+              <Select id="goal-funding-account" defaultValue="" {...register('fundingAccountId')}>
+                <option value="" disabled>
+                  Selecione...
+                </option>
+                {accounts?.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-2">
+              Onde o dinheiro fica guardado e de onde ele sai a cada aporte. Várias metas podem usar a mesma conta
+              reserva. Não muda depois de criada a meta.
+            </p>
+          </>
+        )}
+
         <div className="sm:col-span-2">
           <FormField
             label="Separar das receitas, em % (opcional)"

@@ -33,8 +33,8 @@ export function SavingsGoalsPage() {
         <div>
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Metas de economia</h2>
           <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">
-            Caixinhas com valor-alvo e prazo: reserva de emergência, imposto, férias. O dinheiro fica separado só aqui,
-            sem mexer no saldo das contas.
+            Caixinhas com valor-alvo e prazo: reserva de emergência, imposto, férias. Aporte e resgate são
+            transferências reais entre a conta reserva e a conta de origem que você escolher ao criar a meta.
           </p>
         </div>
         <Button onClick={() => setModal({ kind: 'create' })} aria-label="Nova meta" title="Nova meta" className="px-3">
