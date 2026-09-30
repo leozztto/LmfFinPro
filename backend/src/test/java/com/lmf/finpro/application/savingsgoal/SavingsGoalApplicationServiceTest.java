@@ -189,6 +189,51 @@ class SavingsGoalApplicationServiceTest {
     }
 
     @Test
+    void applyAutomaticContributionIfDueCreatesDepositWithAnAutomaticNote() {
+        SavingsGoal goal = goal("10000", "0.06");
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(5L)))
+                .thenReturn(List.of(income("5000", TODAY, TransactionStatus.PAID, null)));
+        when(goalContributionRepositoryPort.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.applyAutomaticContributionIfDue(goal);
+
+        ArgumentCaptor<GoalContribution> captor = ArgumentCaptor.forClass(GoalContribution.class);
+        verify(goalContributionRepositoryPort).save(captor.capture());
+        assertThat(captor.getValue().amount()).isEqualByComparingTo("300");
+        assertThat(captor.getValue().note())
+                .isEqualTo("Separação automática de 6% das receitas recebidas em 09/2026");
+    }
+
+    @Test
+    void applyAutomaticContributionIfDueDoesNothingSilentlyWhenThereIsNothingToSeparate() {
+        SavingsGoal goal = goal("10000", "0.06");
+
+        service.applyAutomaticContributionIfDue(goal);
+
+        verify(goalContributionRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void findAllAutoContributeDelegatesToRepository() {
+        SavingsGoal goal = goal("10000", "0.06");
+        when(savingsGoalRepositoryPort.findAllAutoContribute()).thenReturn(List.of(goal));
+
+        assertThat(service.findAllAutoContribute()).containsExactly(goal);
+    }
+
+    @Test
+    void createThrowsWhenAutoContributeIsOnWithoutIncomeRate() {
+        SavingsGoalCommand command =
+                new SavingsGoalCommand(
+                        "Caixinha", SavingsGoalType.OTHER, BigDecimal.TEN, null, null, true);
+
+        assertThatThrownBy(() -> service.create(USER_ID, command))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(savingsGoalRepositoryPort, never()).save(any());
+    }
+
+    @Test
     void goalOfAnotherUserIsNotFound() {
         when(savingsGoalRepositoryPort.findById(GOAL_ID))
                 .thenReturn(

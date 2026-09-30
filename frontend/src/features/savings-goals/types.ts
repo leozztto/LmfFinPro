@@ -19,6 +19,8 @@ export interface SavingsGoal {
   monthPaidIncome: number
   /** Quanto separar agora pelo percentual da meta; null quando a meta não tem percentual. */
   suggestedContribution: number | null
+  /** Quando ligado, o sistema separa a sugestão automaticamente uma vez por dia. */
+  autoContribute: boolean
 }
 
 export interface SavingsGoalInput {
@@ -27,6 +29,7 @@ export interface SavingsGoalInput {
   targetAmount: number
   deadline: string | null
   incomeRate: number | null
+  autoContribute: boolean
 }
 
 export interface GoalContribution {

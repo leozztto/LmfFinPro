@@ -11,6 +11,7 @@ import java.time.LocalDate;
 
 /**
  * @param incomeRate fração das receitas a separar (0.06 = 6%), opcional
+ * @param autoContribute liga a separação automática diária da sugestão (exige {@code incomeRate})
  */
 public record SavingsGoalRequest(
         @NotBlank(message = "nome é obrigatório")
@@ -26,4 +27,16 @@ public record SavingsGoalRequest(
         LocalDate deadline,
         @DecimalMin(value = "0.0", message = "percentual não pode ser negativo")
                 @DecimalMax(value = "1.0", message = "percentual deve ser no máximo 100%")
-                BigDecimal incomeRate) {}
+                BigDecimal incomeRate,
+        boolean autoContribute) {
+
+    /** Compatibilidade com clientes anteriores ao aporte automático: nasce desligado. */
+    public SavingsGoalRequest(
+            String name,
+            SavingsGoalType type,
+            BigDecimal targetAmount,
+            LocalDate deadline,
+            BigDecimal incomeRate) {
+        this(name, type, targetAmount, deadline, incomeRate, false);
+    }
+}
