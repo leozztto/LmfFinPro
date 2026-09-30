@@ -150,3 +150,20 @@ sequenceDiagram
 | Migration | `db/migration/` (tabela `budgets`, ver `V*__*.sql` correspondente) |
 | Frontend | `frontend/src/features/budgets/**` (`BudgetsPage`, `BudgetForm`, `BudgetList`, `hooks/{useBudgets,useCreateBudget,useDeleteBudget}.ts`, `api/budgetsApi.ts`, `schemas.ts`, `types.ts`) |
 | Testes | `backend/src/test/java/.../integration/budget/BudgetIntegrationTest.java` + `application/budget/BudgetApplicationServiceTest.java` |
+
+## 6. Orçamentos recorrentes (`RecurringBudget`)
+
+Um `RecurringBudget` é um "molde" que gera um `Budget` de verdade a cada mês vencido, para uma categoria fixa (imutável após criado): conta, tipo e mês inicial não mudam depois — só `limitValue`, `endMonth` e `active` são editáveis. `generatedMonths` é um contador (não uma data), e o próximo mês a gerar é sempre `startMonth + generatedMonths`, mesma convenção de `RecurringTransaction` e `RecurringBudgetScheduler`. Criar uma recorrência com `startMonth` no passado já lança na hora todos os `Budget` vencidos até o mês atual; se já existir um orçamento manual para aquele par categoria/mês, o mês é pulado sem duplicar (mas ainda conta como gerado). A tela fica em **Recorrências → aba Orçamentos** (`/recorrencias?aba=orcamentos`), não em `/orcamentos` — ver observação em [`docs/plano.md`](../plano.md) sobre essa descoberta pouco óbvia.
+
+**Criação em lote (`POST /api/recurring-budgets/batch`):** em vez de cadastrar uma recorrência de cada vez, o botão "Criar em lote" abre um formulário com uma linha por categoria (`useFieldArray`) e um período único (`startMonth`/`endMonth` compartilhados por todas). `RecurringBudgetApplicationService.createBatch` valida o período uma vez, rejeita categoria repetida no mesmo lote (`IllegalArgumentException`, 400) e cria uma `RecurringBudget` por item — tudo numa única transação (`@Transactional`), então uma categoria inválida no meio da lista reverte as que já tinham sido criadas antes dela. `create` (individual) e `createBatch` compartilham o mesmo método privado `createOne`, então o comportamento de geração retroativa é idêntico nos dois fluxos.
+
+| Camada | Arquivo |
+|---|---|
+| Domínio | `domain/model/RecurringBudget.java` |
+| Port/Adapter | `domain/port/out/RecurringBudgetRepositoryPort.java` + `infrastructure/persistence/adapter/RecurringBudgetRepositoryAdapter.java` |
+| Aplicação | `application/recurringbudget/{RecurringBudgetApplicationService,CategoryLimit}.java` |
+| API | `infrastructure/web/controller/RecurringBudgetController.java` (`/api/recurring-budgets`, `/batch`), DTOs em `infrastructure/web/dto/recurringbudget/` |
+| Scheduler | `infrastructure/scheduling/RecurringBudgetScheduler.java` (roda `generateDueBudgets` diariamente para as recorrências ativas) |
+| Migration | `db/migration/V24__create_recurring_budgets.sql` |
+| Frontend | `frontend/src/features/budgets/components/{RecurringBudgetForm,RecurringBudgetBatchForm,RecurringBudgetList,RecurringBudgetEditForm}.tsx`, `hooks/{useRecurringBudgets,useCreateRecurringBudget,useCreateRecurringBudgetBatch,useUpdateRecurringBudget,useDeleteRecurringBudget}.ts`, renderizado dentro de `frontend/src/features/recurringTransactions/components/RecurringTransactionsPage.tsx` |
+| Testes | `application/recurringbudget/RecurringBudgetApplicationServiceTest.java`, `domain/model/RecurringBudgetTest.java`, `integration/recurringbudget/RecurringBudgetIntegrationTest.java` |

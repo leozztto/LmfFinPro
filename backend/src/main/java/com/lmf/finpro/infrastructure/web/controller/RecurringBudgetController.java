@@ -1,8 +1,10 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
+import com.lmf.finpro.application.recurringbudget.CategoryLimit;
 import com.lmf.finpro.application.recurringbudget.RecurringBudgetApplicationService;
 import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
+import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetBatchRequest;
 import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetRequest;
 import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetResponse;
 import com.lmf.finpro.infrastructure.web.dto.recurringbudget.RecurringBudgetUpdateRequest;
@@ -43,6 +45,21 @@ public class RecurringBudgetController {
                         request.startMonth(),
                         request.endMonth());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<List<RecurringBudgetResponse>> createBatch(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody RecurringBudgetBatchRequest request) {
+        List<CategoryLimit> items =
+                request.items().stream()
+                        .map(item -> new CategoryLimit(item.categoryId(), item.limitValue()))
+                        .toList();
+        List<RecurringBudget> created =
+                recurringBudgetApplicationService.createBatch(
+                        currentUser.userId(), request.startMonth(), request.endMonth(), items);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(created.stream().map(mapper::toResponse).toList());
     }
 
     @PutMapping("/{id}")

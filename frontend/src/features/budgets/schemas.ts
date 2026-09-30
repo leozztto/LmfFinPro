@@ -28,6 +28,31 @@ export const recurringBudgetSchema = z
 
 export type RecurringBudgetFormValues = z.infer<typeof recurringBudgetSchema>
 
+const recurringBudgetBatchItemSchema = z.object({
+  categoryId: z.coerce.number({ invalid_type_error: 'selecione uma categoria' }).positive('selecione uma categoria'),
+  limitValue: z.coerce
+    .number({ invalid_type_error: 'informe o valor limite' })
+    .positive('informe um valor maior que zero'),
+})
+
+export const recurringBudgetBatchSchema = z
+  .object({
+    startMonth: z.string().min(1, 'mês inicial é obrigatório'),
+    endMonth: optionalMonth,
+    items: z
+      .array(recurringBudgetBatchItemSchema)
+      .min(1, 'adicione ao menos uma categoria')
+      .refine((items) => new Set(items.map((item) => item.categoryId)).size === items.length, {
+        message: 'cada categoria só pode aparecer uma vez',
+      }),
+  })
+  .refine((values) => !values.endMonth || values.endMonth >= values.startMonth, {
+    message: 'mês final não pode ser anterior ao inicial',
+    path: ['endMonth'],
+  })
+
+export type RecurringBudgetBatchFormValues = z.infer<typeof recurringBudgetBatchSchema>
+
 const recurringBudgetUpdateBaseSchema = z.object({
   limitValue: z.coerce
     .number({ invalid_type_error: 'informe o valor limite' })

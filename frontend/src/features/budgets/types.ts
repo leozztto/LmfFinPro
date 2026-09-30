@@ -37,3 +37,9 @@ export interface RecurringBudgetUpdateInput {
   endMonth?: string
   active: boolean
 }
+
+export interface RecurringBudgetBatchInput {
+  startMonth: string
+  endMonth?: string
+  items: { categoryId: number; limitValue: number }[]
+}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button, Modal, Tabs } from '@/shared/ui'
 import { PlusIcon } from '@/shared/ui/icons'
+import { RecurringBudgetBatchForm } from '@/features/budgets/components/RecurringBudgetBatchForm'
 import { RecurringBudgetForm } from '@/features/budgets/components/RecurringBudgetForm'
 import { RecurringBudgetList } from '@/features/budgets/components/RecurringBudgetList'
 import { RecurringTransactionForm } from './RecurringTransactionForm'
@@ -24,6 +25,7 @@ const TAB_COPY = {
 /** Recorrências de transações e de orçamentos, em abas (`/recorrencias?aba=orcamentos`). */
 export function RecurringTransactionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = searchParams.get(TAB_PARAM) === BUDGETS_TAB ? BUDGETS_TAB : 'transacoes'
 
@@ -40,14 +42,21 @@ export function RecurringTransactionsPage() {
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Recorrências</h2>
           <p className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:block">{copy.description}</p>
         </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          aria-label={copy.modalTitle}
-          title={copy.modalTitle}
-          className="px-3"
-        >
-          <PlusIcon />
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          {activeTab === BUDGETS_TAB && (
+            <Button variant="secondary" onClick={() => setIsBatchModalOpen(true)}>
+              Criar em lote
+            </Button>
+          )}
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            aria-label={copy.modalTitle}
+            title={copy.modalTitle}
+            className="px-3"
+          >
+            <PlusIcon />
+          </Button>
+        </div>
       </div>
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={copy.modalTitle}>
@@ -56,6 +65,15 @@ export function RecurringTransactionsPage() {
         ) : (
           <RecurringTransactionForm onSuccess={() => setIsModalOpen(false)} />
         )}
+      </Modal>
+
+      <Modal
+        open={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        title="Criar orçamentos recorrentes em lote"
+        size="lg"
+      >
+        <RecurringBudgetBatchForm onSuccess={() => setIsBatchModalOpen(false)} />
       </Modal>
 
       <Tabs

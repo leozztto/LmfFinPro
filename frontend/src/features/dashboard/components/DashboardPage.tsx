@@ -67,7 +67,7 @@ export function DashboardPage() {
           </p>
         </div>
         {activeTab === OVERVIEW_TAB && (
-          <div className="w-40">
+          <div className="w-full sm:w-56">
             <Select
               aria-label="Filtrar por uso da conta"
               value={scope ?? ''}
