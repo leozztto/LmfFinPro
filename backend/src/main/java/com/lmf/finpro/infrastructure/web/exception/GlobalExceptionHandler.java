@@ -26,14 +26,21 @@ import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -213,14 +220,51 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_ACCEPTABLE, ex.getMessage(), request);
     }
 
+    /** URL sem rota nem arquivo estático: erro do cliente, não do servidor. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "Recurso não encontrado", request);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request);
+    }
+
+    /** JSON malformado, tipo errado, parâmetro obrigatório ausente ou valor que não converte. */
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class
+    })
+    public ResponseEntity<ApiError> handleMalformedRequest(
+            Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Requisição inválida", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) {
-        log.error("Erro inesperado em {}", request.getRequestURI(), ex);
+        if (ex instanceof DataAccessException) {
+            // A mensagem do driver traz os valores da linha (ex.: "Key (email)=(x@y) already
+            // exists"); no log vão só os tipos da exceção.
+            Throwable root = NestedExceptionUtils.getMostSpecificCause(ex);
+            log.error(
+                    "Erro de acesso a dados em {} {} (erro={}, causa={})",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    ex.getClass().getSimpleName(),
+                    root.getClass().getSimpleName());
+        } else {
+            log.error("Erro inesperado em {} {}", request.getMethod(), request.getRequestURI(), ex);
+        }
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno inesperado", request);
     }
 
     private ResponseEntity<ApiError> build(
             HttpStatus status, String message, HttpServletRequest request) {
+        logRejection(status, message, request);
         ApiError body =
                 new ApiError(
                         LocalDateTime.now(),
@@ -229,5 +273,33 @@ public class GlobalExceptionHandler {
                         message,
                         request.getRequestURI());
         return ResponseEntity.status(status).body(body);
+    }
+
+    /**
+     * Erros tratados (regra de negócio, validação, não autorizado...) não são falha do servidor,
+     * mas precisam deixar rastro: é o que explica por que a tela do usuário mostrou um erro. Loga a
+     * mesma mensagem que vai na resposta, sem quebras de linha. 5xx já é logado em {@code ERROR}
+     * pelo handler genérico.
+     */
+    private void logRejection(HttpStatus status, String message, HttpServletRequest request) {
+        if (status.is5xxServerError() && status != HttpStatus.SERVICE_UNAVAILABLE) {
+            return;
+        }
+        String safeMessage = message == null ? "" : message.replaceAll("[\\r\\n]+", " ");
+        if (status == HttpStatus.NOT_FOUND) {
+            log.info(
+                    "Requisição rejeitada {} {} -> {}: {}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    status.value(),
+                    safeMessage);
+        } else {
+            log.warn(
+                    "Requisição rejeitada {} {} -> {}: {}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    status.value(),
+                    safeMessage);
+        }
     }
 }

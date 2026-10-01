@@ -3,6 +3,7 @@ package com.lmf.finpro.infrastructure.scheduling;
 import com.lmf.finpro.application.recurringbudget.RecurringBudgetApplicationService;
 import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.infrastructure.config.SchedulingConfig;
+import com.lmf.finpro.infrastructure.logging.SafeErrors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -28,6 +29,7 @@ public class RecurringBudgetScheduler {
 
     private final RecurringBudgetApplicationService recurringBudgetApplicationService;
     private final StartupLockRunner startupLockRunner;
+    private final SchedulerMetrics metrics;
 
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
@@ -37,13 +39,23 @@ public class RecurringBudgetScheduler {
     @Scheduled(cron = "${finpro.recurring-budget.cron:0 10 0 * * *}", zone = SchedulingConfig.ZONE)
     @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void generateAllDueBudgets() {
-        for (RecurringBudget recurrence : recurringBudgetApplicationService.findAllActive()) {
-            // Cada recorrência na sua própria transação de banco: uma falha não impede as demais.
-            try {
-                recurringBudgetApplicationService.generateDueBudgets(recurrence);
-            } catch (RuntimeException ex) {
-                log.error("Falha ao lançar orçamento recorrente {}", recurrence.id(), ex);
-            }
-        }
+        metrics.run(
+                LOCK_NAME,
+                () -> {
+                    for (RecurringBudget recurrence :
+                            recurringBudgetApplicationService.findAllActive()) {
+                        // Cada recorrência na sua própria transação de banco: uma falha não
+                        // impede as demais.
+                        try {
+                            recurringBudgetApplicationService.generateDueBudgets(recurrence);
+                        } catch (RuntimeException ex) {
+                            metrics.itemFailed(LOCK_NAME);
+                            log.error(
+                                    "Falha ao lançar orçamento recorrente {}: {}",
+                                    recurrence.id(),
+                                    SafeErrors.describe(ex));
+                        }
+                    }
+                });
     }
 }

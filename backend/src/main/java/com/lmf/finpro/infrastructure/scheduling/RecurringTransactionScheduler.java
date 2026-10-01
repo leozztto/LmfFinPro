@@ -3,6 +3,7 @@ package com.lmf.finpro.infrastructure.scheduling;
 import com.lmf.finpro.application.recurringtransaction.RecurringTransactionApplicationService;
 import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.infrastructure.config.SchedulingConfig;
+import com.lmf.finpro.infrastructure.logging.SafeErrors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -27,6 +28,8 @@ public class RecurringTransactionScheduler {
 
     private final StartupLockRunner startupLockRunner;
 
+    private final SchedulerMetrics metrics;
+
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
         startupLockRunner.run(LOCK_NAME, this::generateAllDueOccurrences);
@@ -35,17 +38,24 @@ public class RecurringTransactionScheduler {
     @Scheduled(cron = "${finpro.recurring.cron:0 5 0 * * *}", zone = SchedulingConfig.ZONE)
     @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void generateAllDueOccurrences() {
-        for (RecurringTransaction recurrence :
-                recurringTransactionApplicationService.findAllActive()) {
-            // Cada recorrência na sua própria transação de banco: uma falha não impede as demais.
-            try {
-                recurringTransactionApplicationService.generateDueOccurrences(recurrence);
-            } catch (RuntimeException ex) {
-                log.error(
-                        "Falha ao lançar ocorrências do lançamento recorrente {}",
-                        recurrence.id(),
-                        ex);
-            }
-        }
+        metrics.run(
+                LOCK_NAME,
+                () -> {
+                    for (RecurringTransaction recurrence :
+                            recurringTransactionApplicationService.findAllActive()) {
+                        // Cada recorrência na sua própria transação de banco: uma falha não
+                        // impede as demais.
+                        try {
+                            recurringTransactionApplicationService.generateDueOccurrences(
+                                    recurrence);
+                        } catch (RuntimeException ex) {
+                            metrics.itemFailed(LOCK_NAME);
+                            log.error(
+                                    "Falha ao lançar ocorrências do lançamento recorrente {}: {}",
+                                    recurrence.id(),
+                                    SafeErrors.describe(ex));
+                        }
+                    }
+                });
     }
 }
