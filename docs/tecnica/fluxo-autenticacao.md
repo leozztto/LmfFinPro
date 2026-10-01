@@ -4,7 +4,7 @@
 
 ## 1. Visão geral
 
-Autenticação é a porta de entrada de todo o sistema: sem ela, nenhuma outra tela é acessível. O FinPro usa **JWT** sem sessão guardada no servidor — o backend valida a assinatura do token a cada requisição e confere só um número por usuário no banco, a **versão de sessão** (`users.session_version`), que permite encerrar todas as sessões de uma vez (ver seção 6). Os casos de uso são `POST /api/auth/register` e `POST /api/auth/login` (ambos devolvem um token e os dados básicos do usuário) e o par de redefinição de senha `POST /api/auth/forgot-password` / `POST /api/auth/reset-password`.
+Autenticação é a porta de entrada de todo o sistema: sem ela, nenhuma outra tela é acessível. O FinPro usa **JWT** sem sessão guardada no servidor — o backend valida a assinatura do token a cada requisição e confere só um número por usuário no banco, a **versão de sessão** (`users.session_version`), que permite encerrar todas as sessões de uma vez (ver seção 6). Os casos de uso são `POST /api/auth/register` e `POST /api/auth/login` (ambos devolvem um access token JWT de 15 min e os dados básicos do usuário, e definem o cookie httpOnly do refresh token), `POST /api/auth/refresh` e `POST /api/auth/logout` (seção 5) e o par de redefinição de senha `POST /api/auth/forgot-password` / `POST /api/auth/reset-password`.
 
 Dois detalhes moldam o cadastro: (1) o regime tributário informado precisa ser coerente com o tipo de documento (pessoa jurídica exige CNPJ, pessoa física exige CPF) — é uma regra de negócio validada no backend, não só no formulário; e (2) o endereço é preenchido automaticamente a partir do CEP via ViaCEP, para reduzir o atrito do formulário mais longo do sistema.
 
@@ -42,7 +42,7 @@ Estados: botão "Criando conta..." enquanto envia; erro do backend (e-mail/docum
 
 ### Expiração de sessão (comportamento global, não uma tela própria)
 
-Qualquer tela protegida pode, a qualquer momento, receber um `401` do backend (token expirado — expira em 1h por padrão —, sessão encerrada por uma redefinição de senha, ou nunca ter tido sessão válida). Quando isso acontece: a sessão salva é limpa, um toast "Sua sessão expirou. Faça login novamente." aparece, e o roteador manda o usuário de volta pra `/login` — sem exigir recarregar a página manualmente. Ver seção 5.
+Qualquer tela protegida pode, a qualquer momento, receber um `401` do backend (access token expirado — 15 min por padrão; o `httpClient` tenta renovar sozinho pelo refresh token antes de desistir —, sessão encerrada por uma redefinição de senha, refresh token expirado/revogado, ou nunca ter tido sessão válida). Quando a renovação também falha: a sessão salva é limpa, um toast "Sua sessão expirou. Faça login novamente." aparece, e o roteador manda o usuário de volta pra `/login` — sem exigir recarregar a página manualmente. Ver seção 5.
 
 ## 3. Arquitetura
 
@@ -163,11 +163,12 @@ sequenceDiagram
     Repo->>DB: INSERT
     DB-->>Repo: usuário salvo (com id)
     Svc->>Jwt: generate(userId, email, sessionVersion)
-    Jwt-->>Svc: token JWT (expira em 1h)
+    Jwt-->>Svc: access token JWT (expira em 15 min)
+    Svc->>Svc: RefreshTokenApplicationService.startSession()\n(token aleatório; só o SHA-256 vai ao banco)
     Svc-->>Ctrl: AuthResult
-    Ctrl-->>Http: 201 Created (AuthResponse)
+    Ctrl-->>Http: 201 Created (AuthResponse)\n+ Set-Cookie finpro_refresh (httpOnly)
     Http-->>AuthCtx: token, userId, name, email
-    AuthCtx->>AuthCtx: saveSession() no localStorage\n+ atualiza estado React
+    AuthCtx->>AuthCtx: saveSession(): token só em memória,\nnome/e-mail no localStorage + estado React
     AuthCtx-->>Form: sucesso
     Form->>U: navega para "/" (dashboard)
 ```
@@ -201,6 +202,10 @@ sequenceDiagram
     Note over Route: session agora é null
     Route->>U: <Navigate to="/login" />
 ```
+
+**Renovação silenciosa (refresh token).** O `401` acima só chega ao usuário se a renovação falhar. Com um access token na requisição, o `httpClient` recebe o `401`, chama `POST /api/auth/refresh` (o navegador anexa o cookie `finpro_refresh`, `httpOnly`, `Path=/api/auth`, `SameSite=Strict`, `Secure`) e repete a requisição uma vez com o token novo. Várias requisições em paralelo compartilham uma única renovação (`refreshSession()`), porque o refresh token é **rotacionado a cada uso**. Ao recarregar a página o access token (só em memória) não existe mais: o `AuthContext` vê o usuário lembrado no localStorage, mostra "Carregando…" no `ProtectedRoute` e retoma a sessão pelo mesmo endpoint.
+
+No backend (`RefreshTokenApplicationService`, tabela `refresh_tokens`): o refresh token é aleatório e opaco, só o SHA-256 é guardado; cada uso revoga o token e emite outro na mesma **família**. Reapresentar um token já rotacionado (sinal de roubo) revoga a família inteira — exceto dentro de `REFRESH_TOKEN_REUSE_LEEWAY_SECONDS` (10 s), janela que tolera duas abas renovando juntas e só devolve um access token, sem novo cookie. O token guarda a versão de sessão da emissão: trocar a senha (seção 7) o invalida. `POST /api/auth/logout` revoga a família e apaga o cookie; um job diário remove os expirados. `REFRESH_COOKIE_SECURE=false` só é necessário em HTTP fora de `localhost`.
 
 **Por que um `EventTarget` próprio, e não `window.dispatchEvent`:** `httpClient` é um módulo puro (sem React), então não pode chamar `setSession()` diretamente — mas também não pode depender de `window`, que não existe no ambiente de teste (Vitest roda em Node puro). Um `EventTarget` dedicado (`authEvents`, exportado por `authStorage.ts`) funciona idêntico nos dois ambientes e mantém o event bus isolado, sem poluir o namespace global de eventos do browser.
 
@@ -267,26 +272,29 @@ Resultado: redefinir a senha derruba **todas** as sessões abertas (outros naveg
 - **"Esqueci minha senha" também não revela quem tem conta**: `forgot-password` responde `202` exista ou não o e-mail, e uma falha no envio do e-mail não altera a resposta.
 - **Token de redefinição**: aleatório (`SecureRandom`, 32 bytes), guardado só como hash SHA-256 (quem lê o banco não consegue usá-lo), válido por 30 min (`PASSWORD_RESET_TOKEN_TTL_MINUTES`), uso único, e pedir um novo invalida os anteriores. Nova senha segue a mesma regra do cadastro (mínimo 8 caracteres).
 - **Trocar a senha encerra todas as sessões** (versão de sessão, ver seção 7).
-- **Token expira em 1h por padrão** (`JWT_EXPIRATION_MS`, configurável por variável de ambiente) — sem refresh token: expirado, o usuário loga de novo (ver seção 5).
+- **Sessão = access token curto + refresh token em cookie httpOnly** (ver seção 5): access token de 15 min (`JWT_EXPIRATION_MS`) só em memória no frontend; refresh token de 30 dias (`REFRESH_TOKEN_TTL_DAYS`) que o JavaScript não consegue ler, então um XSS não leva a sessão embora. O localStorage guarda apenas nome/e-mail.
 - **CORS explícito**: a SPA roda em origem diferente da API (`CORS_ALLOWED_ORIGINS`), então toda a configuração de CORS mora em `SecurityConfig` — sem ela, toda chamada do frontend falharia silenciosamente no navegador.
 
-**Ainda não implementado:** limite de tentativas no `forgot-password` (hoje dá para disparar vários e-mails seguidos para o mesmo endereço).
+- **Rate limit nas rotas públicas** (janela fixa em memória, `RateLimiter`): por IP no `AuthRateLimitFilter` (`login` 10 por 15 min, `register` 5 por 1 h, `forgot-password` 5 por 15 min) e por e-mail no `AuthEmailRateLimiter`, chamado pelo `AuthController` (`login` 10 por 15 min, `forgot-password` 3 por 1 h — contém o spam de e-mail). Estourou o limite, a API responde `429 Too Many Requests` com o header `Retry-After` (segundos) e a mensagem no formato padrão de erro (`TooManyRequestsException` no `GlobalExceptionHandler`). Limites e liga/desliga em `finpro.rate-limit.*` (`RATE_LIMIT_ENABLED`). Atrás do nginx, `RATE_LIMIT_TRUST_PROXY_HEADER=true` faz o filtro usar o `X-Real-IP` (o `docker-compose.yml` já liga); em produção a porta 8080 não deve ficar exposta, senão o header seria forjável.
+- **Swagger UI e `/v3/api-docs` desligados por padrão** (`SWAGGER_ENABLED=false`): com a flag desligada as rotas exigem token (`401`); o `SecurityConfig` só as libera quando `springdoc.swagger-ui.enabled` é `true`. O `.env.example` liga para desenvolvimento.
+
+**Limitação conhecida:** o rate limit é em memória — com mais de uma réplica da API cada uma conta separado (limite efetivo N vezes maior); para escalar horizontalmente seria preciso um armazenamento compartilhado (ex.: Redis).
 
 ## 9. Onde cada peça vive no repositório
 
 | Camada | Arquivo(s) |
 |---|---|
-| Domínio | `domain/model/{User,PasswordResetToken,Address,TaxRegime,DocumentType,BrazilianState}.java`, `domain/model/{CpfValidator,CnpjValidator}.java`, `domain/exception/InvalidPasswordResetTokenException.java` |
-| Ports | `domain/port/out/{UserRepositoryPort,TokenPort,TokenClaims,PasswordHasherPort,PasswordResetTokenRepositoryPort,PasswordResetMailerPort}.java` |
-| Aplicação | `application/auth/{AuthApplicationService,PasswordResetApplicationService,PasswordResetSettings,RegisterCommand,LoginCommand,AddressCommand,AuthResult}.java` |
-| Segurança | `infrastructure/security/{JwtService,JwtAuthenticationFilter,BCryptPasswordHasherAdapter,AuthenticatedUser}.java`, `infrastructure/config/{SecurityConfig,JwtProperties,CorsProperties,PasswordResetConfig,PasswordResetProperties}.java` |
+| Domínio | `domain/model/{User,RefreshToken,PasswordResetToken,Address,TaxRegime,DocumentType,BrazilianState}.java`, `domain/model/{CpfValidator,CnpjValidator}.java`, `domain/exception/InvalidPasswordResetTokenException.java` |
+| Ports | `domain/port/out/{UserRepositoryPort,TokenPort,TokenClaims,PasswordHasherPort,PasswordResetTokenRepositoryPort,RefreshTokenRepositoryPort,PasswordResetMailerPort}.java` |
+| Aplicação | `application/auth/{AuthApplicationService,RefreshTokenApplicationService,RefreshTokenSettings,PasswordResetApplicationService,PasswordResetSettings,RegisterCommand,LoginCommand,AddressCommand,AuthResult}.java` |
+| Segurança | `infrastructure/security/{JwtService,JwtAuthenticationFilter,BCryptPasswordHasherAdapter,AuthenticatedUser,RateLimiter,AuthRateLimitFilter,AuthEmailRateLimiter}.java`, `infrastructure/config/{SecurityConfig,JwtProperties,RefreshTokenProperties,RateLimitProperties,CorsProperties,PasswordResetConfig,PasswordResetProperties}.java` |
 | E-mail | `infrastructure/mail/{SmtpPasswordResetMailer,LoggingPasswordResetMailer}.java` |
 | API | `infrastructure/web/controller/{AuthController,CepController}.java`, `infrastructure/web/dto/auth/*.java`, `infrastructure/web/validation/{ValidDocumentNumber,ValidTaxRegimeDocument,...}.java` |
-| Persistência | `infrastructure/persistence/adapter/{UserRepositoryAdapter,PasswordResetTokenRepositoryAdapter}.java` (+ entity/mapper/repository correspondentes) |
-| Migration | `db/migration/V1__init_schema.sql` (+ `V2`–`V4`: CPF/telefone, documento genérico, endereço; `V11`: `password_reset_tokens`; `V12`: `users.session_version`) |
+| Persistência | `infrastructure/persistence/adapter/{UserRepositoryAdapter,PasswordResetTokenRepositoryAdapter,RefreshTokenRepositoryAdapter}.java` (+ entity/mapper/repository correspondentes) |
+| Migration | `db/migration/V1__init_schema.sql` (+ `V2`–`V4`: CPF/telefone, documento genérico, endereço; `V11`: `password_reset_tokens`; `V12`: `users.session_version`; `V32`: `refresh_tokens`) |
 | Frontend — telas | `features/auth/components/{LoginPage,RegisterPage,ForgotPasswordPage,ResetPasswordPage,AuthPageShell}.tsx` |
 | Frontend — lógica | `features/auth/{schemas.ts,hooks/{useLogin,useRegister,useCepLookup,usePasswordReset}.ts,api/{cepApi,passwordResetApi}.ts}`, `shared/auth/{AuthContext,ProtectedRoute,authStorage,types}.tsx/.ts`, `shared/api/httpClient.ts` |
-| Testes | `backend/src/test/java/.../integration/auth/{AuthIntegrationTest,PasswordResetIntegrationTest}.java`, `.../application/auth/{AuthApplicationServiceTest,PasswordResetApplicationServiceTest}.java`, `../../frontend/src/features/auth/schemas.test.ts`, `../../frontend/src/shared/api/httpClient.test.ts` |
+| Testes | `backend/src/test/java/.../integration/auth/{AuthIntegrationTest,PasswordResetIntegrationTest,RefreshTokenIntegrationTest,RateLimitIntegrationTest}.java`, `.../infrastructure/security/RateLimiterTest.java`, `.../application/auth/{AuthApplicationServiceTest,RefreshTokenApplicationServiceTest,PasswordResetApplicationServiceTest}.java`, `../../frontend/src/features/auth/schemas.test.ts`, `../../frontend/src/shared/api/httpClient.test.ts` |
 
 ## 10. Configurações: dados cadastrais e troca de senha logado
 
@@ -294,6 +302,6 @@ Acessível pelo **menu do usuário** (ícone no canto superior direito do `AppLa
 
 - **`GET /api/profile`** devolve os dados cadastrais; **`PUT /api/profile`** salva. O formulário reaproveita as seções do cadastro (`AccountDataFields`, com busca de CEP) e as mesmas validações (`validateAccountFields` no frontend; `@ValidDocumentNumber`/`@ValidTaxRegimeDocument` no `UpdateProfileRequest`). E-mail e documento continuam únicos (`409` se já usados por outra conta).
 - **Trocar o e-mail exige a senha atual** (`currentPassword`), porque o e-mail é o login — sem isso, quem pegasse uma sessão aberta poderia tomar a conta. O campo só aparece na tela quando o e-mail é alterado.
-- **`PUT /api/profile/password`** (senha atual + nova) troca a senha via `User#withPasswordHash` — encerra as outras sessões (seção 7) — e devolve um token novo, que o frontend grava com `AuthContext.updateSession`, mantendo a sessão de quem trocou.
+- **`PUT /api/profile/password`** (senha atual + nova) troca a senha via `User#withPasswordHash` — encerra as outras sessões (seção 7) — e devolve um access token novo e um refresh token novo (cookie), mantendo a sessão de quem trocou.
 - **Senha atual errada responde `400`, não `401`** (`IncorrectCurrentPasswordException`): um `401` faria o `httpClient` tratar como sessão expirada e deslogar o usuário (seção 5).
 - Depois de salvar o perfil, `updateSession` também atualiza nome/e-mail da sessão, então o nome no topo muda na hora.

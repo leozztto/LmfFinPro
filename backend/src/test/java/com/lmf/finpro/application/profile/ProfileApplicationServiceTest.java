@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.auth.AddressCommand;
 import com.lmf.finpro.application.auth.AuthResult;
+import com.lmf.finpro.application.auth.RefreshTokenApplicationService;
 import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
@@ -41,6 +42,7 @@ class ProfileApplicationServiceTest {
     @Mock private PasswordHasherPort passwordHasherPort;
     @Mock private TokenPort tokenPort;
     @Mock private FileStoragePort fileStoragePort;
+    @Mock private RefreshTokenApplicationService refreshTokenApplicationService;
 
     @InjectMocks private ProfileApplicationService service;
 
@@ -183,10 +185,12 @@ class ProfileApplicationServiceTest {
         when(passwordHasherPort.hash("novaSenha123")).thenReturn("new-hash");
         when(userRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(tokenPort.generate(1L, "ana@finpro.test", 3)).thenReturn("fresh-token");
+        when(refreshTokenApplicationService.startSession(any())).thenReturn("fresh-refresh");
 
         AuthResult result = service.changePassword(1L, "senha12345", "novaSenha123");
 
         assertThat(result.token()).isEqualTo("fresh-token");
+        assertThat(result.refreshToken()).isEqualTo("fresh-refresh");
     }
 
     @Test

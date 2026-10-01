@@ -2,8 +2,9 @@ import {
   SESSION_EXPIRED_EVENT,
   authEvents,
   clearSession,
-  getStoredToken,
+  getAccessToken,
   markSessionExpiredOnce,
+  setAccessToken,
 } from '@/shared/auth/authStorage'
 
 let apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
@@ -44,8 +45,54 @@ async function handleErrorResponse(response: Response): Promise<never> {
   throw new ApiError(response.status, body?.message ?? 'Erro ao comunicar com o servidor')
 }
 
-async function request<TResponse>(path: string, options: RequestInit = {}): Promise<TResponse> {
-  const token = getStoredToken()
+export interface RefreshedSession {
+  token: string
+  userId: number
+  name: string
+  email: string
+}
+
+let refreshInFlight: Promise<RefreshedSession | null> | null = null
+
+/** Troca o refresh token (cookie httpOnly, que o JS nem enxerga) por um access token novo e o
+ *  guarda em memória. Null = não há sessão renovável (cookie ausente, expirado ou revogado).
+ *  Chamadas simultâneas compartilham a mesma requisição: o refresh token é rotacionado a cada uso,
+ *  então duas chamadas em paralelo com o mesmo cookie seriam tratadas como reuso. */
+export function refreshSession(): Promise<RefreshedSession | null> {
+  refreshInFlight ??= requestRefresh().finally(() => {
+    refreshInFlight = null
+  })
+  return refreshInFlight
+}
+
+async function requestRefresh(): Promise<RefreshedSession | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/auth/refresh`, { method: 'POST', credentials: 'include' })
+    if (!response.ok) return null
+    const session = (await response.json()) as RefreshedSession
+    setAccessToken(session.token)
+    return session
+  } catch {
+    return null
+  }
+}
+
+/** Avisa o backend para revogar o refresh token e apagar o cookie. Falha de rede é ignorada: a
+ *  sessão local já foi encerrada, e o token sem uso expira sozinho. */
+export async function endRemoteSession(): Promise<void> {
+  try {
+    await fetch(`${apiBaseUrl}/auth/logout`, { method: 'POST', credentials: 'include' })
+  } catch {
+    // ver comentário acima
+  }
+}
+
+async function request<TResponse>(
+  path: string,
+  options: RequestInit = {},
+  canRetryAfterRefresh = true,
+): Promise<TResponse> {
+  const token = getAccessToken()
   const headers = new Headers(options.headers)
   // FormData define seu próprio Content-Type (multipart/form-data; boundary=...) — o navegador
   // só consegue gerar o boundary correto se a gente não sobrescrever o header manualmente aqui.
@@ -56,7 +103,17 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers })
+  // `include`: em dev a API está em outra origem (localhost:8080) e só assim o navegador aceita o
+  // Set-Cookie do refresh token devolvido pelo login/cadastro/troca de senha.
+  const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers, credentials: 'include' })
+
+  // Access token expirado (vida curta): renova pelo cookie e repete a chamada uma única vez. Se
+  // outra requisição já renovou enquanto esta voava, o token em memória mudou e basta repetir.
+  if (response.status === 401 && token && canRetryAfterRefresh && !path.startsWith('/auth/')) {
+    if (getAccessToken() !== token || (await refreshSession())) {
+      return request<TResponse>(path, options, false)
+    }
+  }
 
   if (!response.ok) {
     await handleErrorResponse(response)
@@ -72,14 +129,20 @@ async function request<TResponse>(path: string, options: RequestInit = {}): Prom
 }
 
 /** Para downloads de arquivo (ex: PDF de relatório) — resposta não é JSON. */
-async function requestBlob(path: string): Promise<Blob> {
-  const token = getStoredToken()
+async function requestBlob(path: string, canRetryAfterRefresh = true): Promise<Blob> {
+  const token = getAccessToken()
   const headers = new Headers()
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
   const response = await fetch(`${apiBaseUrl}${path}`, { headers })
+
+  if (response.status === 401 && token && canRetryAfterRefresh) {
+    if (getAccessToken() !== token || (await refreshSession())) {
+      return requestBlob(path, false)
+    }
+  }
 
   if (!response.ok) {
     await handleErrorResponse(response)

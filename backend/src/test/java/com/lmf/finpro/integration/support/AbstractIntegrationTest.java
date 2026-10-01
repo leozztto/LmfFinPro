@@ -26,7 +26,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * conexão morta. Iniciando na inicialização estática e nunca parando explicitamente, o container
  * vive por toda a JVM de teste e é limpo pelo Ryuk.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+// Os testes cadastram/logam muitos usuários do mesmo IP, então o rate limit fica desligado aqui;
+// RateLimitIntegrationTest o religa redefinindo esta anotação.
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "finpro.rate-limit.enabled=false")
 @Import(AbstractIntegrationTest.JdkHttpClientConfig.class)
 public abstract class AbstractIntegrationTest {
 

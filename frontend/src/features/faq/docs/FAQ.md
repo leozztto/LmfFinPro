@@ -28,7 +28,7 @@ Sim. Clique no ícone de usuário no canto superior direito, depois em **Configu
 Clique no ícone de usuário no canto superior direito, depois em **Configurações** → **Alterar senha**: informe a senha atual e a nova (mínimo 8 caracteres). Você continua conectado nesse navegador, mas as outras sessões abertas (outros navegadores e aparelhos) são encerradas.
 
 **Fui desconectado do nada no meio do uso — o que aconteceu?**
-Seu login expira automaticamente depois de 1 hora (por segurança). Também acontece quando a senha da conta é redefinida: todas as sessões abertas (outros navegadores, celular, etc.) são encerradas na hora. Em qualquer um dos casos, você é redirecionado pra tela de login com um aviso explicando que a sessão expirou — é só entrar de novo. Para sair manualmente, clique no ícone de usuário no canto superior direito e depois em **Sair**.
+O sistema renova seu acesso sozinho enquanto você usa, e a sessão dura até 30 dias sem uso. Você é desconectado quando passa todo esse tempo sem entrar, ou quando a senha da conta é redefinida: todas as sessões abertas (outros navegadores, celular, etc.) são encerradas na hora. Nos dois casos, você é redirecionado pra tela de login com um aviso explicando que a sessão expirou — é só entrar de novo. Para sair manualmente, clique no ícone de usuário no canto superior direito e depois em **Sair**.
 
 **Troquei a senha e fui deslogado em outro aparelho. Isso é normal?**
 Sim, é de propósito. Redefinir a senha encerra todas as sessões que estavam abertas — assim, se alguém tinha acesso à sua conta com a senha antiga, perde o acesso imediatamente. Basta entrar de novo com a senha nova.

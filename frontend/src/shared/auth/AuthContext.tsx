@@ -1,7 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { httpClient } from '@/shared/api/httpClient'
+import { endRemoteSession, httpClient, refreshSession } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
-import { SESSION_EXPIRED_EVENT, authEvents, clearSession, loadSession, saveSession } from './authStorage'
+import {
+  SESSION_EXPIRED_EVENT,
+  SESSION_KEY,
+  authEvents,
+  clearSession,
+  getAccessToken,
+  loadStoredUser,
+  saveSession,
+} from './authStorage'
 import type { AuthSession, LoginPayload, RegisterPayload } from './types'
 
 interface AuthResponseBody {
@@ -13,6 +21,8 @@ interface AuthResponseBody {
 
 interface AuthContextValue {
   session: AuthSession | null
+  /** true enquanto o refresh token (cookie) é trocado por um access token após recarregar a página. */
+  restoring: boolean
   login: (payload: LoginPayload) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => void
@@ -22,12 +32,41 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+/** O access token só existe em memória, então após recarregar a página há um usuário lembrado no
+ *  localStorage mas nenhum token: a sessão é retomada pelo cookie httpOnly de refresh. */
+function needsRestore(): boolean {
+  return loadStoredUser() !== null && getAccessToken() === null
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() => loadSession())
+  const [session, setSession] = useState<AuthSession | null>(() => {
+    const user = loadStoredUser()
+    const token = getAccessToken()
+    return user && token ? { ...user, token } : null
+  })
+  const [restoring, setRestoring] = useState<boolean>(needsRestore)
   const { showToast } = useToast()
 
-  // O httpClient já limpou a sessão do localStorage (ela já tinha morrido no servidor); aqui só
-  // sincronizamos o estado do React, o que faz o ProtectedRoute mandar pra /login sozinho.
+  useEffect(() => {
+    if (!restoring) return
+    let cancelled = false
+    refreshSession().then((refreshed) => {
+      if (cancelled) return
+      if (refreshed) {
+        saveSession(refreshed)
+        setSession(refreshed)
+      } else {
+        clearSession()
+      }
+      setRestoring(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [restoring])
+
+  // O httpClient já limpou a sessão (ela já tinha morrido no servidor); aqui só sincronizamos o
+  // estado do React, o que faz o ProtectedRoute mandar pra /login sozinho.
   useEffect(() => {
     function handleSessionExpired() {
       setSession(null)
@@ -36,6 +75,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authEvents.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
     return () => authEvents.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
   }, [showToast])
+
+  // Sair em uma aba remove o usuário do localStorage: as outras abas acompanham.
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key === SESSION_KEY && event.newValue === null) {
+        clearSession()
+        setSession(null)
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   async function authenticate(path: string, payload: LoginPayload | RegisterPayload) {
     const response = await httpClient.post<AuthResponseBody>(path, payload)
@@ -58,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    void endRemoteSession()
     clearSession()
     setSession(null)
   }
@@ -71,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const value = useMemo(() => ({ session, login, register, logout, updateSession }), [session])
+  const value = useMemo(() => ({ session, restoring, login, register, logout, updateSession }), [session, restoring])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

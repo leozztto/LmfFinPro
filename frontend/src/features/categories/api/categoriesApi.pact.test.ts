@@ -6,7 +6,7 @@ import { categoriesApi } from './categoriesApi'
 // O contrato precisa de um header Authorization, mas o valor exato não importa aqui — quem
 // garante que é um JWT de verdade é o provider verification (backend), via request filter.
 vi.mock('@/shared/auth/authStorage', () => ({
-  getStoredToken: () => 'contract-test-token',
+  getAccessToken: () => 'contract-test-token',
   clearSession: vi.fn(),
   authEvents: new EventTarget(),
   SESSION_EXPIRED_EVENT: 'finpro:session-expired',

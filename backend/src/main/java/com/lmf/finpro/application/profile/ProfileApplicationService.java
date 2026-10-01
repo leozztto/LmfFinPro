@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.profile;
 
 import com.lmf.finpro.application.auth.AuthResult;
+import com.lmf.finpro.application.auth.RefreshTokenApplicationService;
 import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
@@ -33,6 +34,7 @@ public class ProfileApplicationService {
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordHasherPort passwordHasherPort;
     private final TokenPort tokenPort;
+    private final RefreshTokenApplicationService refreshTokenApplicationService;
     private final FileStoragePort fileStoragePort;
 
     public User getProfile(Long userId) {
@@ -134,7 +136,7 @@ public class ProfileApplicationService {
 
     /**
      * Troca a senha e encerra as outras sessões (ver User#withPasswordHash). Devolve um token novo
-     * para a sessão de quem fez a troca continuar valendo.
+     * (e um refresh token novo) para a sessão de quem fez a troca continuar valendo.
      */
     @Transactional
     public AuthResult changePassword(Long userId, String currentPassword, String newPassword) {
@@ -145,7 +147,8 @@ public class ProfileApplicationService {
                 userRepositoryPort.save(
                         user.withPasswordHash(passwordHasherPort.hash(newPassword)));
         String token = tokenPort.generate(saved.id(), saved.email(), saved.sessionVersion());
-        return new AuthResult(token, saved.id(), saved.name(), saved.email());
+        String refreshToken = refreshTokenApplicationService.startSession(saved);
+        return new AuthResult(token, refreshToken, saved.id(), saved.name(), saved.email());
     }
 
     private void checkCurrentPassword(User user, String rawPassword, String blankMessage) {
