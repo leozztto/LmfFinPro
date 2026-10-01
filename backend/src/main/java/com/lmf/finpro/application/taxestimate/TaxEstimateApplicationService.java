@@ -1,10 +1,12 @@
 package com.lmf.finpro.application.taxestimate;
 
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.model.TaxRateEstimator;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
+import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class TaxEstimateApplicationService {
 
     private final TaxEstimateRepositoryPort taxEstimateRepositoryPort;
+    private final TransactionRepositoryPort transactionRepositoryPort;
 
     public TaxEstimate create(
             Long currentUserId,
@@ -34,6 +37,18 @@ public class TaxEstimateApplicationService {
 
     public BigDecimal suggestRate(TaxRegime regime, BigDecimal grossRevenue) {
         return TaxRateEstimator.suggestRate(regime, grossRevenue);
+    }
+
+    /**
+     * Receita do mês (em reais, sem transferências entre contas próprias): o ponto de partida da
+     * receita bruta, que o usuário ainda pode ajustar.
+     */
+    public BigDecimal suggestGrossRevenue(Long currentUserId, YearMonth referenceMonth) {
+        return transactionRepositoryPort.sumBaseAmountByUserIdAndTypeBetween(
+                currentUserId,
+                CategoryType.INCOME,
+                referenceMonth.atDay(1),
+                referenceMonth.plusMonths(1).atDay(1));
     }
 
     public void delete(Long currentUserId, Long taxEstimateId) {

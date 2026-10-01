@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Button, CollapsibleFilters, FormField, Input, Modal, Select } from '@/shared/ui'
+import { useEffect, useState } from 'react'
+import { Button, CollapsibleFilters, FormField, Input, Modal, Pagination, Select } from '@/shared/ui'
 import { TransactionAttachmentsPanel } from '@/features/attachments/components/TransactionAttachmentsPanel'
 import { TagInput } from '@/features/tags/components/TagInput'
 import { ApiError } from '@/shared/api/httpClient'
@@ -16,6 +16,7 @@ import {
   TRANSACTION_TYPE_LABELS,
   type Transaction,
   type TransactionStatus,
+  type TransactionListParams,
   type TransactionType,
 } from '../types'
 import { TransactionCard } from './TransactionCard'
@@ -46,8 +47,30 @@ const EMPTY_FILTERS: Filters = {
   endDate: '',
 }
 
+const PAGE_SIZE = 20
+
+/** Traduz os filtros da tela nos parâmetros da consulta; o que está vazio não vai na URL. */
+function toListParams(filters: Filters, page: number): TransactionListParams {
+  return {
+    page,
+    size: PAGE_SIZE,
+    accountId: filters.accountId ? Number(filters.accountId) : undefined,
+    categoryId: filters.categoryId ? Number(filters.categoryId) : undefined,
+    clientId: filters.clientId ? Number(filters.clientId) : undefined,
+    type: filters.type || undefined,
+    status: filters.status || undefined,
+    hasAttachment: filters.attachment ? filters.attachment === 'WITH' : undefined,
+    tagNames: filters.tags.length > 0 ? filters.tags : undefined,
+    startDate: filters.startDate || undefined,
+    endDate: filters.endDate || undefined,
+  }
+}
+
 export function TransactionList() {
-  const { data: transactions, isLoading } = useTransactions()
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [page, setPage] = useState(0)
+  const { data, isLoading, isPlaceholderData } = useTransactions(toListParams(filters, page))
+  const transactions = data?.content
   const { data: accounts } = useAccounts()
   const { data: categories } = useCategories()
   const { data: clients } = useClients()
@@ -55,7 +78,6 @@ export function TransactionList() {
   const updateTransactionStatus = useUpdateTransactionStatus()
   const { showToast } = useToast()
   const confirm = useConfirm()
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [attachmentsFor, setAttachmentsFor] = useState<Transaction | null>(null)
   const [tagsFor, setTagsFor] = useState<Transaction | null>(null)
 
@@ -102,25 +124,17 @@ export function TransactionList() {
   const categoryNameById = new Map(categories?.map((category) => [category.id, category.name]))
   const clientNameById = new Map(clients?.map((client) => [client.id, client.name]))
 
-  const filtered = useMemo(() => {
-    if (!transactions) return []
-    return transactions.filter((transaction) => {
-      if (filters.accountId && transaction.accountId !== Number(filters.accountId)) return false
-      if (filters.categoryId && transaction.categoryId !== Number(filters.categoryId)) return false
-      if (filters.clientId && transaction.clientId !== Number(filters.clientId)) return false
-      if (filters.type && transaction.type !== filters.type) return false
-      if (filters.status && transaction.status !== filters.status) return false
-      const hasAttachment = (transaction.attachmentCount ?? 0) > 0
-      if (filters.attachment === 'WITH' && !hasAttachment) return false
-      if (filters.attachment === 'WITHOUT' && hasAttachment) return false
-      if (filters.tags.length > 0 && !(transaction.tags ?? []).some((tag) => filters.tags.includes(tag.name))) return false
-      if (filters.startDate && transaction.transactionDate < filters.startDate) return false
-      if (filters.endDate && transaction.transactionDate > filters.endDate) return false
-      return true
-    })
-  }, [transactions, filters])
+  /** Qualquer mudança de filtro volta para a primeira página: a atual pode nem existir no novo resultado. */
+  function updateFilters(update: (current: Filters) => Filters) {
+    setFilters(update)
+    setPage(0)
+  }
 
-  const sorted = [...filtered].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
+  // Excluir o último item da última página deixa a página atual sem resultados: volta para a última que existe.
+  useEffect(() => {
+    if (data && data.totalPages > 0 && page >= data.totalPages) setPage(data.totalPages - 1)
+  }, [data, page])
+
   const activeFiltersCount = Object.values(filters).filter((value) => (Array.isArray(value) ? value.length > 0 : Boolean(value))).length
   const hasActiveFilters = activeFiltersCount > 0
 
@@ -128,7 +142,7 @@ export function TransactionList() {
     return <p className="text-sm text-zinc-500 dark:text-zinc-400">Carregando transações...</p>
   }
 
-  if (!transactions?.length) {
+  if (!hasActiveFilters && !transactions?.length) {
     return (
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
         Nenhuma transação lançada ainda. Lance a primeira acima.
@@ -144,7 +158,7 @@ export function TransactionList() {
             <Select
               id="filter-account"
               value={filters.accountId}
-              onChange={(e) => setFilters((f) => ({ ...f, accountId: e.target.value }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, accountId: e.target.value }))}
             >
               <option value="">Todas as contas</option>
               {accounts?.map((account) => (
@@ -158,7 +172,7 @@ export function TransactionList() {
             <Select
               id="filter-category"
               value={filters.categoryId}
-              onChange={(e) => setFilters((f) => ({ ...f, categoryId: e.target.value }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, categoryId: e.target.value }))}
             >
               <option value="">Todas as categorias</option>
               {categories?.map((category) => (
@@ -172,7 +186,7 @@ export function TransactionList() {
             <Select
               id="filter-client"
               value={filters.clientId}
-              onChange={(e) => setFilters((f) => ({ ...f, clientId: e.target.value }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, clientId: e.target.value }))}
             >
               <option value="">Todos os clientes</option>
               {clients?.map((client) => (
@@ -186,7 +200,7 @@ export function TransactionList() {
             <Select
               id="filter-type"
               value={filters.type}
-              onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value as TransactionType | '' }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, type: e.target.value as TransactionType | '' }))}
             >
               <option value="">Todos</option>
               {Object.entries(TRANSACTION_TYPE_LABELS).map(([value, label]) => (
@@ -200,7 +214,7 @@ export function TransactionList() {
             <Select
               id="filter-status"
               value={filters.status}
-              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as TransactionStatus | '' }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, status: e.target.value as TransactionStatus | '' }))}
             >
               <option value="">Todas</option>
               {Object.entries(TRANSACTION_STATUS_LABELS).map(([value, label]) => (
@@ -214,7 +228,7 @@ export function TransactionList() {
             <Select
               id="filter-attachment"
               value={filters.attachment}
-              onChange={(e) => setFilters((f) => ({ ...f, attachment: e.target.value as Filters['attachment'] }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, attachment: e.target.value as Filters['attachment'] }))}
             >
               <option value="">Todas</option>
               <option value="WITH">Com comprovante</option>
@@ -226,7 +240,7 @@ export function TransactionList() {
               <TagInput
                 id="filter-tags"
                 value={filters.tags}
-                onChange={(tags) => setFilters((f) => ({ ...f, tags }))}
+                onChange={(tags) => updateFilters((f) => ({ ...f, tags }))}
                 allowCreate={false}
                 placeholder="Todas"
               />
@@ -237,7 +251,7 @@ export function TransactionList() {
               id="filter-start-date"
               type="date"
               value={filters.startDate}
-              onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, startDate: e.target.value }))}
             />
           </FormField>
           <FormField label="Até" htmlFor="filter-end-date">
@@ -245,12 +259,12 @@ export function TransactionList() {
               id="filter-end-date"
               type="date"
               value={filters.endDate}
-              onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))}
+              onChange={(e) => updateFilters((f) => ({ ...f, endDate: e.target.value }))}
             />
           </FormField>
           {hasActiveFilters && (
             <div className="sm:col-span-2 md:col-span-3 lg:col-span-4">
-              <Button variant="secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
+              <Button variant="secondary" onClick={() => updateFilters(() => EMPTY_FILTERS)}>
                 Limpar filtros
               </Button>
             </div>
@@ -258,13 +272,13 @@ export function TransactionList() {
         </div>
       </CollapsibleFilters>
 
-      {sorted.length === 0 ? (
+      {!transactions?.length ? (
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Nenhuma transação encontrada com os filtros aplicados.
         </p>
       ) : (
-        <div className="space-y-3">
-          {sorted.map((transaction) => (
+        <div className={`space-y-3 transition-opacity `}>
+          {transactions.map((transaction) => (
             <TransactionCard
               key={transaction.id}
               transaction={transaction}
@@ -281,6 +295,17 @@ export function TransactionList() {
             />
           ))}
         </div>
+      )}
+
+      {data && (
+        <Pagination
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          itemsLabel="transações"
+          onPageChange={setPage}
+          disabled={isPlaceholderData}
+        />
       )}
 
       <Modal

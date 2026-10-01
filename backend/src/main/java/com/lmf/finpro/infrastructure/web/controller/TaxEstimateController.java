@@ -5,13 +5,16 @@ import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.taxestimate.SuggestedRateResponse;
+import com.lmf.finpro.infrastructure.web.dto.taxestimate.SuggestedRevenueResponse;
 import com.lmf.finpro.infrastructure.web.dto.taxestimate.TaxEstimateRequest;
 import com.lmf.finpro.infrastructure.web.dto.taxestimate.TaxEstimateResponse;
 import com.lmf.finpro.infrastructure.web.mapper.TaxEstimateWebMapper;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,6 +40,15 @@ public class TaxEstimateController {
             @RequestParam TaxRegime regime, @RequestParam BigDecimal grossRevenue) {
         return new SuggestedRateResponse(
                 taxEstimateApplicationService.suggestRate(regime, grossRevenue));
+    }
+
+    @GetMapping("/suggested-revenue")
+    public SuggestedRevenueResponse suggestedRevenue(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
+        return new SuggestedRevenueResponse(
+                taxEstimateApplicationService.suggestGrossRevenue(
+                        currentUser.userId(), referenceMonth));
     }
 
     @PostMapping

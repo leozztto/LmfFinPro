@@ -27,7 +27,7 @@ flowchart LR
     subgraph Frontend["Frontend (React)"]
         Impostos["Página Impostos\ncria/lista/remove estimativas"]
         Dashboard["Dashboard\nCashFlowProjectionChart"]
-        TxCache["Cache de Transações\n(React Query, p/ pré-preencher receita)"]
+        TxCache["Receita do mês\n(suggested-revenue)"]
     end
 
     Impostos <-- "REST (fetch)" --> API
@@ -37,7 +37,7 @@ flowchart LR
 
 ## 2. Tela
 
-**Estimativa de imposto** — rota `/impostos` (`TaxEstimatesPage`): cabeçalho com título "Impostos" e botão "+" que abre um `Modal` com `TaxEstimateForm` (mês, regime tributário, receita bruta pré-preenchida a partir das transações do mês selecionado, alíquota sugerida automaticamente e editável). Abaixo, `TaxEstimateList` — lista de estimativas já criadas, cada linha com mês, regime, receita, alíquota, valor estimado e um botão de remover (com confirmação). Estados: "Carregando estimativas..." enquanto busca, "Nenhuma estimativa cadastrada ainda. Adicione a primeira acima." quando vazia.
+**Estimativa de imposto** — rota `/impostos` (`TaxEstimatesPage`): cabeçalho com título "Impostos" e botão "+" que abre um `Modal` com `TaxEstimateForm` (mês, regime tributário, receita bruta pré-preenchida com a receita do mês selecionado (somada pelo backend em `GET /api/tax-estimates/suggested-revenue`, em reais e sem transferências), alíquota sugerida automaticamente e editável). Abaixo, `TaxEstimateList` — lista de estimativas já criadas, cada linha com mês, regime, receita, alíquota, valor estimado e um botão de remover (com confirmação). Estados: "Carregando estimativas..." enquanto busca, "Nenhuma estimativa cadastrada ainda. Adicione a primeira acima." quando vazia.
 
 **Projeção de fluxo de caixa** — não é uma tela própria, é o `CashFlowProjectionChart` dentro do Dashboard (`/`): um gráfico de linha combinando o histórico real (linha sólida) com a projeção dos próximos meses (linha tracejada), carregado pelo hook `useCashFlowProjection()` de forma independente dos outros cards do Dashboard — aparece assim que sua própria chamada responde, sem esperar o resto da página.
 
@@ -102,7 +102,7 @@ Sequência completa desde a tela até o banco, incluindo o pré-preenchimento au
 sequenceDiagram
     actor U as Usuário
     participant Form as TaxEstimateForm
-    participant TxCache as Cache de Transações\n(React Query)
+    participant TxCache as Receita do mês\n(suggested-revenue)
     participant API as taxEstimatesApi
     participant Ctrl as TaxEstimateController
     participant Svc as TaxEstimateApplicationService
@@ -111,7 +111,7 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>Form: seleciona mês + regime
-    Form->>TxCache: soma receitas (INCOME, sem transferência) do mês
+    Form->>TxCache: GET /suggested-revenue?referenceMonth (backend soma INCOME sem transferência)
     TxCache-->>Form: receita bruta sugerida
     Form->>API: GET /suggested-rate?regime&grossRevenue (debounced)
     API->>Ctrl: suggestedRate(regime, grossRevenue)

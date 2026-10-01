@@ -94,7 +94,7 @@ sequenceDiagram
 | Domínio | `domain/model/{SavingsGoal,SavingsGoalType,GoalContribution,ContributionType,SavingsGoalCalculator}.java` |
 | Ports | `domain/port/out/{SavingsGoalRepositoryPort,GoalContributionRepositoryPort}.java` |
 | Aplicação | `application/savingsgoal/{SavingsGoalApplicationService,SavingsGoalSummary,SavingsGoalCommand}.java`, `application/transfer/TransferApplicationService.java` (aporte/resgate) |
-| Scheduler | `infrastructure/scheduling/SavingsGoalContributionScheduler.java` |
+| Scheduler | `infrastructure/scheduling/SavingsGoalContributionScheduler.java` (trava ShedLock `savingsGoalContributions`, inclusive na subida) |
 | Persistência | `infrastructure/persistence/{entity,repository,adapter}/…SavingsGoal…`, `…GoalContribution…` |
 | API | `infrastructure/web/controller/SavingsGoalController.java`, `infrastructure/web/dto/savingsgoal/{SavingsGoalRequest,SavingsGoalUpdateRequest,SavingsGoalResponse,GoalContributionRequest,GoalContributionResponse,SuggestedTaxRateResponse}.java` |
 | Migration | `db/migration/V16__create_savings_goals.sql`, `V26__add_auto_contribute_to_savings_goals.sql`, `V28__link_savings_goals_to_accounts.sql` (conta reserva/origem + `transfer_id`) |

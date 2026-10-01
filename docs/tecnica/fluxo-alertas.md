@@ -98,7 +98,7 @@ sequenceDiagram
 - **Isolamento**: o agendador busca só os ids e carrega cada usuário dentro do próprio try/catch e da própria transação. Assim, um cadastro ilegível (ex.: regime fora do enum gravado direto no banco) ou uma falha de envio afeta só aquele usuário.
 - **Não roda na subida**: diferente do `RecurringTransactionScheduler`, para que um deploy fora de hora não dispare e-mails.
 - **Preferências**: um usuário sem linha em `notification_preferences` usa `NotificationPreferences.defaults` (tudo ligado, 3 dias). O `PUT` valida `billDaysBefore` entre 0 e 15.
-- **Limitação**: não há ShedLock. Com mais de uma instância rodando, o mesmo resumo poderia sair duas vezes. Hoje a aplicação roda em uma instância só.
+- **Várias instâncias**: o job roda sob trava distribuída (`@SchedulerLock(name = "dailyAlerts")`, ShedLock com a tabela `shedlock`, migration V33), então só uma réplica envia o resumo. A unicidade de `sent_alerts` continua como segunda barreira.
 
 ## 6. Onde cada peça vive no repositório
 

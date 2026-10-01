@@ -4,6 +4,7 @@ import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationSer
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
+import com.lmf.finpro.domain.exception.InvalidTagException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
@@ -11,7 +12,12 @@ import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Currency;
+import com.lmf.finpro.domain.model.PageQuery;
+import com.lmf.finpro.domain.model.PageResult;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
+import com.lmf.finpro.domain.model.TransactionSearchCriteria;
+import com.lmf.finpro.domain.model.TransactionSortOrder;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
@@ -21,6 +27,9 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class TransactionApplicationService {
+
+    static final int DEFAULT_PAGE_SIZE = 20;
+    static final int MAX_PAGE_SIZE = 100;
 
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
@@ -138,12 +150,66 @@ public class TransactionApplicationService {
         return saved;
     }
 
-    public List<Transaction> list(Long currentUserId) {
-        List<Long> ownedAccountIds =
-                accountRepositoryPort.findAllByUserId(currentUserId).stream()
-                        .map(Account::id)
-                        .toList();
-        return transactionRepositoryPort.findAllByAccountIds(ownedAccountIds);
+    /**
+     * Uma página das transações do usuário, da mais recente para a mais antiga, já filtrada no
+     * banco. {@code page} começa em 0; {@code size} fica entre 1 e {@link #MAX_PAGE_SIZE}. Nome de
+     * tag que o usuário não tem não casa com nada; se nenhuma das tags pedidas existe, a página vem
+     * vazia.
+     */
+    public PageResult<Transaction> list(
+            Long currentUserId, TransactionListFilters filters, Integer page, Integer size) {
+        PageQuery pageQuery =
+                new PageQuery(
+                        page == null ? 0 : Math.max(page, 0),
+                        size == null
+                                ? DEFAULT_PAGE_SIZE
+                                : Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+
+        List<Long> tagIds = List.of();
+        if (!filters.tagNames().isEmpty()) {
+            Set<String> wanted =
+                    filters.tagNames().stream()
+                            .map(TransactionApplicationService::normalizedTagNameOrNull)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toSet());
+            tagIds =
+                    tagApplicationService.tagsById(currentUserId).values().stream()
+                            .filter(tag -> wanted.contains(tag.name()))
+                            .map(Tag::id)
+                            .toList();
+            if (tagIds.isEmpty()) {
+                return PageResult.empty(pageQuery.page(), pageQuery.size());
+            }
+        }
+
+        return transactionRepositoryPort.searchPage(
+                new TransactionSearchCriteria(
+                        currentUserId,
+                        filters.type(),
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.accountId(),
+                        null,
+                        filters.categoryId(),
+                        filters.clientId(),
+                        filters.status(),
+                        null,
+                        null,
+                        null,
+                        false,
+                        tagIds,
+                        filters.hasAttachment()),
+                pageQuery,
+                TransactionSortOrder.NEWEST_FIRST);
+    }
+
+    /** Nome de tag inválido num filtro só não casa com nada, em vez de virar erro. */
+    private static String normalizedTagNameOrNull(String rawName) {
+        try {
+            return Tag.normalizeName(rawName);
+        } catch (InvalidTagException e) {
+            return null;
+        }
     }
 
     public Transaction getById(Long currentUserId, Long transactionId) {

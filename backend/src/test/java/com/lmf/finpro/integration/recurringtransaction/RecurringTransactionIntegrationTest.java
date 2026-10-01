@@ -61,14 +61,7 @@ class RecurringTransactionIntegrationTest extends AbstractIntegrationTest {
     }
 
     private List<TransactionResponse> listTransactions(TestUser user) {
-        return List.of(
-                restTemplate
-                        .exchange(
-                                "/api/transactions",
-                                HttpMethod.GET,
-                                new HttpEntity<>(user.authHeaders()),
-                                TransactionResponse[].class)
-                        .getBody());
+        return TestDataFactory.listTransactions(restTemplate, user);
     }
 
     @Test

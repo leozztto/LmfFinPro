@@ -8,10 +8,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
+import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
+import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TaxEstimateApplicationServiceTest {
 
     @Mock private TaxEstimateRepositoryPort taxEstimateRepositoryPort;
+    @Mock private TransactionRepositoryPort transactionRepositoryPort;
 
     @InjectMocks private TaxEstimateApplicationService service;
 
@@ -42,6 +46,19 @@ class TaxEstimateApplicationServiceTest {
                         new BigDecimal("0.06"));
 
         assertThat(created.estimatedValue()).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void suggestGrossRevenueSumsTheReferenceMonthsIncome() {
+        when(transactionRepositoryPort.sumBaseAmountByUserIdAndTypeBetween(
+                        10L,
+                        CategoryType.INCOME,
+                        LocalDate.of(2026, 12, 1),
+                        LocalDate.of(2027, 1, 1)))
+                .thenReturn(new BigDecimal("1234.56"));
+
+        assertThat(service.suggestGrossRevenue(10L, YearMonth.of(2026, 12)))
+                .isEqualByComparingTo("1234.56");
     }
 
     @Test

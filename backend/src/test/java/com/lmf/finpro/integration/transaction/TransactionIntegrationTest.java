@@ -16,7 +16,6 @@ import com.lmf.finpro.integration.support.TestDataFactory;
 import com.lmf.finpro.integration.support.TestUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.*;
 
@@ -45,13 +44,7 @@ class TransactionIntegrationTest extends AbstractIntegrationTest {
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         Long transactionId = createResponse.getBody().id();
 
-        ResponseEntity<TransactionResponse[]> listResponse =
-                restTemplate.exchange(
-                        "/api/transactions",
-                        HttpMethod.GET,
-                        new HttpEntity<>(user.authHeaders()),
-                        TransactionResponse[].class);
-        assertThat(List.of(listResponse.getBody()))
+        assertThat(TestDataFactory.listTransactions(restTemplate, user))
                 .extracting(TransactionResponse::id)
                 .contains(transactionId);
 

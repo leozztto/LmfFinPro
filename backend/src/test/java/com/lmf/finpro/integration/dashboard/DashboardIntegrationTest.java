@@ -54,7 +54,7 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
     void overviewReturnsCurrentBalanceAndMonthOverMonthDeltas() {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user, BigDecimal.valueOf(1000));
-        YearMonth currentMonth = YearMonth.now();
+        YearMonth currentMonth = YearMonth.from(TODAY);
         YearMonth previousMonth = currentMonth.minusMonths(1);
 
         createTransaction(
@@ -87,7 +87,7 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
                 null,
                 null,
                 BigDecimal.valueOf(200),
-                currentMonth.atDay(2),
+                currentMonth.atDay(1), // dia 1 nunca é futuro; dia 2 viraria PENDING no dia 1º
                 CategoryType.EXPENSE);
 
         DashboardOverviewResponse overview = getOverview(user);
