@@ -14,6 +14,7 @@ import java.util.List;
  * @param excludeTransfers deixa de fora as transações geradas por transferências entre contas
  *     próprias
  * @param tagIds transações com <b>qualquer uma</b> destas tags; vazia = sem filtro de tag
+ * @param hasAttachment {@code true} só com comprovante, {@code false} só sem; nulo = sem filtro
  */
 public record TransactionSearchCriteria(
         Long userId,
@@ -29,7 +30,8 @@ public record TransactionSearchCriteria(
         BigDecimal maxAmount,
         String description,
         boolean excludeTransfers,
-        List<Long> tagIds) {
+        List<Long> tagIds,
+        Boolean hasAttachment) {
 
     public TransactionSearchCriteria {
         if (userId == null) {
@@ -37,6 +39,40 @@ public record TransactionSearchCriteria(
         }
         description = description == null || description.isBlank() ? null : description.trim();
         tagIds = tagIds == null ? List.of() : List.copyOf(tagIds);
+    }
+
+    /** Sem filtro de comprovante. */
+    public TransactionSearchCriteria(
+            Long userId,
+            CategoryType type,
+            LocalDate startDate,
+            LocalDate endDate,
+            Long accountId,
+            AccountScope accountScope,
+            Long categoryId,
+            Long clientId,
+            TransactionStatus status,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            String description,
+            boolean excludeTransfers,
+            List<Long> tagIds) {
+        this(
+                userId,
+                type,
+                startDate,
+                endDate,
+                accountId,
+                accountScope,
+                categoryId,
+                clientId,
+                status,
+                minAmount,
+                maxAmount,
+                description,
+                excludeTransfers,
+                tagIds,
+                null);
     }
 
     /** Sem filtro de tag. */
@@ -68,6 +104,7 @@ public record TransactionSearchCriteria(
                 maxAmount,
                 description,
                 excludeTransfers,
-                List.of());
+                List.of(),
+                null);
     }
 }

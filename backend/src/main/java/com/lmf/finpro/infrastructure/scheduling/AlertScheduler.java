@@ -4,6 +4,7 @@ import com.lmf.finpro.application.alert.AlertApplicationService;
 import com.lmf.finpro.infrastructure.config.SchedulingConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ public class AlertScheduler {
     private final AlertApplicationService alertApplicationService;
 
     @Scheduled(cron = "${finpro.alerts.cron:0 0 8 * * *}", zone = SchedulingConfig.ZONE)
+    @SchedulerLock(name = "dailyAlerts", lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void sendDailyAlerts() {
         for (Long userId : alertApplicationService.findAllRecipientIds()) {
             // Cada usuário é carregado e processado na sua própria transação de banco: um cadastro

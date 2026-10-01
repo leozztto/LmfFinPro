@@ -55,6 +55,18 @@ public interface TransactionJpaRepository
     @Query(
             """
         SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
+        WHERE t.account.user.id = :userId AND t.type = :type
+          AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
+        """)
+    BigDecimal sumBaseAmountByUserIdAndTypeBetween(
+            @Param("userId") Long userId,
+            @Param("type") CategoryType type,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end);
+
+    @Query(
+            """
+        SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
         WHERE t.account.user.id = :userId AND t.category.id = :categoryId
           AND t.client.id = :clientId AND t.type = :type
           AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end

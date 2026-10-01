@@ -163,7 +163,7 @@ Um `RecurringBudget` é um "molde" que gera um `Budget` de verdade a cada mês v
 | Port/Adapter | `domain/port/out/RecurringBudgetRepositoryPort.java` + `infrastructure/persistence/adapter/RecurringBudgetRepositoryAdapter.java` |
 | Aplicação | `application/recurringbudget/{RecurringBudgetApplicationService,CategoryLimit}.java` |
 | API | `infrastructure/web/controller/RecurringBudgetController.java` (`/api/recurring-budgets`, `/batch`), DTOs em `infrastructure/web/dto/recurringbudget/` |
-| Scheduler | `infrastructure/scheduling/RecurringBudgetScheduler.java` (roda `generateDueBudgets` diariamente para as recorrências ativas) |
+| Scheduler | `infrastructure/scheduling/RecurringBudgetScheduler.java` (roda `generateDueBudgets` diariamente para as recorrências ativas, sob trava ShedLock `recurringBudgets`, inclusive na subida) |
 | Migration | `db/migration/V24__create_recurring_budgets.sql` |
 | Frontend | `frontend/src/features/budgets/components/{RecurringBudgetForm,RecurringBudgetBatchForm,RecurringBudgetList,RecurringBudgetEditForm}.tsx`, `hooks/{useRecurringBudgets,useCreateRecurringBudget,useCreateRecurringBudgetBatch,useUpdateRecurringBudget,useDeleteRecurringBudget}.ts`, renderizado dentro de `frontend/src/features/recurringTransactions/components/RecurringTransactionsPage.tsx` |
 | Testes | `application/recurringbudget/RecurringBudgetApplicationServiceTest.java`, `domain/model/RecurringBudgetTest.java`, `integration/recurringbudget/RecurringBudgetIntegrationTest.java` |

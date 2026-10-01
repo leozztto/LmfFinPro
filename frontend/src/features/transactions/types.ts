@@ -58,3 +58,20 @@ export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
   PAID: 'Paga',
   PENDING: 'Pendente',
 }
+
+/** Parâmetros da listagem paginada; o que não vem preenchido não filtra. */
+export interface TransactionListParams {
+  /** Página atual, a partir de 0. */
+  page: number
+  size: number
+  accountId?: number
+  categoryId?: number
+  clientId?: number
+  type?: TransactionType
+  status?: TransactionStatus
+  hasAttachment?: boolean
+  /** Entra a transação que tiver qualquer uma destas tags. */
+  tagNames?: string[]
+  startDate?: string
+  endDate?: string
+}

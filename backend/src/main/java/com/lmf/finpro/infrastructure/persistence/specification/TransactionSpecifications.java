@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.persistence.specification;
 
 import com.lmf.finpro.domain.model.TransactionSearchCriteria;
 import com.lmf.finpro.infrastructure.persistence.entity.AccountJpaEntity;
+import com.lmf.finpro.infrastructure.persistence.entity.TransactionAttachmentJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransactionJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransactionTagJpaEntity;
 import jakarta.persistence.criteria.Join;
@@ -88,6 +89,17 @@ public final class TransactionSpecifications {
                                 cb.equal(link.get("transactionId"), root.get("id")),
                                 link.get("tagId").in(criteria.tagIds()));
                 predicates.add(cb.exists(tagged));
+            }
+            if (criteria.hasAttachment() != null) {
+                Subquery<Long> attached = query.subquery(Long.class);
+                Root<TransactionAttachmentJpaEntity> attachment =
+                        attached.from(TransactionAttachmentJpaEntity.class);
+                attached.select(attachment.get("id"))
+                        .where(cb.equal(attachment.get("transactionId"), root.get("id")));
+                predicates.add(
+                        criteria.hasAttachment()
+                                ? cb.exists(attached)
+                                : cb.not(cb.exists(attached)));
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };

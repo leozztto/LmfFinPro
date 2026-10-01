@@ -1,8 +1,11 @@
 package com.lmf.finpro.domain.port.out;
 
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.PageQuery;
+import com.lmf.finpro.domain.model.PageResult;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionSearchCriteria;
+import com.lmf.finpro.domain.model.TransactionSortOrder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -58,6 +61,17 @@ public interface TransactionRepositoryPort {
      * não entram na consulta.
      */
     List<Transaction> search(TransactionSearchCriteria criteria);
+
+    /** Uma página das transações que atendem aos filtros, na ordem pedida. */
+    PageResult<Transaction> searchPage(
+            TransactionSearchCriteria criteria, PageQuery pageQuery, TransactionSortOrder order);
+
+    /**
+     * Soma do valor em reais das transações do usuário de um tipo dentro de [start, end), sem as
+     * transferências entre contas próprias, de qualquer situação.
+     */
+    BigDecimal sumBaseAmountByUserIdAndTypeBetween(
+            Long userId, CategoryType type, LocalDate start, LocalDate end);
 
     void deleteById(Long id);
 }

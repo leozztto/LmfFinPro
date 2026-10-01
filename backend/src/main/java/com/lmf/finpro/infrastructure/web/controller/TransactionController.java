@@ -3,10 +3,13 @@ package com.lmf.finpro.infrastructure.web.controller;
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.application.transaction.TransactionApplicationService;
+import com.lmf.finpro.domain.model.PageResult;
 import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
+import com.lmf.finpro.infrastructure.web.dto.common.PageResponse;
 import com.lmf.finpro.infrastructure.web.dto.tag.TagNamesRequest;
+import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionListRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionStatusRequest;
@@ -35,9 +38,13 @@ public class TransactionController {
      * a lista toda.
      */
     @GetMapping
-    public List<TransactionResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        List<Transaction> transactions = transactionApplicationService.list(currentUser.userId());
-        return toResponses(currentUser.userId(), transactions);
+    public PageResponse<TransactionResponse> list(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            TransactionListRequest request) {
+        PageResult<Transaction> page =
+                transactionApplicationService.list(
+                        currentUser.userId(), request.toFilters(), request.page(), request.size());
+        return PageResponse.of(toResponses(currentUser.userId(), page.content()), page);
     }
 
     @GetMapping("/{id}")

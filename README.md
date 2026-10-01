@@ -14,7 +14,7 @@ O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/pla
 
 | Camada | Tecnologia |
 |---|---|
-| Backend | Java 21, Spring Boot 3, Maven, Spring Security, Spring Data JPA, Flyway |
+| Backend | Java 21, Spring Boot 3, Maven, Spring Security, Spring Data JPA, Flyway, ShedLock |
 | Banco | PostgreSQL |
 | Testes | JUnit 5, Mockito, Testcontainers |
 | Frontend | React, TypeScript, Tailwind CSS, Vite, React Query, Recharts |

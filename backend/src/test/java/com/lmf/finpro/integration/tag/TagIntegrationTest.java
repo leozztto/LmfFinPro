@@ -295,13 +295,7 @@ class TagIntegrationTest extends AbstractIntegrationTest {
     }
 
     private List<TransactionResponse> listTransactions(TestUser owner) {
-        return restTemplate
-                .exchange(
-                        "/api/transactions",
-                        HttpMethod.GET,
-                        new HttpEntity<>(owner.authHeaders()),
-                        new ParameterizedTypeReference<List<TransactionResponse>>() {})
-                .getBody();
+        return TestDataFactory.listTransactions(restTemplate, owner);
     }
 
     private List<TagResponse> listTags(TestUser owner) {

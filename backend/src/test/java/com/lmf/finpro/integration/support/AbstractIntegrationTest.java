@@ -30,7 +30,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
 // RateLimitIntegrationTest o religa redefinindo esta anotação.
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "finpro.rate-limit.enabled=false")
+        properties = {
+            "finpro.rate-limit.enabled=false",
+            // Os testes chamam os schedulers direto, várias vezes; sem isso o piso da trava
+            // (1 min) faria só a primeira chamada executar.
+            "finpro.scheduling.lock-at-least-for=PT0S"
+        })
 @Import(AbstractIntegrationTest.JdkHttpClientConfig.class)
 public abstract class AbstractIntegrationTest {
 
