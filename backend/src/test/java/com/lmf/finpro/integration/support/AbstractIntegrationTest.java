@@ -34,7 +34,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
             "finpro.rate-limit.enabled=false",
             // Os testes chamam os schedulers direto, várias vezes; sem isso o piso da trava
             // (1 min) faria só a primeira chamada executar.
-            "finpro.scheduling.lock-at-least-for=PT0S"
+            "finpro.scheduling.lock-at-least-for=PT0S",
+            // Porta de gestão aleatória: vários contextos ficam vivos no cache do Spring e não
+            // podem disputar a 8081.
+            "management.server.port=0"
         })
 @Import(AbstractIntegrationTest.JdkHttpClientConfig.class)
 public abstract class AbstractIntegrationTest {

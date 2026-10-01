@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.exception.InvalidTokenException;
 import com.lmf.finpro.domain.port.out.TokenClaims;
 import com.lmf.finpro.domain.port.out.TokenPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
+import com.lmf.finpro.infrastructure.logging.RequestIdFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -51,6 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 var authentication =
                         new UsernamePasswordAuthenticationToken(principal, null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                // Limpo pelo RequestIdFilter ao fim da requisição.
+                MDC.put(RequestIdFilter.USER_MDC_KEY, String.valueOf(claims.userId()));
             } catch (InvalidTokenException ex) {
                 SecurityContextHolder.clearContext();
             }

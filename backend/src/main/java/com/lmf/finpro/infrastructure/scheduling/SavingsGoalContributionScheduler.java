@@ -3,6 +3,7 @@ package com.lmf.finpro.infrastructure.scheduling;
 import com.lmf.finpro.application.savingsgoal.SavingsGoalApplicationService;
 import com.lmf.finpro.domain.model.SavingsGoal;
 import com.lmf.finpro.infrastructure.config.SchedulingConfig;
+import com.lmf.finpro.infrastructure.logging.SafeErrors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -29,6 +30,7 @@ public class SavingsGoalContributionScheduler {
 
     private final SavingsGoalApplicationService savingsGoalApplicationService;
     private final StartupLockRunner startupLockRunner;
+    private final SchedulerMetrics metrics;
 
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
@@ -38,14 +40,22 @@ public class SavingsGoalContributionScheduler {
     @Scheduled(cron = "${finpro.savings-goal.cron:0 20 0 * * *}", zone = SchedulingConfig.ZONE)
     @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void applyAllAutomaticContributions() {
-        for (SavingsGoal goal : savingsGoalApplicationService.findAllAutoContribute()) {
-            // Cada meta isolada: uma falha (ex.: percentual removido entre uma execução e outra)
-            // não impede o aporte automático das demais.
-            try {
-                savingsGoalApplicationService.applyAutomaticContributionIfDue(goal);
-            } catch (RuntimeException ex) {
-                log.error("Falha ao aplicar aporte automático da meta {}", goal.id(), ex);
-            }
-        }
+        metrics.run(
+                LOCK_NAME,
+                () -> {
+                    for (SavingsGoal goal : savingsGoalApplicationService.findAllAutoContribute()) {
+                        // Cada meta isolada: uma falha (ex.: percentual removido entre uma
+                        // execução e outra) não impede o aporte automático das demais.
+                        try {
+                            savingsGoalApplicationService.applyAutomaticContributionIfDue(goal);
+                        } catch (RuntimeException ex) {
+                            metrics.itemFailed(LOCK_NAME);
+                            log.error(
+                                    "Falha ao aplicar aporte automático da meta {}: {}",
+                                    goal.id(),
+                                    SafeErrors.describe(ex));
+                        }
+                    }
+                });
     }
 }

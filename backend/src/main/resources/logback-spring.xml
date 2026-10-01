@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Texto legível por padrão (dev). Com SPRING_PROFILES_ACTIVE=json, um evento JSON por linha no
+     console — com o requestId do MDC (ver RequestIdFilter) — para o agregador de logs. -->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <springProfile name="json">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <customFields>{"application":"finpro-backend"}</customFields>
+        <!-- Stack trace sem o ruído de servidor/framework, com a causa raiz primeiro. -->
+        <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+          <maxDepthPerThrowable>25</maxDepthPerThrowable>
+          <rootCauseFirst>true</rootCauseFirst>
+          <exclude>^org\.apache\.(catalina|coyote|tomcat)\..*</exclude>
+          <exclude>^org\.springframework\.(web\.filter|security\.web)\..*</exclude>
+          <exclude>^(java\.lang\.reflect|jdk\.internal\.reflect)\..*</exclude>
+        </throwableConverter>
+      </encoder>
+    </appender>
+  </springProfile>
+
+  <springProfile name="!json">
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+  </springProfile>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

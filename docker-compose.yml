@@ -52,6 +52,9 @@ services:
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
       # Resumo diário de alertas; para testar, "0 * * * * *" dispara a cada minuto.
       FINPRO_ALERTS_CRON: ${FINPRO_ALERTS_CRON:-0 0 8 * * *}
+      # Métricas/health na porta 8081 (MANAGEMENT_PORT), propositalmente NÃO publicada em "ports":
+      # só a rede do compose (ex.: um Prometheus no mesmo compose) alcança. Logs em JSON: json.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
       # Anexos de transação (comprovantes, notas fiscais): guardados no volume abaixo.
       FINPRO_ATTACHMENTS_STORAGE_DIR: /app/data/attachments
     volumes:

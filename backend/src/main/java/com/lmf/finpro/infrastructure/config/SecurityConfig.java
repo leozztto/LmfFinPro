@@ -57,8 +57,14 @@ public class SecurityConfig {
                                 // isso, o acesso seria negado com a resposta já em andamento.
                                 auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
                                         .permitAll()
-                                        .requestMatchers(
-                                                "/api/auth/**", "/api/cep/**", "/actuator/health")
+                                        .requestMatchers("/api/auth/**", "/api/cep/**")
+                                        .permitAll()
+                                        // Os endpoints do actuator só existem na porta de gestão
+                                        // (management.server.port, não publicada); na porta da
+                                        // API esta regra não tem o que liberar. Não usar
+                                        // EndpointRequest: no contexto principal ele não casa
+                                        // com as requisições da porta de gestão.
+                                        .requestMatchers("/actuator/**")
                                         .permitAll()
                                         .requestMatchers(
                                                 "/swagger-ui.html",

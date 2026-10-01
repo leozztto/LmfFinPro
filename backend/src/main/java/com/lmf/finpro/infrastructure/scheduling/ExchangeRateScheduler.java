@@ -16,13 +16,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ExchangeRateScheduler {
 
+    static final String LOCK_NAME = "exchangeRates";
+
     private final ExchangeRateApplicationService exchangeRateApplicationService;
+    private final SchedulerMetrics metrics;
 
     @Scheduled(
             cron = "${finpro.exchange-rates.cron:0 30 13 * * MON-FRI}",
             zone = SchedulingConfig.ZONE)
-    @SchedulerLock(name = "exchangeRates", lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
+    @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void refreshRecentRates() {
-        exchangeRateApplicationService.refreshRecent();
+        metrics.run(LOCK_NAME, exchangeRateApplicationService::refreshRecent);
     }
 }

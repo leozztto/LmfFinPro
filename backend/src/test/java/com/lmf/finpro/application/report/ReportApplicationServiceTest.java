@@ -50,10 +50,10 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -71,7 +71,38 @@ class ReportApplicationServiceTest {
 
     @Mock private TagApplicationService tagApplicationService;
 
-    @InjectMocks private ReportApplicationService service;
+    private ReportApplicationService service;
+
+    @BeforeEach
+    void setUp() {
+        ReportLookups lookups =
+                new ReportLookups(clientRepositoryPort, accountRepositoryPort, userRepositoryPort);
+        service =
+                new ReportApplicationService(
+                        new ClientReportDataFactory(lookups, transactionRepositoryPort),
+                        new AccountStatementDataFactory(lookups, transactionRepositoryPort),
+                        new CategoryExpenseDataFactory(
+                                lookups,
+                                accountRepositoryPort,
+                                categoryRepositoryPort,
+                                transactionRepositoryPort),
+                        new IncomeStatementDataFactory(
+                                lookups, accountRepositoryPort, transactionRepositoryPort),
+                        new BudgetVsActualDataFactory(
+                                lookups,
+                                budgetRepositoryPort,
+                                categoryRepositoryPort,
+                                clientRepositoryPort,
+                                transactionRepositoryPort),
+                        new TransactionExportDataFactory(
+                                accountRepositoryPort,
+                                categoryRepositoryPort,
+                                clientRepositoryPort,
+                                transactionRepositoryPort,
+                                tagApplicationService),
+                        receiptGeneratorPort,
+                        reportCsvExporterPort);
+    }
 
     private static Client ownedClient() {
         return new Client(

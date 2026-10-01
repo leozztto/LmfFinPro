@@ -1,0 +1,51 @@
+# Regras de alerta do FinPro para o Prometheus (rule_files). Ver docs/tecnica/observabilidade.md.
+groups:
+  - name: finpro-schedulers
+    rules:
+      - alert: FinProSchedulerFalhou
+        # A execução inteira do job lançou exceção (ex.: banco fora do ar, API do BCB indisponível).
+        expr: increase(finpro_scheduler_runs_total{outcome="failure"}[1h]) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "Scheduler {{ $labels.scheduler }} falhou"
+          description: "A execução do job {{ $labels.scheduler }} terminou com erro na última hora. Veja o log (erro com o stack trace)."
+
+      - alert: FinProSchedulerItensComFalha
+        # O lote terminou, mas algum item (recorrência, meta, usuário) falhou e foi isolado.
+        expr: increase(finpro_scheduler_item_failures_total[1h]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "Scheduler {{ $labels.scheduler }} com itens falhando"
+          description: "{{ $value | printf \"%.0f\" }} item(ns) do job {{ $labels.scheduler }} falharam na última hora; os demais foram processados."
+
+      - alert: FinProSchedulerParado
+        # Jobs diários: sem sucesso há mais de 25h. A PTAX só roda em dias úteis, então fica de fora
+        # (e a janela cobre o fim de semana no alerta abaixo).
+        expr: time() - finpro_scheduler_last_success_timestamp_seconds{scheduler!="exchangeRates"} > 25 * 3600
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Scheduler {{ $labels.scheduler }} não roda com sucesso há mais de 25h"
+
+      - alert: FinProPtaxParada
+        expr: time() - finpro_scheduler_last_success_timestamp_seconds{scheduler="exchangeRates"} > 4 * 24 * 3600
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Cotação PTAX sem atualização com sucesso há mais de 4 dias"
+
+  - name: finpro-api
+    rules:
+      - alert: FinProApiForaDoAr
+        expr: up{job="finpro-backend"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Backend do FinPro não responde ao scrape"
+
+      - alert: FinProErros5xx
+        expr: sum(rate(http_server_requests_seconds_count{application="finpro-backend",status=~"5.."}[5m])) > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Taxa de respostas 5xx acima de 0,1/s"
