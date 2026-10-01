@@ -144,7 +144,9 @@ Freelancers e autônomos (devs, designers, consultores) não têm contracheque f
 
 - Camadas: Controller → Service → Repository, com ports/adapters (hexagonal) e DTOs separados de entidades — ✅ *implementado para Account, Category, Client, Transaction, Transfer, ImportBatch/CategoryRule, TaxEstimate, Budget, Auth e Cep*
 - Autenticação: Spring Security + JWT (access token curto + refresh token em cookie httpOnly) + rate limit nas rotas públicas — ✅ *feito e plugado (filtro real, sem `permitAll()` fora de auth/cep/health)*
-- Migrations: Flyway — ✅ *feito (V1 a V32)*
+- Migrations: Flyway — ✅ *feito (V1 a V33)*
+- Jobs agendados em várias réplicas: ShedLock (JDBC, tabela `shedlock`, V33) — ✅ *todos os `@Scheduled` rodam sob trava; os que também rodam na subida usam `StartupLockRunner`*
+- Listagem de transações: paginada (`page`/`size`, máx. 100) e filtrada no banco — ✅ *feito; demais listagens ainda sem paginação*
 - Documentação da API: springdoc-openapi (Swagger UI) — ✅ *configurado; desligado por padrão, habilitado via `SWAGGER_ENABLED=true` (dev)*
 - Testes: JUnit 5 + Mockito (unidade), Testcontainers + Postgres real (integração) — ✅ *193 testes no total (143 unitários + 50 de integração), `mvn verify` cobrindo tudo*
 

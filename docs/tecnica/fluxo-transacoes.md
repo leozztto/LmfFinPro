@@ -15,7 +15,8 @@ Também carrega **situação** (`TransactionStatus`: `PAID`/`PENDING`, seção 5
 Rota `/transacoes` (`TransactionsPage`).
 
 - **Cabeçalho**: título "Transações" + botão "Nova transação" (ícone `+`), que abre um `Modal` com o `TransactionForm` (conta, categoria, cliente, descrição, valor, data, tipo).
-- **Filtros** (`CollapsibleFilters`, recolhidos por padrão): conta, categoria, cliente, tipo (receita/despesa), situação (paga/pendente), comprovante (com/sem), tags (qualquer uma) e intervalo de datas (início/fim).
+- **Filtros** (`CollapsibleFilters`, recolhidos por padrão): conta, categoria, cliente, tipo (receita/despesa), situação (paga/pendente), comprovante (com/sem), tags (qualquer uma) e intervalo de datas (início/fim). Todos são **resolvidos no banco**: viram parâmetros de `GET /api/transactions`, e qualquer mudança de filtro volta para a primeira página.
+- **Paginação**: 20 transações por página, da mais recente para a mais antiga, com "Anterior"/"Próxima" e o resumo "Página X de Y · N transações" (`Pagination`). A página anterior fica na tela, esmaecida, enquanto a nova carrega; se a página atual deixar de existir (ex.: excluiu o último item da última página), a tela volta para a última que existe.
 - **Lista** (`TransactionList` → `TransactionCard` por item): descrição, valor (verde para receita, vermelho para despesa, com sinal `+`/`-`, na moeda da conta — com o valor original entre parênteses quando a operação foi em outra moeda), conta e categoria na linha de meta-informação, etiquetas de tags, contador de comprovantes, e etiquetas "Transferência" (quando `transferId` está preenchido) / "Recorrente" (quando `recurringTransactionId` está preenchido) / "A receber" ou "A pagar" (quando `status = PENDING`). No mobile, o card é expansível (`ChevronDownIcon`) para mostrar a descrição completa e a ação de remover.
 - **Estados**: `isLoading` → "Carregando transações..."; erro de exclusão → toast com a mensagem do backend.
 - **Ações do usuário**: criar, remover, marcar uma pendente como paga/recebida (modal de confirmação, ver seção 5), trocar tags (ver [`fluxo-tags.md`](fluxo-tags.md)) e gerenciar comprovantes (ver [`fluxo-anexos.md`](fluxo-anexos.md)). **Não há edição completa pela tela de Transações** — embora o backend exponha `PUT /api/transactions/{id}` (`TransactionApplicationService.update`), o frontend não tem formulário de edição de todos os campos nem hook `useUpdateTransaction` conectados a essa rota; hoje o endpoint de update só é exercitado por teste de integração, não pela UI. Situação e tags são as únicas edições possíveis pela tela, cada uma com seu próprio endpoint (`PATCH /{id}/status`, `PUT /{id}/tags`).
@@ -40,7 +41,7 @@ flowchart TD
     end
 
     subgraph application["application/transaction"]
-        Service["TransactionApplicationService\ncreate · list · getById · update · delete\nupdateStatus · updateTags"]
+        Service["TransactionApplicationService\ncreate · list (paginada) · getById · update · delete\nupdateStatus · updateTags"]
     end
 
     subgraph domain["domain"]
@@ -144,6 +145,7 @@ sequenceDiagram
 - **Multi-moeda**: quando a conta não é em reais, a transação pode registrar o valor na moeda original da operação (`originalCurrency`/`originalAmount`, ex.: compra de US$ 20 no cartão em reais) além do valor na moeda da conta (`amount`, o que mexe no saldo). Todo total que junta contas usa `baseAmount` — igual a `amount` em contas em reais, e a conversão pela PTAX do dia da transação nas demais (recalculada se o valor ou a data mudarem).
 - **Transação de transferência não pode ser excluída isoladamente**: `delete()` verifica `existing.transferId() != null` e lança `TransactionLinkedToTransferException` (400) com a mensagem "Esta transação faz parte de uma transferência. Exclua a transferência inteira na tela de Transferências." — ver [`fluxo-transferencias.md`](fluxo-transferencias.md).
 - **Posse da transação é verificada via posse da conta**: `findOwnedOrThrow` busca a transação por id e depois valida que a *conta* dela pertence ao usuário atual (`requireOwnedAccount`) — não existe `userId` direto na tabela `transactions`.
+- **Listagem paginada e filtrada no backend**: `GET /api/transactions?page=&size=&accountId=&categoryId=&clientId=&type=&status=&hasAttachment=&tagNames=&startDate=&endDate=` devolve `{ content, page, size, totalElements, totalPages }`. `page` começa em 0; `size` padrão 20 e máximo 100 (valores fora disso são ajustados, não geram erro). A consulta reaproveita `TransactionSearchCriteria`/`TransactionSpecifications` (as mesmas dos relatórios), que já restringem ao usuário; a ordem é fixa: data e id decrescentes. `tagNames` repetido casa com **qualquer** das tags (nome normalizado; tag que o usuário não tem não casa com nada, e se nenhuma existir a página vem vazia). Tags e `attachmentCount` são resolvidos só para os itens da página.
 - **Tags e comprovantes têm rota própria**: `PUT /{id}/tags` (`TagApplicationService`, até 10 tags por transação, vale mesmo para transação paga ou de transferência) e o CRUD de anexos por `TransactionAttachmentApplicationService` — ver [`fluxo-tags.md`](fluxo-tags.md) e [`fluxo-anexos.md`](fluxo-anexos.md). `TransactionResponse` já vem com `tags` e `attachmentCount` prontos, resolvidos no controller.
 
 ## 6. Onde cada peça vive no repositório
@@ -154,5 +156,5 @@ sequenceDiagram
 | Port/Adapter | `domain/port/out/TransactionRepositoryPort.java` + `infrastructure/persistence/adapter/TransactionRepositoryAdapter.java` |
 | Aplicação | `application/transaction/TransactionApplicationService.java` (+ `application/exchangerate/ExchangeRateApplicationService`, `application/tag/TagApplicationService`, `application/attachment/TransactionAttachmentApplicationService` usados no controller) |
 | API | `infrastructure/web/controller/TransactionController.java` (`/api/transactions`, `PATCH /{id}/status`, `PUT /{id}/tags`) |
-| Frontend | `frontend/src/features/transactions/**` (`TransactionsPage`, `TransactionForm`, `TransactionList`, `TransactionCard`, hooks `useTransactions`/`useCreateTransaction`/`useDeleteTransaction`/`useUpdateTransactionStatus`/`useUpdateTransactionTags`, `transactionsApi`, `schemas.ts`, `types.ts`) |
+| Frontend | `frontend/src/features/transactions/**` (`TransactionsPage`, `TransactionForm`, `TransactionList`, `TransactionCard`, hooks `useTransactions` (recebe página e filtros)/`useCreateTransaction`/`useDeleteTransaction`/`useUpdateTransactionStatus`/`useUpdateTransactionTags`, `transactionsApi`, `schemas.ts`, `types.ts`) |
 | Testes | `backend/src/test/java/.../integration/transaction/TransactionIntegrationTest.java`, `application/transaction/TransactionApplicationServiceTest.java` |

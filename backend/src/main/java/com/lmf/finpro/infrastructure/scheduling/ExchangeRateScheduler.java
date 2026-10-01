@@ -3,6 +3,7 @@ package com.lmf.finpro.infrastructure.scheduling;
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.infrastructure.config.SchedulingConfig;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ public class ExchangeRateScheduler {
     @Scheduled(
             cron = "${finpro.exchange-rates.cron:0 30 13 * * MON-FRI}",
             zone = SchedulingConfig.ZONE)
+    @SchedulerLock(name = "exchangeRates", lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void refreshRecentRates() {
         exchangeRateApplicationService.refreshRecent();
     }

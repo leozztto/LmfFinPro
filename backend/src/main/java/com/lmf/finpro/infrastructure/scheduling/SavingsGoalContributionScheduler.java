@@ -5,6 +5,7 @@ import com.lmf.finpro.domain.model.SavingsGoal;
 import com.lmf.finpro.infrastructure.config.SchedulingConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,14 +25,18 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SavingsGoalContributionScheduler {
 
+    static final String LOCK_NAME = "savingsGoalContributions";
+
     private final SavingsGoalApplicationService savingsGoalApplicationService;
+    private final StartupLockRunner startupLockRunner;
 
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
-        applyAllAutomaticContributions();
+        startupLockRunner.run(LOCK_NAME, this::applyAllAutomaticContributions);
     }
 
     @Scheduled(cron = "${finpro.savings-goal.cron:0 20 0 * * *}", zone = SchedulingConfig.ZONE)
+    @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void applyAllAutomaticContributions() {
         for (SavingsGoal goal : savingsGoalApplicationService.findAllAutoContribute()) {
             // Cada meta isolada: uma falha (ex.: percentual removido entre uma execução e outra)

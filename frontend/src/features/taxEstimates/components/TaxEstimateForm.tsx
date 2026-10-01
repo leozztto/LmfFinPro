@@ -6,9 +6,9 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { formatCurrency } from '@/shared/format/currency'
 import { getCurrentYearMonth } from '@/shared/format/date'
-import { useTransactions } from '@/features/transactions/hooks/useTransactions'
 import { useCreateTaxEstimate } from '../hooks/useCreateTaxEstimate'
 import { useSuggestedRate } from '../hooks/useSuggestedRate'
+import { useSuggestedRevenue } from '../hooks/useSuggestedRevenue'
 import { taxEstimateSchema, type TaxEstimateFormValues } from '../schemas'
 import { TAX_REGIME_LABELS } from '../types'
 
@@ -25,7 +25,6 @@ const EMPTY_VALUES: TaxEstimateFormValues = {
 
 export function TaxEstimateForm({ onSuccess }: TaxEstimateFormProps) {
   const createTaxEstimate = useCreateTaxEstimate()
-  const { data: transactions } = useTransactions()
   const { showToast } = useToast()
   const {
     register,
@@ -46,17 +45,14 @@ export function TaxEstimateForm({ onSuccess }: TaxEstimateFormProps) {
   const appliedRate = useWatch({ control, name: 'appliedRate' })
 
   const { data: suggestedRate } = useSuggestedRate(regime, Number(grossRevenue) || 0)
+  const { data: suggestedRevenue } = useSuggestedRevenue(referenceMonth)
 
   // Pré-preenche a receita bruta com a soma das receitas (sem transferências) do mês
-  // selecionado — o usuário pode ajustar o valor livremente antes de salvar.
+  // selecionado, calculada pelo backend — o usuário pode ajustar o valor livremente antes de salvar.
   useEffect(() => {
-    if (!transactions || !referenceMonth) return
-    const income = transactions
-      .filter((t) => t.transferId == null && t.type === 'INCOME' && t.transactionDate.startsWith(referenceMonth))
-      .reduce((sum, t) => sum + t.amount, 0)
-    setValue('grossRevenue', income)
+    if (suggestedRevenue) setValue('grossRevenue', suggestedRevenue.grossRevenue)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [referenceMonth, transactions])
+  }, [suggestedRevenue])
 
   useEffect(() => {
     if (suggestedRate != null) setValue('appliedRate', suggestedRate.rate)

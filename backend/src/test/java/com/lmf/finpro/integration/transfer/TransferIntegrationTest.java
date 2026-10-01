@@ -65,16 +65,12 @@ class TransferIntegrationTest extends AbstractIntegrationTest {
                 .extracting(TransferResponse::id)
                 .contains(created.id());
 
-        ResponseEntity<TransactionResponse[]> transactionsAfterCreate =
-                restTemplate.exchange(
-                        "/api/transactions",
-                        HttpMethod.GET,
-                        new HttpEntity<>(user.authHeaders()),
-                        TransactionResponse[].class);
-        assertThat(List.of(transactionsAfterCreate.getBody()))
+        List<TransactionResponse> transactionsAfterCreate =
+                TestDataFactory.listTransactions(restTemplate, user);
+        assertThat(transactionsAfterCreate)
                 .extracting(TransactionResponse::id)
                 .contains(created.fromTransactionId(), created.toTransactionId());
-        assertThat(List.of(transactionsAfterCreate.getBody()))
+        assertThat(transactionsAfterCreate)
                 .filteredOn(
                         t ->
                                 t.id().equals(created.fromTransactionId())
@@ -90,13 +86,9 @@ class TransferIntegrationTest extends AbstractIntegrationTest {
                         Void.class);
         assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        ResponseEntity<TransactionResponse[]> transactionsAfterDelete =
-                restTemplate.exchange(
-                        "/api/transactions",
-                        HttpMethod.GET,
-                        new HttpEntity<>(user.authHeaders()),
-                        TransactionResponse[].class);
-        assertThat(List.of(transactionsAfterDelete.getBody()))
+        List<TransactionResponse> transactionsAfterDelete =
+                TestDataFactory.listTransactions(restTemplate, user);
+        assertThat(transactionsAfterDelete)
                 .extracting(TransactionResponse::id)
                 .doesNotContain(created.fromTransactionId(), created.toTransactionId());
     }

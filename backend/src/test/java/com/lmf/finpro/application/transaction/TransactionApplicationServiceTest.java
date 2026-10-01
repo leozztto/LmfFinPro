@@ -3,6 +3,7 @@ package com.lmf.finpro.application.transaction;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -24,8 +25,13 @@ import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.domain.model.ClientWorkType;
 import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.PageQuery;
+import com.lmf.finpro.domain.model.PageResult;
+import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
+import com.lmf.finpro.domain.model.TransactionSearchCriteria;
+import com.lmf.finpro.domain.model.TransactionSortOrder;
 import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
@@ -38,6 +44,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -328,13 +335,121 @@ class TransactionApplicationServiceTest {
         assertThat(created.clientId()).isEqualTo(3L);
     }
 
-    @Test
-    void listReturnsTransactionsForAllOwnedAccounts() {
-        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(ownedAccount()));
-        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
-                .thenReturn(List.of(ownedTransaction(null)));
+    private static TransactionListFilters noFilters() {
+        return new TransactionListFilters(
+                null, null, null, null, null, null, List.of(), null, null);
+    }
 
-        assertThat(service.list(10L)).hasSize(1);
+    @Test
+    void listSearchesOnlyTheCurrentUsersTransactionsWithDefaultPaging() {
+        when(transactionRepositoryPort.searchPage(any(), any(), any()))
+                .thenReturn(new PageResult<>(List.of(ownedTransaction(null)), 0, 20, 1));
+
+        PageResult<Transaction> page = service.list(10L, noFilters(), null, null);
+
+        ArgumentCaptor<TransactionSearchCriteria> criteria =
+                ArgumentCaptor.forClass(TransactionSearchCriteria.class);
+        verify(transactionRepositoryPort)
+                .searchPage(
+                        criteria.capture(),
+                        eq(new PageQuery(0, 20)),
+                        eq(TransactionSortOrder.NEWEST_FIRST));
+        assertThat(criteria.getValue().userId()).isEqualTo(10L);
+        assertThat(criteria.getValue().excludeTransfers()).isFalse();
+        assertThat(page.content()).hasSize(1);
+    }
+
+    @Test
+    void listClampsPageAndSize() {
+        when(transactionRepositoryPort.searchPage(any(), any(), any()))
+                .thenReturn(PageResult.empty(0, 100));
+
+        service.list(10L, noFilters(), -3, 5000);
+
+        verify(transactionRepositoryPort)
+                .searchPage(
+                        any(), eq(new PageQuery(0, 100)), eq(TransactionSortOrder.NEWEST_FIRST));
+    }
+
+    @Test
+    void listPassesFiltersToTheSearch() {
+        when(transactionRepositoryPort.searchPage(any(), any(), any()))
+                .thenReturn(PageResult.empty(0, 20));
+        LocalDate start = LocalDate.of(2026, 1, 1);
+        LocalDate end = LocalDate.of(2026, 1, 31);
+
+        service.list(
+                10L,
+                new TransactionListFilters(
+                        1L,
+                        2L,
+                        3L,
+                        CategoryType.INCOME,
+                        TransactionStatus.PENDING,
+                        true,
+                        List.of(),
+                        start,
+                        end),
+                null,
+                null);
+
+        ArgumentCaptor<TransactionSearchCriteria> criteria =
+                ArgumentCaptor.forClass(TransactionSearchCriteria.class);
+        verify(transactionRepositoryPort).searchPage(criteria.capture(), any(), any());
+        TransactionSearchCriteria value = criteria.getValue();
+        assertThat(value.accountId()).isEqualTo(1L);
+        assertThat(value.categoryId()).isEqualTo(2L);
+        assertThat(value.clientId()).isEqualTo(3L);
+        assertThat(value.type()).isEqualTo(CategoryType.INCOME);
+        assertThat(value.status()).isEqualTo(TransactionStatus.PENDING);
+        assertThat(value.hasAttachment()).isTrue();
+        assertThat(value.startDate()).isEqualTo(start);
+        assertThat(value.endDate()).isEqualTo(end);
+    }
+
+    @Test
+    void listResolvesTagNamesToTheUsersTagIds() {
+        Tag tag = new Tag(5L, 10L, "projeto-acme", null, LocalDateTime.now());
+        Tag other = new Tag(6L, 10L, "outra", null, LocalDateTime.now());
+        when(tagApplicationService.tagsById(10L)).thenReturn(Map.of(5L, tag, 6L, other));
+        when(transactionRepositoryPort.searchPage(any(), any(), any()))
+                .thenReturn(PageResult.empty(0, 20));
+
+        service.list(
+                10L,
+                new TransactionListFilters(
+                        null, null, null, null, null, null, List.of("#Projeto-Acme"), null, null),
+                null,
+                null);
+
+        ArgumentCaptor<TransactionSearchCriteria> criteria =
+                ArgumentCaptor.forClass(TransactionSearchCriteria.class);
+        verify(transactionRepositoryPort).searchPage(criteria.capture(), any(), any());
+        assertThat(criteria.getValue().tagIds()).containsExactly(5L);
+    }
+
+    @Test
+    void listReturnsEmptyPageWithoutQueryingWhenNoRequestedTagExists() {
+        when(tagApplicationService.tagsById(10L)).thenReturn(Map.of());
+
+        PageResult<Transaction> page =
+                service.list(
+                        10L,
+                        new TransactionListFilters(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                List.of("fantasma"),
+                                null,
+                                null),
+                        null,
+                        null);
+
+        assertThat(page.content()).isEmpty();
+        verify(transactionRepositoryPort, never()).searchPage(any(), any(), any());
     }
 
     @Test

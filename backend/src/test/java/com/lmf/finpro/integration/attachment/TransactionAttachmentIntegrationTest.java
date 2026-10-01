@@ -75,15 +75,34 @@ class TransactionAttachmentIntegrationTest extends AbstractIntegrationTest {
         assertThat(content.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
                 .startsWith("inline");
 
-        TransactionResponse[] transactions =
-                get(user, "/api/transactions", TransactionResponse[].class).getBody();
-        assertThat(
-                        Arrays.stream(transactions)
-                                .filter(tx -> tx.id().equals(transactionId))
-                                .findFirst())
+        List<TransactionResponse> transactions =
+                TestDataFactory.listTransactions(restTemplate, user);
+        assertThat(transactions.stream().filter(tx -> tx.id().equals(transactionId)).findFirst())
                 .get()
                 .extracting(TransactionResponse::attachmentCount)
                 .isEqualTo(1L);
+    }
+
+    @Test
+    void listFiltersByHavingOrNotHavingAttachments() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        Long accountId = createAccount(user, "Conta");
+        Long withProof = createExpense(user, accountId, "Com comprovante");
+        Long withoutProof = createExpense(user, accountId, "Sem comprovante");
+        upload(user, withProof, uniquePng(), "a.png", "PAYMENT_PROOF");
+
+        assertThat(
+                        TestDataFactory.transactionsPage(restTemplate, user, "hasAttachment=true")
+                                .content())
+                .extracting(TransactionResponse::id)
+                .containsExactly(withProof);
+        assertThat(
+                        TestDataFactory.transactionsPage(restTemplate, user, "hasAttachment=false")
+                                .content())
+                .extracting(TransactionResponse::id)
+                .containsExactly(withoutProof);
+        assertThat(TestDataFactory.transactionsPage(restTemplate, user, "").totalElements())
+                .isEqualTo(2);
     }
 
     @Test

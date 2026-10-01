@@ -1,9 +1,13 @@
 package com.lmf.finpro.infrastructure.persistence.adapter;
 
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.PageQuery;
+import com.lmf.finpro.domain.model.PageResult;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionSearchCriteria;
+import com.lmf.finpro.domain.model.TransactionSortOrder;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
+import com.lmf.finpro.infrastructure.persistence.entity.TransactionJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.mapper.TransactionPersistenceMapper;
 import com.lmf.finpro.infrastructure.persistence.repository.TransactionJpaRepository;
 import com.lmf.finpro.infrastructure.persistence.specification.TransactionSpecifications;
@@ -12,6 +16,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
@@ -48,6 +54,34 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public PageResult<Transaction> searchPage(
+            TransactionSearchCriteria criteria, PageQuery pageQuery, TransactionSortOrder order) {
+        Sort.Direction direction =
+                order == TransactionSortOrder.NEWEST_FIRST
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC;
+        Page<TransactionJpaEntity> result =
+                transactionJpaRepository.findAll(
+                        TransactionSpecifications.matching(criteria),
+                        PageRequest.of(
+                                pageQuery.page(),
+                                pageQuery.size(),
+                                Sort.by(direction, "transactionDate", "id")));
+        return new PageResult<>(
+                result.getContent().stream().map(mapper::toDomain).toList(),
+                pageQuery.page(),
+                pageQuery.size(),
+                result.getTotalElements());
+    }
+
+    @Override
+    public BigDecimal sumBaseAmountByUserIdAndTypeBetween(
+            Long userId, CategoryType type, LocalDate start, LocalDate end) {
+        return transactionJpaRepository.sumBaseAmountByUserIdAndTypeBetween(
+                userId, type, start, end);
     }
 
     @Override
