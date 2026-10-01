@@ -264,6 +264,7 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiError> build(
             HttpStatus status, String message, HttpServletRequest request) {
+        logRejection(status, message, request);
         ApiError body =
                 new ApiError(
                         LocalDateTime.now(),
@@ -272,5 +273,33 @@ public class GlobalExceptionHandler {
                         message,
                         request.getRequestURI());
         return ResponseEntity.status(status).body(body);
+    }
+
+    /**
+     * Erros tratados (regra de negócio, validação, não autorizado...) não são falha do servidor,
+     * mas precisam deixar rastro: é o que explica por que a tela do usuário mostrou um erro. Loga a
+     * mesma mensagem que vai na resposta, sem quebras de linha. 5xx já é logado em {@code ERROR}
+     * pelo handler genérico.
+     */
+    private void logRejection(HttpStatus status, String message, HttpServletRequest request) {
+        if (status.is5xxServerError() && status != HttpStatus.SERVICE_UNAVAILABLE) {
+            return;
+        }
+        String safeMessage = message == null ? "" : message.replaceAll("[\\r\\n]+", " ");
+        if (status == HttpStatus.NOT_FOUND) {
+            log.info(
+                    "Requisição rejeitada {} {} -> {}: {}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    status.value(),
+                    safeMessage);
+        } else {
+            log.warn(
+                    "Requisição rejeitada {} {} -> {}: {}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    status.value(),
+                    safeMessage);
+        }
     }
 }

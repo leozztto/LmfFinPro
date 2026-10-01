@@ -58,6 +58,11 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+    <!-- AOP: log do fluxo de negócio executado (UseCaseLoggingAspect) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
     <!-- Métricas no formato Prometheus (/actuator/prometheus, na porta de gestão) -->
     <dependency>
       <groupId>io.micrometer</groupId>

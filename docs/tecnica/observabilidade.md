@@ -91,3 +91,28 @@ header e filtre os logs por ele.
   Tomcat/filtros do Spring.
 
 Exemplo de consulta (Loki): `{app="finpro"} | json | requestId="<valor do X-Request-Id>"`.
+
+## Rastreando o que o usuário fez (fluxos)
+
+Cada ação na tela vira uma requisição à API, e cada requisição gera, em ordem, estas linhas
+(todas com o mesmo `requestId` e o `userId`):
+
+```
+INFO  Fluxo Transaction.list concluído durationMs=18          <- o caso de uso executado
+INFO  Requisição HTTP method=GET path=/api/transactions status=200 durationMs=24   <- o HTTP
+```
+
+- **`Fluxo <Serviço>.<método>`** (`UseCaseLoggingAspect`): registra o caso de uso de negócio
+  (`Account.create`, `Transfer.create`, `Auth.login`...), duração e, se falhar, `falhou
+  error=<TipoDaExceção>`. Nunca registra argumentos nem retorno. Só o fluxo de fora é registrado.
+  Dentro de scheduler, o sucesso sai em DEBUG; a falha sai sempre.
+- **`Requisição rejeitada <método> <caminho> -> <status>: <mensagem>`**: todo erro tratado (regra
+  de negócio, validação, conflito) com a mesma mensagem que o usuário viu na tela. É a resposta
+  para "por que apareceu este erro?". `WARN` para 4xx/503, `INFO` para 404.
+- **`Requisição HTTP ... status=401/403`** sai em `WARN`: acesso negado.
+- Erros 5xx: `ERROR` com o stack trace (sem mensagem para erros de banco).
+
+Silenciar os fluxos: `LOGGING_LEVEL_COM_LMF_FINPRO_INFRASTRUCTURE_LOGGING_USECASELOGGINGASPECT=WARN`.
+
+Observação: a navegação entre telas do frontend é feita no navegador (SPA); o backend só vê as
+chamadas de dados que cada tela dispara. Menu que não carrega dados da API não gera linha.

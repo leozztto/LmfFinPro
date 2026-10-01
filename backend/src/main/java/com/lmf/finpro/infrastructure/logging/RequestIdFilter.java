@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.slf4j.event.Level;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -64,20 +65,14 @@ public class RequestIdFilter extends OncePerRequestFilter {
         }
         int status = response.getStatus();
         long durationMs = (System.nanoTime() - start) / 1_000_000;
-        if (status >= 500) {
-            log.warn(
-                    "Requisição HTTP {} {} {} {}",
-                    kv("method", request.getMethod()),
-                    kv("path", path),
-                    kv("status", status),
-                    kv("durationMs", durationMs));
-        } else {
-            log.info(
-                    "Requisição HTTP {} {} {} {}",
-                    kv("method", request.getMethod()),
-                    kv("path", path),
-                    kv("status", status),
-                    kv("durationMs", durationMs));
-        }
+        // 5xx e acesso negado (401/403) chamam atenção; o resto é tráfego normal.
+        boolean attention = status >= 500 || status == 401 || status == 403;
+        log.atLevel(attention ? Level.WARN : Level.INFO)
+                .setMessage("Requisição HTTP {} {} {} {}")
+                .addArgument(kv("method", request.getMethod()))
+                .addArgument(kv("path", path))
+                .addArgument(kv("status", status))
+                .addArgument(kv("durationMs", durationMs))
+                .log();
     }
 }
