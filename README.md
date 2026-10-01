@@ -42,7 +42,7 @@ docker compose up --build
 Isso sobe quatro containers: Postgres, backend (Spring Boot), frontend (build estático servido por Nginx) e Mailpit (servidor de e-mail falso para desenvolvimento).
 
 - Frontend: http://localhost
-- API: http://localhost:8080 (Swagger UI em `/swagger-ui.html`)
+- API: http://localhost:8080 (Swagger UI em `/swagger-ui.html`, só com `SWAGGER_ENABLED=true` no `.env` — desligado por padrão)
 - Postgres: localhost:5432
 - Mailpit: http://localhost:8025 — caixa de entrada com todos os e-mails que o backend envia (ex.: link de "esqueci minha senha"); nenhum e-mail sai de verdade
 
@@ -68,7 +68,7 @@ cp ../.env.example .env   # ajuste as variáveis se necessário
 mvn spring-boot:run
 ```
 
-A API sobe em `http://localhost:8080`. Documentação interativa (Swagger UI) em `http://localhost:8080/swagger-ui.html`.
+A API sobe em `http://localhost:8080`. Documentação interativa (Swagger UI) em `http://localhost:8080/swagger-ui.html` — desligada por padrão; ligue com `SWAGGER_ENABLED=true` (já vem assim no `.env.example`). Em produção, mantenha desligada.
 
 **3. Frontend**
 

@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearSession, getStoredToken, loadSession, markSessionExpiredOnce, saveSession } from './authStorage'
+import {
+  SESSION_KEY,
+  clearSession,
+  getAccessToken,
+  loadStoredUser,
+  markSessionExpiredOnce,
+  saveSession,
+  setAccessToken,
+} from './authStorage'
 import type { AuthSession } from './types'
 
 function createLocalStorageMock() {
@@ -28,44 +36,62 @@ const sampleSession: AuthSession = {
 describe('authStorage', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', createLocalStorageMock())
+    setAccessToken(null)
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('loadSession returns null when nothing was saved', () => {
-    expect(loadSession()).toBeNull()
+  it('loadStoredUser returns null when nothing was saved', () => {
+    expect(loadStoredUser()).toBeNull()
   })
 
-  it('saveSession then loadSession round-trips the same session', () => {
+  it('saveSession then loadStoredUser round-trips the user without the token', () => {
     saveSession(sampleSession)
 
-    expect(loadSession()).toEqual(sampleSession)
+    expect(loadStoredUser()).toEqual({ userId: 1, name: 'Ana', email: 'ana@finpro.test' })
   })
 
-  it('loadSession returns null when the stored value is not valid JSON', () => {
-    localStorage.setItem('finpro.auth.session', '{not-json')
+  it('never writes the access token to localStorage (XSS could read it)', () => {
+    saveSession(sampleSession)
 
-    expect(loadSession()).toBeNull()
+    expect(localStorage.getItem(SESSION_KEY)).not.toContain('jwt-token')
+    expect(localStorage.getItem(SESSION_KEY)).not.toContain('token')
   })
 
-  it('clearSession removes the saved session', () => {
+  it('keeps the access token in memory after saveSession', () => {
+    saveSession(sampleSession)
+
+    expect(getAccessToken()).toBe('jwt-token')
+  })
+
+  it('loadStoredUser returns null when the stored value is not valid JSON', () => {
+    localStorage.setItem(SESSION_KEY, '{not-json')
+
+    expect(loadStoredUser()).toBeNull()
+  })
+
+  it('loadStoredUser strips a legacy token left in localStorage by the previous version', () => {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sampleSession))
+
+    expect(loadStoredUser()).toEqual({ userId: 1, name: 'Ana', email: 'ana@finpro.test' })
+    expect(localStorage.getItem(SESSION_KEY)).not.toContain('jwt-token')
+    // O token legado não vira token em memória: a sessão é retomada pelo refresh (cookie).
+    expect(getAccessToken()).toBeNull()
+  })
+
+  it('clearSession removes the user and the in-memory token', () => {
     saveSession(sampleSession)
 
     clearSession()
 
-    expect(loadSession()).toBeNull()
+    expect(loadStoredUser()).toBeNull()
+    expect(getAccessToken()).toBeNull()
   })
 
-  it('getStoredToken returns the token from the saved session', () => {
-    saveSession(sampleSession)
-
-    expect(getStoredToken()).toBe('jwt-token')
-  })
-
-  it('getStoredToken returns null when there is no saved session', () => {
-    expect(getStoredToken()).toBeNull()
+  it('getAccessToken returns null when there is no session', () => {
+    expect(getAccessToken()).toBeNull()
   })
 
   it('saveSession swallows errors when localStorage is unavailable (e.g. modo privado)', () => {
@@ -78,6 +104,7 @@ describe('authStorage', () => {
     })
 
     expect(() => saveSession(sampleSession)).not.toThrow()
+    expect(getAccessToken()).toBe('jwt-token')
   })
 
   it('clearSession swallows errors when localStorage is unavailable', () => {
