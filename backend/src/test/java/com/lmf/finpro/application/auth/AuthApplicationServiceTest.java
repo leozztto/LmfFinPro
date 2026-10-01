@@ -31,6 +31,7 @@ class AuthApplicationServiceTest {
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private PasswordHasherPort passwordHasherPort;
     @Mock private TokenPort tokenPort;
+    @Mock private RefreshTokenApplicationService refreshTokenApplicationService;
 
     @InjectMocks private AuthApplicationService service;
 
@@ -163,10 +164,12 @@ class AuthApplicationServiceTest {
         when(userRepositoryPort.findByEmail("ana@finpro.test")).thenReturn(Optional.of(user));
         when(passwordHasherPort.matches("senha12345", "hashed-password")).thenReturn(true);
         when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
+        when(refreshTokenApplicationService.startSession(user)).thenReturn("refresh-token");
 
         AuthResult result = service.login(new LoginCommand("ana@finpro.test", "senha12345"));
 
         assertThat(result.token()).isEqualTo("jwt-token");
+        assertThat(result.refreshToken()).isEqualTo("refresh-token");
     }
 
     @Test

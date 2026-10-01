@@ -9,6 +9,7 @@ import com.lmf.finpro.domain.exception.AttachmentInvalidException;
 import com.lmf.finpro.domain.model.Address;
 import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
+import com.lmf.finpro.infrastructure.web.RefreshCookieFactory;
 import com.lmf.finpro.infrastructure.web.dto.auth.AddressRequest;
 import com.lmf.finpro.infrastructure.web.dto.auth.AuthResponse;
 import com.lmf.finpro.infrastructure.web.dto.profile.ChangePasswordRequest;
@@ -18,6 +19,7 @@ import jakarta.validation.Valid;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProfileController {
 
     private final ProfileApplicationService profileApplicationService;
+    private final RefreshCookieFactory refreshCookieFactory;
 
     @GetMapping
     public ProfileResponse get(@AuthenticationPrincipal AuthenticatedUser currentUser) {
@@ -94,13 +97,19 @@ public class ProfileController {
 
     /** Devolve um token novo: a troca encerra as outras sessões, mas mantém a de quem trocou. */
     @PutMapping("/password")
-    public AuthResponse changePassword(
+    public ResponseEntity<AuthResponse> changePassword(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ChangePasswordRequest request) {
         AuthResult result =
                 profileApplicationService.changePassword(
                         currentUser.userId(), request.currentPassword(), request.newPassword());
-        return new AuthResponse(result.token(), result.userId(), result.name(), result.email());
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshCookieFactory.create(result.refreshToken()).toString())
+                .body(
+                        new AuthResponse(
+                                result.token(), result.userId(), result.name(), result.email()));
     }
 
     private ProfileResponse toResponse(User user) {

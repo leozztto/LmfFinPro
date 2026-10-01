@@ -63,6 +63,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(
+            TooManyRequestsException ex, HttpServletRequest request) {
+        ResponseEntity<ApiError> response =
+                build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+        return ResponseEntity.status(response.getStatusCode())
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
+                .body(response.getBody());
+    }
+
     @ExceptionHandler(IncorrectCurrentPasswordException.class)
     public ResponseEntity<ApiError> handleIncorrectCurrentPassword(
             IncorrectCurrentPasswordException ex, HttpServletRequest request) {

@@ -18,6 +18,7 @@ public class AuthApplicationService {
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordHasherPort passwordHasherPort;
     private final TokenPort tokenPort;
+    private final RefreshTokenApplicationService refreshTokenApplicationService;
 
     public AuthResult register(RegisterCommand command) {
         if (userRepositoryPort.existsByEmail(command.email())) {
@@ -66,7 +67,8 @@ public class AuthApplicationService {
 
     private AuthResult toAuthResult(User user) {
         String token = tokenPort.generate(user.id(), user.email(), user.sessionVersion());
-        return new AuthResult(token, user.id(), user.name(), user.email());
+        String refreshToken = refreshTokenApplicationService.startSession(user);
+        return new AuthResult(token, refreshToken, user.id(), user.name(), user.email());
     }
 
     private String onlyDigits(String value) {

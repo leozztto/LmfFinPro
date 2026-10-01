@@ -5,8 +5,10 @@ import com.lmf.finpro.infrastructure.web.exception.RestAuthenticationEntryPoint;
 import jakarta.servlet.DispatcherType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -33,6 +35,10 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final CorsProperties corsProperties;
 
+    /** Swagger só é público quando habilitado (SWAGGER_ENABLED); caso contrário exige token. */
+    @Value("${springdoc.swagger-ui.enabled:false}")
+    private boolean swaggerEnabled;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -52,12 +58,15 @@ public class SecurityConfig {
                                 auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
                                         .permitAll()
                                         .requestMatchers(
-                                                "/api/auth/**",
-                                                "/api/cep/**",
-                                                "/swagger-ui/**",
-                                                "/v3/api-docs/**",
-                                                "/actuator/health")
+                                                "/api/auth/**", "/api/cep/**", "/actuator/health")
                                         .permitAll()
+                                        .requestMatchers(
+                                                "/swagger-ui.html",
+                                                "/swagger-ui/**",
+                                                "/v3/api-docs/**")
+                                        .access(
+                                                (authentication, context) ->
+                                                        new AuthorizationDecision(swaggerEnabled))
                                         .anyRequest()
                                         .authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
@@ -77,6 +86,10 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(corsProperties.allowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // O refresh token viaja em cookie httpOnly; em dev (localhost:5173 -> :8080) a chamada é
+        // cross-origin e o navegador só envia/aceita o cookie com credenciais liberadas. Seguro
+        // porque as origens são listadas explicitamente (nunca "*").
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
