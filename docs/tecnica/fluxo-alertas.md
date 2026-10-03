@@ -112,7 +112,18 @@ sequenceDiagram
 | Persistência | `infrastructure/persistence/{entity,repository,adapter}/…NotificationPreferences…`, `…SentAlert…` |
 | API | `infrastructure/web/controller/NotificationPreferencesController.java` (`GET/PUT /api/profile/notifications`) |
 | Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql`, `V27__add_recurring_budget_expiring_alert.sql` (toggle + `alert_type` de VARCHAR(20) pra VARCHAR(30), pra caber `RECURRING_BUDGET_EXPIRING`) |
-| Frontend | `frontend/src/features/profile/components/{NotificationsPage,NotificationPreferencesForm}.tsx`, `hooks/useNotificationPreferences.ts` |
+| Frontend | `frontend/src/features/profile/components/{NotificationsPage,NotificationPreferencesForm,PushNotificationsCard}.tsx`, `hooks/{useNotificationPreferences,usePushNotifications}.ts`, `api/pushApi.ts`, `pushSupport.ts`; PWA em `frontend/public/{sw.js,manifest.webmanifest,icons/}` |
 | Testes | `AlertApplicationServiceTest`, `DasScheduleTest`, `integration/alert/AlertIntegrationTest` |
 
 **Testando localmente:** suba com `docker compose up` e `FINPRO_ALERTS_CRON="0 * * * * *"` (a cada minuto), crie uma despesa pendente para amanhã e veja o e-mail no Mailpit (http://localhost:8025).
+
+## 7. Notificação push (PWA)
+
+O mesmo resumo diário também sai como **notificação push** nos aparelhos que o usuário ativou em **Configurações > Notificações > Notificações neste aparelho**. É um complemento do e-mail: usa as mesmas preferências, a mesma janela e o mesmo `sent_alerts` (não há segundo conjunto de avisos).
+
+- **Frontend instalável**: `manifest.webmanifest` + ícones em `frontend/public`. O service worker (`public/sw.js`) só trata `push` e `notificationclick` — **sem cache offline**, de propósito (dados financeiros).
+- **Inscrição**: o navegador se inscreve com a chave VAPID pública (`GET /api/push/config`) e o frontend registra a inscrição (`POST /api/push/subscriptions`; `DELETE` para desativar). Tabela `push_subscriptions` (V34), uma linha por aparelho, `endpoint` único.
+- **Envio**: dentro do `sendAlertsTo`, logo depois do e-mail e antes de gravar `sent_alerts`, `PushNotificationApplicationService.sendDigest` manda uma frase curta (ex.: "2 contas a vencer · 1 orçamento no limite") a cada aparelho. **Nunca lança**: falha de push não impede o registro dos avisos. Resposta 404/410 do serviço de push remove a inscrição.
+- **Sem chaves VAPID** (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`), `NoopPushSender` entra em cena, `/api/push/config` devolve `enabled: false` e a opção some da tela. Gere o par com `npx web-push generate-vapid-keys`.
+- **Requisitos do navegador**: HTTPS (ou localhost). No iPhone/iPad só funciona com o app instalado na Tela de Início (iOS 16.4+).
+- **Testando localmente**: configure as chaves, ative na tela, use `FINPRO_ALERTS_CRON="0 * * * * *"` e crie uma despesa pendente para amanhã.

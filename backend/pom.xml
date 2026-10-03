@@ -132,6 +132,30 @@
       <version>${shedlock.version}</version>
     </dependency>
 
+    <!-- Web Push (notificações no navegador/PWA) com chaves VAPID -->
+    <dependency>
+      <groupId>nl.martijndwars</groupId>
+      <artifactId>web-push</artifactId>
+      <version>5.1.2</version>
+    </dependency>
+    <!-- O web-push declara o cliente HTTP como runtime; o código lê o status da resposta dele -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpasyncclient</artifactId>
+    </dependency>
+    <!-- Assinatura do JWT VAPID; versão mais nova que a 0.7.9 que o web-push traz -->
+    <dependency>
+      <groupId>org.bitbucket.b_c</groupId>
+      <artifactId>jose4j</artifactId>
+      <version>0.9.7</version>
+    </dependency>
+    <!-- Provider criptográfico exigido pelo web-push (que o declara como provided) -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.86</version>
+    </dependency>
+
     <!-- Geração de PDF (recibo por cliente) -->
     <dependency>
       <groupId>com.github.librepdf</groupId>
