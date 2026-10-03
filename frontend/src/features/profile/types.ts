@@ -46,3 +46,15 @@ export interface ChangePasswordResponse {
   name: string
   email: string
 }
+
+export interface PushConfig {
+  enabled: boolean
+  /** Chave VAPID pública para `pushManager.subscribe`; nula quando o push está desligado no servidor. */
+  publicKey: string | null
+}
+
+export interface PushSubscriptionInput {
+  endpoint: string
+  p256dh: string
+  auth: string
+}

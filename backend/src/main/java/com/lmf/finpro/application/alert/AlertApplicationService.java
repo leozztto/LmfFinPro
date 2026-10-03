@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.alert;
 
 import com.lmf.finpro.application.budget.BudgetApplicationService;
+import com.lmf.finpro.application.push.PushNotificationApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AlertDigest;
 import com.lmf.finpro.domain.model.AlertDigest.BillDue;
@@ -61,6 +62,7 @@ public class AlertApplicationService {
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final TaxEstimateRepositoryPort taxEstimateRepositoryPort;
     private final AlertMailerPort alertMailerPort;
+    private final PushNotificationApplicationService pushNotificationApplicationService;
     private final Clock clock;
 
     public List<Long> findAllRecipientIds() {
@@ -109,6 +111,7 @@ public class AlertApplicationService {
             return false;
         }
         alertMailerPort.sendDigest(user.email(), user.name(), digest);
+        pushNotificationApplicationService.sendDigest(user.id(), digest);
         toRecord.forEach(sentAlertRepositoryPort::save);
         return true;
     }

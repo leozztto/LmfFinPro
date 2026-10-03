@@ -11,6 +11,13 @@ import './index.css'
 
 const queryClient = new QueryClient()
 
+// Service worker só para notificações push (ver public/sw.js). Falha em silêncio: o app funciona igual.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>

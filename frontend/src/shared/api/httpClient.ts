@@ -159,7 +159,8 @@ export const httpClient = {
     request<TResponse>(path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: <TResponse, TBody = unknown>(path: string, body: TBody) =>
     request<TResponse>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: (path: string) => request<void>(path, { method: 'DELETE' }),
+  delete: (path: string, body?: unknown) =>
+    request<void>(path, { method: 'DELETE', body: body === undefined ? undefined : JSON.stringify(body) }),
   postForm: <TResponse>(path: string, formData: FormData) => request<TResponse>(path, { method: 'POST', body: formData }),
   putForm: <TResponse>(path: string, formData: FormData) => request<TResponse>(path, { method: 'PUT', body: formData }),
   getBlob: (path: string) => requestBlob(path),

@@ -396,4 +396,7 @@ Uma vez por dia, de manhã, e só se houver algo novo: todos os alertas do dia v
 
 **Como escolho o que receber?**
 Em **Configurações > Notificações** você liga ou desliga cada tipo de alerta e define com quantos dias de antecedência quer ser avisado sobre contas e sobre o DAS (de 0 a 15; 0 avisa só no próprio dia). Por padrão, tudo vem ligado com 3 dias de antecedência.
+
+**Posso receber os alertas como notificação no celular?**
+Sim. Em **Configurações > Notificações**, use **Ativar notificações** no aparelho onde quer ser avisado; o resumo do dia chega também como notificação, além do e-mail, respeitando os alertas escolhidos. No iPhone, instale antes o FinPro na Tela de Início. Você pode instalar o FinPro como app pelo menu do navegador ("Instalar" ou "Adicionar à Tela de Início").
 ___

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.budget.BudgetApplicationService;
+import com.lmf.finpro.application.push.PushNotificationApplicationService;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.AlertDigest;
@@ -73,6 +74,7 @@ class AlertApplicationServiceTest {
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
     @Mock private TaxEstimateRepositoryPort taxEstimateRepositoryPort;
     @Mock private AlertMailerPort alertMailerPort;
+    @Mock private PushNotificationApplicationService pushNotificationApplicationService;
 
     @BeforeEach
     void setUp() {
@@ -346,6 +348,7 @@ class AlertApplicationServiceTest {
                 categoryRepositoryPort,
                 taxEstimateRepositoryPort,
                 alertMailerPort,
+                pushNotificationApplicationService,
                 Clock.fixed(today.atTime(8, 0).atZone(ZONE).toInstant(), ZONE));
     }
 
