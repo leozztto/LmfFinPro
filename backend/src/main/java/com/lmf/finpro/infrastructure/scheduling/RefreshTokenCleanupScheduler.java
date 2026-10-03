@@ -14,16 +14,21 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RefreshTokenCleanupScheduler {
 
+    static final String LOCK_NAME = "refreshTokenCleanup";
+
     private final RefreshTokenApplicationService refreshTokenApplicationService;
+    private final SchedulerMetrics metrics;
 
     @Scheduled(cron = "${finpro.refresh-token.cleanup-cron:0 15 3 * * *}")
-    @SchedulerLock(
-            name = "refreshTokenCleanup",
-            lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
+    @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void purgeExpired() {
-        int removed = refreshTokenApplicationService.purgeExpired();
-        if (removed > 0) {
-            log.info("Refresh tokens expirados removidos: {}", removed);
-        }
+        metrics.run(
+                LOCK_NAME,
+                () -> {
+                    int removed = refreshTokenApplicationService.purgeExpired();
+                    if (removed > 0) {
+                        log.info("Refresh tokens expirados removidos: {}", removed);
+                    }
+                });
     }
 }

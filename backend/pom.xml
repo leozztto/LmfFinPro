@@ -28,6 +28,7 @@
     <pact-jvm.version>4.7.5</pact-jvm.version>
     <openpdf.version>1.3.42</openpdf.version>
     <shedlock.version>5.16.0</shedlock.version>
+    <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
 
     <!-- SonarCloud: só o backend (Java) é analisado aqui — o frontend tem seu próprio projeto,
          configurado em frontend/sonar-project.properties e rodado pelo frontend-ci.yml. -->
@@ -56,6 +57,22 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!-- AOP: log do fluxo de negócio executado (UseCaseLoggingAspect) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+    <!-- Métricas no formato Prometheus (/actuator/prometheus, na porta de gestão) -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <!-- Logs em JSON (perfil "json", ver logback-spring.xml); o Boot 3.3 ainda não tem logging.structured -->
+    <dependency>
+      <groupId>net.logstash.logback</groupId>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <version>${logstash-logback-encoder.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -113,6 +130,30 @@
       <groupId>net.javacrumbs.shedlock</groupId>
       <artifactId>shedlock-provider-jdbc-template</artifactId>
       <version>${shedlock.version}</version>
+    </dependency>
+
+    <!-- Web Push (notificações no navegador/PWA) com chaves VAPID -->
+    <dependency>
+      <groupId>nl.martijndwars</groupId>
+      <artifactId>web-push</artifactId>
+      <version>5.1.2</version>
+    </dependency>
+    <!-- O web-push declara o cliente HTTP como runtime; o código lê o status da resposta dele -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpasyncclient</artifactId>
+    </dependency>
+    <!-- Assinatura do JWT VAPID; versão mais nova que a 0.7.9 que o web-push traz -->
+    <dependency>
+      <groupId>org.bitbucket.b_c</groupId>
+      <artifactId>jose4j</artifactId>
+      <version>0.9.7</version>
+    </dependency>
+    <!-- Provider criptográfico exigido pelo web-push (que o declara como provided) -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.86</version>
     </dependency>
 
     <!-- Geração de PDF (recibo por cliente) -->

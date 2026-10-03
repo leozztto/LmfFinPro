@@ -71,6 +71,12 @@ finpro:
     cron: ${FINPRO_ALERTS_CRON:0 0 8 * * *}
     frontend-url: ${FRONTEND_URL:http://localhost:5173}
     mail-from: ${ALERTS_MAIL_FROM:${PASSWORD_RESET_MAIL_FROM:FinPro <no-reply@finpro.local>}}
+  # Web Push (PWA). Sem as chaves VAPID o push fica desligado — ver PushConfig.
+  # Gere o par com: npx web-push generate-vapid-keys --json
+  push:
+    vapid-public-key: ${VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${VAPID_PRIVATE_KEY:}
+    subject: ${VAPID_SUBJECT:mailto:no-reply@finpro.local}
   # Pasta dos anexos de transação (no Docker, o volume finpro_attachments).
   attachments:
     storage-dir: ${FINPRO_ATTACHMENTS_STORAGE_DIR:./data/attachments}
@@ -90,8 +96,26 @@ pactbroker:
   url: ${PACT_BROKER_BASE_URL:https://lezzotto.pactflow.io}
   token: ${PACT_BROKER_TOKEN:}
 
+# Log de texto (dev): padrão do Spring Boot com requestId e userId (MDC) entre colchetes.
+# No perfil "json" esses campos saem como atributos próprios do evento (ver logback-spring.xml).
+logging:
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%X{requestId:--}|%X{userId:--}]){cyan} %clr(%-36.36logger{35}){blue} : %m%n%wEx"
+
+# Métricas e health numa porta própria (MANAGEMENT_PORT, padrão 8081) que NÃO deve ser publicada na
+# internet: só a rede interna / o Prometheus alcança. A porta da API (8080) não serve /actuator.
+# Métricas dos schedulers: finpro.scheduler.* — ver docs/tecnica/observabilidade.md.
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -86,8 +86,22 @@ public class PasswordResetApplicationService {
         } catch (RuntimeException ex) {
             // Falha no envio não pode virar erro na resposta: diria ao chamador que o e-mail
             // existe.
-            log.error("Falha ao enviar e-mail de redefinição de senha (userId={})", user.id(), ex);
+            // Só os tipos da exceção: a mensagem (e o stack trace com ela) de erros de SMTP costuma
+            // trazer o endereço do destinatário.
+            log.error(
+                    "Falha ao enviar e-mail de redefinição de senha (userId={}, erro={}, causa={})",
+                    user.id(),
+                    ex.getClass().getSimpleName(),
+                    rootCause(ex).getClass().getSimpleName());
         }
+    }
+
+    private static Throwable rootCause(Throwable ex) {
+        Throwable cause = ex;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 
     private static String generateRawToken() {

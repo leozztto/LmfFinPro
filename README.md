@@ -14,7 +14,7 @@ O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/pla
 
 | Camada | Tecnologia |
 |---|---|
-| Backend | Java 21, Spring Boot 3, Maven, Spring Security, Spring Data JPA, Flyway, ShedLock |
+| Backend | Java 21, Spring Boot 3, Maven, Spring Security, Spring Data JPA, Flyway, ShedLock, Micrometer/Prometheus |
 | Banco | PostgreSQL |
 | Testes | JUnit 5, Mockito, Testcontainers |
 | Frontend | React, TypeScript, Tailwind CSS, Vite, React Query, Recharts |
@@ -26,7 +26,8 @@ O plano de escopo completo (modelo de dados, roadmap, telas) está em [`docs/pla
 LmfFinPro/
 ├── backend/     # API Spring Boot (Maven)
 ├── frontend/    # SPA React + Tailwind (Vite)
-├── docs/        # Documentação do projeto (plano de escopo, etc.)
+├── docs/        # Documentação do projeto (plano de escopo, fluxos técnicos, observabilidade)
+├── ops/         # Operação: regras de alerta do Prometheus
 ├── docker-compose.yml
 └── .github/workflows/
 ```
@@ -45,6 +46,10 @@ Isso sobe quatro containers: Postgres, backend (Spring Boot), frontend (build es
 - API: http://localhost:8080 (Swagger UI em `/swagger-ui.html`, só com `SWAGGER_ENABLED=true` no `.env` — desligado por padrão)
 - Postgres: localhost:5432
 - Mailpit: http://localhost:8025 — caixa de entrada com todos os e-mails que o backend envia (ex.: link de "esqueci minha senha"); nenhum e-mail sai de verdade
+
+### Observabilidade
+
+Métricas (Prometheus) e health ficam numa porta de gestão separada, `MANAGEMENT_PORT` (padrão **8081**), que o `docker-compose.yml` não publica — só a rede interna alcança. Logs em JSON com `requestId` (header `X-Request-Id`) saem com `SPRING_PROFILES_ACTIVE=json`. As regras de alerta dos schedulers e da API estão em [`ops/prometheus/finpro-alerts.yml`](ops/prometheus/finpro-alerts.yml). Detalhes em [`docs/tecnica/observabilidade.md`](docs/tecnica/observabilidade.md).
 
 ### E-mail (redefinição de senha)
 

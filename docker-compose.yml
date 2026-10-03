@@ -50,8 +50,15 @@ services:
       # E-mails (ex: redefinição de senha) vão para o Mailpit em dev: http://localhost:8025
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-mailpit}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
+      # Web Push (PWA): sem as chaves VAPID o push fica desligado. Gere com: npx web-push generate-vapid-keys
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:no-reply@finpro.local}
       # Resumo diário de alertas; para testar, "0 * * * * *" dispara a cada minuto.
       FINPRO_ALERTS_CRON: ${FINPRO_ALERTS_CRON:-0 0 8 * * *}
+      # Métricas/health na porta 8081 (MANAGEMENT_PORT), propositalmente NÃO publicada em "ports":
+      # só a rede do compose (ex.: um Prometheus no mesmo compose) alcança. Logs em JSON: json.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
       # Anexos de transação (comprovantes, notas fiscais): guardados no volume abaixo.
       FINPRO_ATTACHMENTS_STORAGE_DIR: /app/data/attachments
     volumes:
