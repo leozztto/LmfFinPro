@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.recurringbudget;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -119,14 +120,19 @@ public class RecurringBudgetApplicationService {
     @Transactional
     public RecurringBudget generateDueBudgets(RecurringBudget recurrence) {
         List<YearMonth> dueMonths = recurrence.dueMonths(YearMonth.now(clock));
+        FlowLog.detail("recurringBudgetId", recurrence.id());
+        FlowLog.detail("dueMonths", dueMonths.size());
         if (dueMonths.isEmpty()) {
             return recurrence;
         }
+        int skipped = 0;
         for (YearMonth month : dueMonths) {
             boolean alreadyExists =
                     budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
                             recurrence.userId(), recurrence.categoryId(), month, null);
-            if (!alreadyExists) {
+            if (alreadyExists) {
+                skipped++;
+            } else {
                 budgetRepositoryPort.save(
                         Budget.create(
                                 recurrence.userId(),
@@ -136,6 +142,7 @@ public class RecurringBudgetApplicationService {
                                 null));
             }
         }
+        FlowLog.detail("skippedExisting", skipped);
         return recurringBudgetRepositoryPort.save(
                 recurrence.withGeneratedMonths(recurrence.generatedMonths() + dueMonths.size()));
     }

@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.savingsgoal;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.application.transfer.TransferApplicationService;
 import com.lmf.finpro.application.transfer.TransferResult;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
@@ -195,12 +196,16 @@ public class SavingsGoalApplicationService {
      * a fração de cada receita nova que chega.
      */
     @Transactional
-    public void applyAutomaticContributionIfDue(SavingsGoal goal) {
+    public boolean applyAutomaticContributionIfDue(SavingsGoal goal) {
         SavingsGoalSummary summary = summarize(goal, monthPaidIncome(goal.userId()));
         BigDecimal suggested = summary.suggestedContribution();
-        if (suggested != null && suggested.signum() > 0) {
+        FlowLog.detail("goalId", goal.id());
+        boolean contributed = suggested != null && suggested.signum() > 0;
+        if (contributed) {
             createSuggestedContribution(goal.userId(), summary, true);
         }
+        FlowLog.detail("contributed", contributed);
+        return contributed;
     }
 
     private GoalContribution createSuggestedContribution(

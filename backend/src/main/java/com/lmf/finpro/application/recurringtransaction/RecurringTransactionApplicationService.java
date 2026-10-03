@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.recurringtransaction;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
@@ -136,6 +137,8 @@ public class RecurringTransactionApplicationService {
     @Transactional
     public RecurringTransaction generateDueOccurrences(RecurringTransaction recurrence) {
         List<LocalDate> dueDates = recurrence.dueOccurrenceDates(LocalDate.now(clock));
+        FlowLog.detail("recurringTransactionId", recurrence.id());
+        FlowLog.detail("generated", dueDates.size());
         if (dueDates.isEmpty()) {
             return recurrence;
         }

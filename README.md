@@ -55,6 +55,16 @@ Métricas (Prometheus) e health ficam numa porta de gestão separada, `MANAGEMEN
 
 O backend envia e-mail via SMTP quando `SPRING_MAIL_HOST` está definido — no Docker Compose ele aponta para o Mailpit. Rodando o backend fora do Docker sem SMTP configurado, o link de redefinição de senha só é escrito no log do backend. Em produção, configure um SMTP real (`SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`) e `FRONTEND_URL` com o endereço público do frontend (usado para montar o link do e-mail).
 
+### App instalável e notificações push (PWA)
+
+O frontend é instalável (menu do navegador > "Instalar" / "Adicionar à Tela de Início") e o resumo diário de alertas também pode chegar como notificação push, ativada por aparelho em **Configurações > Notificações**. O push só liga se o backend tiver as chaves VAPID — sem elas a opção some da tela:
+
+```bash
+npx web-push generate-vapid-keys   # copie para VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (e VAPID_SUBJECT) no .env
+```
+
+Exige HTTPS (ou localhost); no iPhone/iPad, o app precisa estar instalado na Tela de Início (iOS 16.4+). Detalhes em [`docs/tecnica/fluxo-alertas.md`](docs/tecnica/fluxo-alertas.md#7-notificação-push-pwa).
+
 ### Rodando cada parte na mão (útil durante o desenvolvimento, com hot reload)
 
 **1. Banco de dados**
@@ -97,4 +107,4 @@ Cria (ou reaproveita, se já existir) o usuário `demo@finpro.app` / `Demo@12345
 
 ## Status
 
-✅ Escopo de MVP + Fase 2 + Fase 3 concluído (autenticação, importação CSV/OFX, orçamentos e recorrências, alertas, metas de economia, pró-labore, anexos, tags, calendário, patrimônio, multi-moeda, relatórios em PDF/CSV, entre outros). Falta só o deploy real. Veja o detalhamento em [`docs/plano.md`](docs/plano.md#1-status-atual-da-implementação) e o roadmap em [`docs/plano.md`](docs/plano.md#12-roadmap-sugerido-atualizado).
+✅ Escopo de MVP + Fase 2 + Fase 3 concluído (autenticação, importação CSV/OFX, orçamentos e recorrências, alertas por e-mail e push/PWA, metas de economia, pró-labore, anexos, tags, calendário, patrimônio, multi-moeda, relatórios em PDF/CSV, entre outros). Falta só o deploy real. Veja o detalhamento em [`docs/plano.md`](docs/plano.md#1-status-atual-da-implementação) e o roadmap em [`docs/plano.md`](docs/plano.md#12-roadmap-sugerido-atualizado).

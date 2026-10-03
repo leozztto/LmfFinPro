@@ -31,6 +31,6 @@ public class SmtpPasswordResetMailer implements PasswordResetMailerPort {
                 Equipe FinPro
                 """
                         .formatted(userName, ttlMinutes, resetLink));
-        mailSender.send(message);
+        MailSending.send(mailSender, message, "passwordReset");
     }
 }

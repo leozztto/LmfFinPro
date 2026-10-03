@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.auth;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.domain.exception.InvalidTokenException;
 import com.lmf.finpro.domain.model.RefreshToken;
 import com.lmf.finpro.domain.model.User;
@@ -117,7 +118,9 @@ public class RefreshTokenApplicationService {
     /** Apaga tokens expirados; devolve quantos foram removidos. */
     @Transactional
     public int purgeExpired() {
-        return refreshTokenRepositoryPort.deleteExpiredBefore(LocalDateTime.now(clock));
+        int removed = refreshTokenRepositoryPort.deleteExpiredBefore(LocalDateTime.now(clock));
+        FlowLog.detail("removed", removed);
+        return removed;
     }
 
     private boolean isWithinLeeway(RefreshToken token, LocalDateTime now) {

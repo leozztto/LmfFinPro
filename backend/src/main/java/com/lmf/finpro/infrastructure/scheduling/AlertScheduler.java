@@ -34,7 +34,7 @@ public class AlertScheduler {
                         // Cada usuário é carregado e processado na sua própria transação de banco:
                         // um cadastro com problema (ou uma falha de envio) não impede os demais.
                         try {
-                            alertApplicationService.sendAlertsTo(userId);
+                            metrics.itemDone(alertApplicationService.sendAlertsTo(userId) ? 1 : 0);
                         } catch (RuntimeException ex) {
                             metrics.itemFailed(LOCK_NAME);
                             log.error(
