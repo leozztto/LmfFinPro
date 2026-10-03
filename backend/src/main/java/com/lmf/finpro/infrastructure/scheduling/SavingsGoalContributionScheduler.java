@@ -47,7 +47,10 @@ public class SavingsGoalContributionScheduler {
                         // Cada meta isolada: uma falha (ex.: percentual removido entre uma
                         // execução e outra) não impede o aporte automático das demais.
                         try {
-                            savingsGoalApplicationService.applyAutomaticContributionIfDue(goal);
+                            boolean contributed =
+                                    savingsGoalApplicationService.applyAutomaticContributionIfDue(
+                                            goal);
+                            metrics.itemDone(contributed ? 1 : 0);
                         } catch (RuntimeException ex) {
                             metrics.itemFailed(LOCK_NAME);
                             log.error(

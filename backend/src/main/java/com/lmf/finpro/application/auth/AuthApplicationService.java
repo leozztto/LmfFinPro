@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.auth;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
@@ -22,11 +23,13 @@ public class AuthApplicationService {
 
     public AuthResult register(RegisterCommand command) {
         if (userRepositoryPort.existsByEmail(command.email())) {
+            FlowLog.detail("reason", "emailInUse");
             throw new EmailAlreadyInUseException("Já existe uma conta cadastrada com este e-mail");
         }
 
         String documentNumber = onlyDigits(command.documentNumber());
         if (userRepositoryPort.existsByDocumentNumber(documentNumber)) {
+            FlowLog.detail("reason", "documentInUse");
             throw new DocumentAlreadyInUseException(
                     "Já existe uma conta cadastrada com este " + command.documentType());
         }
@@ -52,9 +55,15 @@ public class AuthApplicationService {
                 userRepositoryPort
                         .findByEmail(command.email())
                         .orElseThrow(
-                                () -> new InvalidCredentialsException("E-mail ou senha inválidos"));
+                                () -> {
+                                    FlowLog.detail("reason", "unknownEmail");
+                                    return new InvalidCredentialsException(
+                                            "E-mail ou senha inválidos");
+                                });
 
         if (!passwordHasherPort.matches(command.rawPassword(), user.passwordHash())) {
+            FlowLog.detail("reason", "wrongPassword");
+            FlowLog.detail("userId", user.id());
             throw new InvalidCredentialsException("E-mail ou senha inválidos");
         }
 
@@ -66,6 +75,7 @@ public class AuthApplicationService {
     }
 
     private AuthResult toAuthResult(User user) {
+        FlowLog.detail("userId", user.id());
         String token = tokenPort.generate(user.id(), user.email(), user.sessionVersion());
         String refreshToken = refreshTokenApplicationService.startSession(user);
         return new AuthResult(token, refreshToken, user.id(), user.name(), user.email());

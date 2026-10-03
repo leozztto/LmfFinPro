@@ -47,7 +47,11 @@ public class RecurringBudgetScheduler {
                         // Cada recorrência na sua própria transação de banco: uma falha não
                         // impede as demais.
                         try {
-                            recurringBudgetApplicationService.generateDueBudgets(recurrence);
+                            RecurringBudget updated =
+                                    recurringBudgetApplicationService.generateDueBudgets(
+                                            recurrence);
+                            metrics.itemDone(
+                                    updated.generatedMonths() - recurrence.generatedMonths());
                         } catch (RuntimeException ex) {
                             metrics.itemFailed(LOCK_NAME);
                             log.error(

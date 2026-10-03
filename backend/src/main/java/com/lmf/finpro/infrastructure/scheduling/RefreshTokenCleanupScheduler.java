@@ -26,9 +26,7 @@ public class RefreshTokenCleanupScheduler {
                 LOCK_NAME,
                 () -> {
                     int removed = refreshTokenApplicationService.purgeExpired();
-                    if (removed > 0) {
-                        log.info("Refresh tokens expirados removidos: {}", removed);
-                    }
+                    metrics.produced(removed);
                 });
     }
 }

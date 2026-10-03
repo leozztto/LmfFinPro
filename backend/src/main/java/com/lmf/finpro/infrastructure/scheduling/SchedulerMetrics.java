@@ -28,6 +28,15 @@ public class SchedulerMetrics {
     private final Clock clock;
     private final Map<String, AtomicLong> lastSuccess = new ConcurrentHashMap<>();
 
+    /** Resumo da execução em andamento nesta thread, para a linha "finalizado". */
+    private final ThreadLocal<RunStats> stats = new ThreadLocal<>();
+
+    private static final class RunStats {
+        long items;
+        long produced;
+        long failures;
+    }
+
     public SchedulerMetrics(MeterRegistry registry, Clock clock) {
         this.registry = registry;
         this.clock = clock;
@@ -47,6 +56,7 @@ public class SchedulerMetrics {
         long start = System.nanoTime();
         // Todas as linhas de log do job (inclusive as dos serviços) saem com o nome do scheduler.
         MDC.put("scheduler", job);
+        stats.set(new RunStats());
         log.info("Scheduler {} iniciado", job);
         try {
             body.run();
@@ -60,11 +70,18 @@ public class SchedulerMetrics {
             // segue visível na métrica (outcome=failure) e neste log.
             log.error("Scheduler {} falhou: {}", job, SafeErrors.describe(ex));
         } finally {
+            RunStats run = stats.get();
+            stats.remove();
+            // items = itens do lote examinados; produced = o que o job efetivamente gerou/enviou/
+            // removido (ex.: ocorrências lançadas); itemFailures = itens que falharam isolados.
             log.info(
-                    "Scheduler {} finalizado {} {}",
+                    "Scheduler {} finalizado {} {} {} {} {}",
                     job,
                     kv("outcome", outcome),
-                    kv("durationMs", (System.nanoTime() - start) / 1_000_000));
+                    kv("durationMs", (System.nanoTime() - start) / 1_000_000),
+                    kv("items", run.items),
+                    kv("produced", run.produced),
+                    kv("itemFailures", run.failures));
             MDC.remove("scheduler");
             sample.stop(registry.timer("finpro.scheduler.duration", "scheduler", job));
             registry.counter("finpro.scheduler.runs", "scheduler", job, "outcome", outcome)
@@ -75,6 +92,31 @@ public class SchedulerMetrics {
     /** Falha de um item do lote, já registrada em log pelo scheduler. */
     public void itemFailed(String job) {
         itemFailures(job).increment();
+        RunStats run = stats.get();
+        if (run != null) {
+            run.items++;
+            run.failures++;
+        }
+    }
+
+    /**
+     * Item do lote processado sem erro; {@code produced} é quanto ele gerou (0 quando não havia
+     * nada a fazer). Alimenta o resumo da linha "finalizado".
+     */
+    public void itemDone(long produced) {
+        RunStats run = stats.get();
+        if (run != null) {
+            run.items++;
+            run.produced += produced;
+        }
+    }
+
+    /** Para jobs sem lote de itens (ex.: limpeza): só o total gerado/removido. */
+    public void produced(long produced) {
+        RunStats run = stats.get();
+        if (run != null) {
+            run.produced += produced;
+        }
     }
 
     private Counter itemFailures(String job) {

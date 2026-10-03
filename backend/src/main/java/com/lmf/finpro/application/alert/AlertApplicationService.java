@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.alert;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.application.budget.BudgetApplicationService;
 import com.lmf.finpro.application.push.PushNotificationApplicationService;
 import com.lmf.finpro.domain.model.Account;
@@ -107,12 +108,19 @@ public class AlertApplicationService {
                         : List.of();
 
         AlertDigest digest = new AlertDigest(bills, budgets, das, recurringBudgetsExpiring);
+        FlowLog.detail("userId", user.id());
         if (digest.isEmpty()) {
+            FlowLog.detail("digestSent", false);
             return false;
         }
         alertMailerPort.sendDigest(user.email(), user.name(), digest);
         pushNotificationApplicationService.sendDigest(user.id(), digest);
         toRecord.forEach(sentAlertRepositoryPort::save);
+        FlowLog.detail("digestSent", true);
+        FlowLog.detail("bills", bills.size());
+        FlowLog.detail("budgets", budgets.size());
+        FlowLog.detail("das", das != null);
+        FlowLog.detail("recurringBudgetsExpiring", recurringBudgetsExpiring.size());
         return true;
     }
 

@@ -26,6 +26,7 @@ public class ExchangeRateScheduler {
             zone = SchedulingConfig.ZONE)
     @SchedulerLock(name = LOCK_NAME, lockAtLeastFor = SchedulingConfig.LOCK_AT_LEAST_FOR)
     public void refreshRecentRates() {
-        metrics.run(LOCK_NAME, exchangeRateApplicationService::refreshRecent);
+        metrics.run(
+                LOCK_NAME, () -> metrics.produced(exchangeRateApplicationService.refreshRecent()));
     }
 }

@@ -33,7 +33,7 @@ public class SmtpAlertMailer implements AlertMailerPort {
         message.setTo(toEmail);
         message.setSubject("FinPro — seus alertas de hoje");
         message.setText(buildText(userName, digest));
-        mailSender.send(message);
+        MailSending.send(mailSender, message, "alertDigest");
     }
 
     String buildText(String userName, AlertDigest digest) {

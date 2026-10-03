@@ -84,7 +84,8 @@ header e filtre os logs por ele.
 - **Contexto (MDC)**: `requestId` em toda linha de uma requisição, `userId` nas autenticadas e
   `scheduler` nas linhas de um job. No log de texto aparecem como `[requestId|userId]`; no JSON,
   como atributos do evento.
-- **Schedulers**: `Scheduler X iniciado` e `Scheduler X finalizado outcome=... durationMs=...`.
+- **Schedulers**: `Scheduler X iniciado` e `Scheduler X finalizado outcome=... durationMs=... items=... produced=... itemFailures=...` (resumo da execução; ver abaixo).
+- **Chamadas externas**: BCB e ViaCEP (duração e falha, sem CEP), e-mail (`E-mail enviado kind=... durationMs=...` / `Falha ao enviar e-mail`, nunca o destinatário ou o texto).
 - **Erros**: só falha de verdade (5xx) gera `ERROR` com stack trace. URL inexistente (404), método
   não permitido (405), JSON malformado ou parâmetro inválido (400) respondem 4xx sem stack trace.
   No JSON, o stack trace vem com a causa raiz primeiro, limitado a 25 frames e sem frames de
@@ -103,9 +104,18 @@ INFO  Requisição HTTP method=GET path=/api/transactions status=200 durationMs=
 ```
 
 - **`Fluxo <Serviço>.<método>`** (`UseCaseLoggingAspect`): registra o caso de uso de negócio
-  (`Account.create`, `Transfer.create`, `Auth.login`...), duração e, se falhar, `falhou
-  error=<TipoDaExceção>`. Nunca registra argumentos nem retorno. Só o fluxo de fora é registrado.
-  Dentro de scheduler, o sucesso sai em DEBUG; a falha sai sempre.
+  (`Account.create`, `Transfer.create`, `Auth.login`...), a duração, o contexto e, se falhar,
+  `falhou error=<TipoDaExceção>`. Só o fluxo de fora é registrado. Dentro de scheduler, o sucesso
+  sai em DEBUG (um por item); a falha sai sempre, e o resumo fica na linha do scheduler.
+- **Contexto do fluxo**: só ids e contagens, nunca valores, nomes ou e-mails. O aspecto deduz
+  sozinho os parâmetros `Long` terminados em `Id` (menos `currentUserId`, que já vai no MDC como
+  `userId`), o `resultId` do retorno e o `resultCount` de listas. Desfechos que só o serviço sabe
+  entram com `FlowLog.detail("chave", valor)` (classe `application/FlowLog`, no-op fora de um
+  fluxo): importação (`rows`, `imported`, `duplicates`, `uncategorized`), alertas (`digestSent`,
+  `bills`, `budgets`), recorrências (`generated`, `dueMonths`, `skippedExisting`), aporte
+  automático (`contributed`), câmbio (`rates`), login (`reason=unknownEmail|wrongPassword`).
+  Exemplo: `Fluxo Import.importFile concluído durationMs=210 accountId=7 batchId=31 rows=120
+  imported=112 duplicates=8 uncategorized=15`.
 - **`Requisição rejeitada <método> <caminho> -> <status>: <mensagem>`**: todo erro tratado (regra
   de negócio, validação, conflito) com a mesma mensagem que o usuário viu na tela. É a resposta
   para "por que apareceu este erro?". `WARN` para 4xx/503, `INFO` para 404.
@@ -116,3 +126,24 @@ Silenciar os fluxos: `LOGGING_LEVEL_COM_LMF_FINPRO_INFRASTRUCTURE_LOGGING_USECAS
 
 Observação: a navegação entre telas do frontend é feita no navegador (SPA); o backend só vê as
 chamadas de dados que cada tela dispara. Menu que não carrega dados da API não gera linha.
+
+## Resumo dos schedulers
+
+Cada execução termina com uma linha de `INFO` que diz o que o job fez, mesmo quando não havia nada
+a fazer:
+
+```
+Scheduler recurringTransactions finalizado outcome=success durationMs=340 items=37 produced=12 itemFailures=1
+```
+
+- `items`: itens do lote examinados (recorrências, metas, usuários).
+- `produced`: o que o job efetivamente gerou, enviou ou removeu (ocorrências lançadas, e-mails de
+  alerta enviados, aportes feitos, cotações salvas, refresh tokens apagados).
+- `itemFailures`: itens que falharam e foram isolados (cada um com seu `ERROR`).
+
+`items=N produced=0` significa que o job rodou e não havia nada vencido; `items=0` com o lote
+esperado indica problema de dados ou de filtro. Para ver cada item, ligue o `DEBUG` do aspecto
+(`LOGGING_LEVEL_COM_LMF_FINPRO_INFRASTRUCTURE_LOGGING_USECASELOGGINGASPECT=DEBUG`).
+
+Ao criar um job novo, chame `metrics.itemDone(produced)` por item (ou `metrics.produced(n)` para
+jobs sem lote) para o resumo sair completo.

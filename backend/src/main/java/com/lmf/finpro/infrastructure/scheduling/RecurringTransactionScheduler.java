@@ -46,8 +46,12 @@ public class RecurringTransactionScheduler {
                         // Cada recorrência na sua própria transação de banco: uma falha não
                         // impede as demais.
                         try {
-                            recurringTransactionApplicationService.generateDueOccurrences(
-                                    recurrence);
+                            RecurringTransaction updated =
+                                    recurringTransactionApplicationService.generateDueOccurrences(
+                                            recurrence);
+                            metrics.itemDone(
+                                    updated.generatedOccurrences()
+                                            - recurrence.generatedOccurrences());
                         } catch (RuntimeException ex) {
                             metrics.itemFailed(LOCK_NAME);
                             log.error(
