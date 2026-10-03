@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.importbatch;
 
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
 import com.lmf.finpro.domain.exception.ImportFileInvalidException;
@@ -59,6 +60,7 @@ public class ImportApplicationService {
                 categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentUserId);
         Set<DuplicateKey> existingKeys = duplicateKeysOf(accountId);
         int duplicateCount = 0;
+        int uncategorizedCount = 0;
         for (ParsedTransactionRow row : rows) {
             CategoryType type =
                     row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
@@ -71,6 +73,9 @@ public class ImportApplicationService {
                 continue;
             }
             Long categoryId = matchCategory(rules, row.description(), type);
+            if (categoryId == null) {
+                uncategorizedCount++;
+            }
             Transaction imported =
                     Transaction.createImported(
                             accountId,
@@ -90,6 +95,12 @@ public class ImportApplicationService {
             transactionRepositoryPort.save(imported);
         }
 
+        FlowLog.detail("batchId", batch.id());
+        FlowLog.detail("format", format);
+        FlowLog.detail("rows", rows.size());
+        FlowLog.detail("imported", rows.size() - duplicateCount);
+        FlowLog.detail("duplicates", duplicateCount);
+        FlowLog.detail("uncategorized", uncategorizedCount);
         return importBatchRepositoryPort.save(
                 batch.withStatus(ImportStatus.COMPLETED).withDuplicateCount(duplicateCount));
     }

@@ -73,6 +73,22 @@ class SchedulerMetricsTest {
                 .isEqualTo(2);
     }
 
+    @Test
+    void finishedLineSummarizesItemsProducedAndFailures(CapturedOutput output) {
+        metrics.run(
+                "job",
+                () -> {
+                    metrics.itemDone(3);
+                    metrics.itemDone(0);
+                    metrics.itemFailed("job");
+                });
+
+        assertThat(output.getAll())
+                .contains("items=3")
+                .contains("produced=3")
+                .contains("itemFailures=1");
+    }
+
     private double runs(String outcome) {
         var counter =
                 registry.find("finpro.scheduler.runs")

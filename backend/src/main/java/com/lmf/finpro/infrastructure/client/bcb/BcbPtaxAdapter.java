@@ -5,12 +5,14 @@ import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.ExchangeRate;
 import com.lmf.finpro.domain.port.out.ExchangeRateProviderPort;
 import com.lmf.finpro.infrastructure.config.BcbPtaxProperties;
+import com.lmf.finpro.infrastructure.logging.SafeErrors;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -20,6 +22,7 @@ import org.springframework.web.client.RestClientException;
  * PTAX do Banco Central (API OData pública, sem chave). Usa só o boletim de fechamento, pela taxa
  * de venda — a referência oficial para conversão de moeda estrangeira em reais.
  */
+@Slf4j
 @Component
 public class BcbPtaxAdapter implements ExchangeRateProviderPort {
 
@@ -52,6 +55,7 @@ public class BcbPtaxAdapter implements ExchangeRateProviderPort {
                             .retrieve()
                             .body(BcbPtaxResponseDto.class);
         } catch (RestClientException ex) {
+            log.warn("Falha na consulta ao Banco Central {}", SafeErrors.describe(ex));
             throw new ExchangeRateUnavailableException(
                     "Não foi possível consultar a cotação do " + currency + " no Banco Central");
         }

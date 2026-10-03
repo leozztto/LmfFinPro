@@ -1,5 +1,8 @@
 package com.lmf.finpro.application.exchangerate;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.domain.exception.ExchangeRateUnavailableException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Currency;
@@ -174,34 +177,47 @@ public class ExchangeRateApplicationService {
     }
 
     /** Busca as cotações recentes de todas as moedas estrangeiras (agendador diário). */
-    public void refreshRecent() {
+    public int refreshRecent() {
+        int saved = 0;
         for (Currency currency : Currency.values()) {
             if (!currency.isBase()) {
                 lastAttempts.remove(currency);
-                refresh(currency, today().minusDays(LOOKBACK_DAYS), today());
+                saved += refresh(currency, today().minusDays(LOOKBACK_DAYS), today());
             }
         }
+        FlowLog.detail("rates", saved);
+        return saved;
     }
 
     /**
      * Busca na fonte externa, a menos que o mesmo período já tenha sido buscado há pouco (a cotação
      * do dia só sai à tarde: sem isso, toda tela da manhã consultaria o Banco Central).
      */
-    private void refresh(Currency currency, LocalDate from, LocalDate to) {
+    private int refresh(Currency currency, LocalDate from, LocalDate to) {
         Attempt last = lastAttempts.get(currency);
         Instant now = clock.instant();
         if (last != null
                 && !last.from().isAfter(from)
                 && !last.to().isBefore(to)
                 && Duration.between(last.at(), now).compareTo(RETRY_AFTER) < 0) {
-            return;
+            log.debug("Cotação do {} já buscada há pouco; consulta externa pulada", currency);
+            return 0;
         }
         lastAttempts.put(currency, new Attempt(now, from, to));
+        long start = System.nanoTime();
         try {
             List<ExchangeRate> fetched = exchangeRateProviderPort.fetch(currency, from, to);
             if (!fetched.isEmpty()) {
                 exchangeRateRepositoryPort.saveAll(fetched);
             }
+            log.info(
+                    "Cotações buscadas na fonte externa {} {} {} {} {}",
+                    kv("currency", currency),
+                    kv("from", from),
+                    kv("to", to),
+                    kv("fetched", fetched.size()),
+                    kv("durationMs", (System.nanoTime() - start) / 1_000_000));
+            return fetched.size();
         } catch (ExchangeRateUnavailableException ex) {
             log.warn(
                     "Falha ao buscar a cotação do {} de {} a {}: {}",
@@ -209,6 +225,7 @@ public class ExchangeRateApplicationService {
                     from,
                     to,
                     ex.getMessage());
+            return 0;
         }
     }
 

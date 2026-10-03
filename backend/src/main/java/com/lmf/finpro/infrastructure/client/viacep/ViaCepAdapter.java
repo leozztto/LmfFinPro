@@ -1,18 +1,23 @@
 package com.lmf.finpro.infrastructure.client.viacep;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import com.lmf.finpro.domain.exception.CepNotFoundException;
 import com.lmf.finpro.domain.exception.CepServiceUnavailableException;
 import com.lmf.finpro.domain.model.BrazilianState;
 import com.lmf.finpro.domain.model.CepAddress;
 import com.lmf.finpro.domain.port.out.CepLookupPort;
 import com.lmf.finpro.infrastructure.config.ViaCepProperties;
+import com.lmf.finpro.infrastructure.logging.SafeErrors;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+@Slf4j
 @Component
 public class ViaCepAdapter implements CepLookupPort {
 
@@ -36,6 +41,7 @@ public class ViaCepAdapter implements CepLookupPort {
     @Override
     public CepAddress lookup(String zipCode) {
         ViaCepResponseDto response;
+        long start = System.nanoTime();
         try {
             response =
                     restClient
@@ -44,9 +50,18 @@ public class ViaCepAdapter implements CepLookupPort {
                             .retrieve()
                             .body(ViaCepResponseDto.class);
         } catch (RestClientException ex) {
+            log.warn(
+                    "Falha ao consultar o ViaCEP {} {}",
+                    kv("error", SafeErrors.describe(ex)),
+                    kv("durationMs", (System.nanoTime() - start) / 1_000_000));
             throw new CepServiceUnavailableException(
                     "Não foi possível consultar o CEP no momento", ex);
         }
+
+        log.debug(
+                "ViaCEP consultado {} {}",
+                kv("found", response != null && !Boolean.TRUE.equals(response.erro())),
+                kv("durationMs", (System.nanoTime() - start) / 1_000_000));
 
         if (response == null || Boolean.TRUE.equals(response.erro())) {
             throw new CepNotFoundException("CEP não encontrado: " + zipCode);
