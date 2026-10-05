@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Dívidas acompanhadas no patrimônio. O saldo devedor é sempre o último informado; toda dívida
  * nasce com um e precisa manter pelo menos um. Datas futuras são recusadas.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DebtApplicationService {
@@ -37,6 +39,7 @@ public class DebtApplicationService {
     }
 
     public List<DebtSummary> list(Long currentUserId) {
+        log.debug("Listando dívidas do usuário={}", currentUserId);
         List<Debt> debts = debtRepositoryPort.findAllByUserId(currentUserId);
         Map<Long, List<DebtBalance>> balancesByDebt =
                 debtBalanceRepositoryPort
@@ -64,6 +67,7 @@ public class DebtApplicationService {
             String creditor,
             BigDecimal initialBalance,
             LocalDate balanceDate) {
+        log.debug("Criando dívida do tipo={} para o usuário={}", type, currentUserId);
         requireNotFuture(balanceDate);
         Debt debt =
                 debtRepositoryPort.save(
@@ -71,11 +75,13 @@ public class DebtApplicationService {
         DebtBalance balance =
                 debtBalanceRepositoryPort.save(
                         DebtBalance.create(debt.id(), balanceDate, initialBalance));
+        log.debug("Dívida={} criada para o usuário={}", debt.id(), currentUserId);
         return new DebtSummary(debt, balance);
     }
 
     public DebtSummary update(
             Long currentUserId, Long debtId, String name, DebtType type, String creditor) {
+        log.debug("Atualizando dívida={} do usuário={}", debtId, currentUserId);
         Debt debt = findOwnedOrThrow(currentUserId, debtId);
         Debt updated =
                 debtRepositoryPort.save(debt.withDetails(name.trim(), type, blankToNull(creditor)));
@@ -84,17 +90,24 @@ public class DebtApplicationService {
 
     /** Os saldos informados vão junto (ON DELETE CASCADE). */
     public void delete(Long currentUserId, Long debtId) {
+        log.debug("Removendo dívida={} do usuário={}", debtId, currentUserId);
         findOwnedOrThrow(currentUserId, debtId);
         debtRepositoryPort.deleteById(debtId);
     }
 
     public List<DebtBalance> listBalances(Long currentUserId, Long debtId) {
+        log.debug("Listando saldos da dívida={} do usuário={}", debtId, currentUserId);
         findOwnedOrThrow(currentUserId, debtId);
         return debtBalanceRepositoryPort.findAllByDebtId(debtId);
     }
 
     public DebtBalance saveBalance(
             Long currentUserId, Long debtId, LocalDate balanceDate, BigDecimal balance) {
+        log.debug(
+                "Salvando saldo da dívida={} na data={} do usuário={}",
+                debtId,
+                balanceDate,
+                currentUserId);
         findOwnedOrThrow(currentUserId, debtId);
         requireNotFuture(balanceDate);
         return debtBalanceRepositoryPort.save(
@@ -105,6 +118,8 @@ public class DebtApplicationService {
     }
 
     public void deleteBalance(Long currentUserId, Long debtId, Long balanceId) {
+        log.debug(
+                "Removendo saldo={} da dívida={} do usuário={}", balanceId, debtId, currentUserId);
         findOwnedOrThrow(currentUserId, debtId);
         DebtBalance balance =
                 debtBalanceRepositoryPort

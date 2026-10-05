@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
  * últimos N meses (incluindo o atual). Transferências entre contas próprias ficam de fora, como no
  * Dashboard; por padrão vale a competência (pagas e pendentes), ou só o que já foi recebido.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClientAnalyticsApplicationService {
@@ -37,6 +39,11 @@ public class ClientAnalyticsApplicationService {
     public record Result(ClientAnalytics.Report report, Map<Long, Client> clientsById) {}
 
     public Result analyze(Long currentUserId, int monthsCount, boolean onlyReceived) {
+        log.debug(
+                "Analisando clientes do usuário={} meses={} apenasRecebido={}",
+                currentUserId,
+                monthsCount,
+                onlyReceived);
         if (monthsCount < 1 || monthsCount > MAX_MONTHS) {
             throw new IllegalArgumentException(
                     "O período deve ter de 1 a " + MAX_MONTHS + " meses");

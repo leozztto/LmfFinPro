@@ -20,9 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransferApplicationService {
@@ -59,6 +61,11 @@ public class TransferApplicationService {
             LocalDate transferDate,
             String description,
             BigDecimal receivedAmount) {
+        log.debug(
+                "Criando transferência da conta={} para a conta={} do usuário={}",
+                fromAccountId,
+                toAccountId,
+                currentUserId);
         if (fromAccountId.equals(toAccountId)) {
             throw new SameAccountTransferException(
                     "A conta de origem e destino não podem ser a mesma.");
@@ -123,10 +130,12 @@ public class TransferApplicationService {
                                         saved.id())
                                 .withBaseAmount(baseAmount));
 
+        log.debug("Transferência={} criada para o usuário={}", saved.id(), currentUserId);
         return new TransferResult(saved, fromTransaction.id(), toTransaction.id());
     }
 
     public List<TransferResult> list(Long currentUserId) {
+        log.debug("Listando transferências do usuário={}", currentUserId);
         List<Transfer> transfers = transferRepositoryPort.findAllByUserId(currentUserId);
         List<Long> transferIds = transfers.stream().map(Transfer::id).toList();
         Map<Long, List<Transaction>> legsByTransferId =
@@ -143,6 +152,7 @@ public class TransferApplicationService {
     }
 
     public void delete(Long currentUserId, Long transferId) {
+        log.debug("Removendo transferência={} do usuário={}", transferId, currentUserId);
         Transfer transfer =
                 transferRepositoryPort
                         .findById(transferId)

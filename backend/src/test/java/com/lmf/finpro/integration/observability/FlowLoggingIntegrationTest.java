@@ -70,9 +70,13 @@ class FlowLoggingIntegrationTest extends AbstractIntegrationTest {
                 String.class);
 
         assertThat(output.getAll())
-                .contains("Fluxo Account.create concluído")
+                .contains("path=/api/accounts status=201")
+                .contains("flow=Account.create")
                 .contains("resultId=" + created.getBody().id())
-                .contains("Fluxo Account.list concluído")
-                .contains("resultCount=1");
+                .contains("flow=Account.list")
+                .contains("resultCount=1")
+                // Uma linha por requisição: o fluxo não ganha linha própria em INFO.
+                .doesNotContain("Fluxo Account.create concluído")
+                .doesNotContain("Fluxo Account.list concluído");
     }
 }

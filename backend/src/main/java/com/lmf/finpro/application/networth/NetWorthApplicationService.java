@@ -17,6 +17,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
  * meses. Transferências entram, porque movem dinheiro entre contas (e para os investimentos); no
  * total elas se anulam.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NetWorthApplicationService {
@@ -39,6 +41,7 @@ public class NetWorthApplicationService {
     private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     public NetWorthCalculator.Report summary(Long currentUserId, int monthsCount) {
+        log.debug("Calculando patrimônio do usuário={} meses={}", currentUserId, monthsCount);
         if (monthsCount < 1 || monthsCount > MAX_MONTHS) {
             throw new IllegalArgumentException(
                     "O período deve ter de 1 a " + MAX_MONTHS + " meses");

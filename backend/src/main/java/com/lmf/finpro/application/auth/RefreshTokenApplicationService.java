@@ -44,6 +44,7 @@ public class RefreshTokenApplicationService {
     /** Abre uma sessão nova (login, cadastro, troca de senha) e devolve o valor para o cookie. */
     @Transactional
     public String startSession(User user) {
+        log.debug("Iniciando sessão do usuário={}", user.id());
         return issue(user.id(), user.sessionVersion(), UUID.randomUUID().toString());
     }
 
@@ -54,6 +55,7 @@ public class RefreshTokenApplicationService {
      */
     @Transactional(noRollbackFor = InvalidTokenException.class)
     public AuthResult refresh(String rawToken) {
+        log.debug("Renovando sessão com refresh token");
         if (rawToken == null || rawToken.isBlank()) {
             throw new InvalidTokenException(INVALID_MESSAGE);
         }
@@ -104,6 +106,7 @@ public class RefreshTokenApplicationService {
      */
     @Transactional
     public void endSession(String rawToken) {
+        log.debug("Encerrando sessão");
         if (rawToken == null || rawToken.isBlank()) {
             return;
         }

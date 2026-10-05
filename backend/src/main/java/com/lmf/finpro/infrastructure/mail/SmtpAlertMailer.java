@@ -4,6 +4,7 @@ import com.lmf.finpro.domain.model.AlertDigest;
 import com.lmf.finpro.domain.model.AlertDigest.BillDue;
 import com.lmf.finpro.domain.model.AlertDigest.BudgetAlert;
 import com.lmf.finpro.domain.model.AlertDigest.DasReminder;
+import com.lmf.finpro.domain.model.AlertDigest.OverdueBill;
 import com.lmf.finpro.domain.model.AlertDigest.RecurringBudgetExpiring;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import java.math.BigDecimal;
@@ -38,6 +39,21 @@ public class SmtpAlertMailer implements AlertMailerPort {
 
     String buildText(String userName, AlertDigest digest) {
         StringBuilder text = new StringBuilder("Olá, %s!%n%n".formatted(userName));
+
+        if (!digest.overdueBills().isEmpty()) {
+            text.append("Contas atrasadas:\n");
+            for (OverdueBill bill : digest.overdueBills()) {
+                text.append(
+                        "  • %s — %s, venceu em %s (%d %s de atraso)%n"
+                                .formatted(
+                                        bill.description(),
+                                        money(bill.amount()),
+                                        bill.dueDate().format(DATE),
+                                        bill.daysOverdue(),
+                                        bill.daysOverdue() == 1 ? "dia" : "dias"));
+            }
+            text.append('\n');
+        }
 
         if (!digest.bills().isEmpty()) {
             text.append("Contas a vencer:\n");

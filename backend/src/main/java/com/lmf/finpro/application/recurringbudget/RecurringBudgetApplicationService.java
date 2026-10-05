@@ -16,9 +16,11 @@ import java.time.Clock;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecurringBudgetApplicationService {
@@ -39,6 +41,10 @@ public class RecurringBudgetApplicationService {
             BigDecimal limitValue,
             YearMonth startMonth,
             YearMonth endMonth) {
+        log.debug(
+                "Criando orçamento recorrente da categoria={} para o usuário={}",
+                categoryId,
+                currentUserId);
         requireValidPeriod(startMonth, endMonth);
         return createOne(currentUserId, categoryId, limitValue, startMonth, endMonth);
     }
@@ -54,6 +60,10 @@ public class RecurringBudgetApplicationService {
             YearMonth startMonth,
             YearMonth endMonth,
             List<CategoryLimit> items) {
+        log.debug(
+                "Criando lote de {} orçamento(s) recorrente(s) para o usuário={}",
+                items.size(),
+                currentUserId);
         requireValidPeriod(startMonth, endMonth);
         requireNoDuplicateCategories(items);
         return items.stream()
@@ -83,6 +93,7 @@ public class RecurringBudgetApplicationService {
     }
 
     public List<RecurringBudget> list(Long currentUserId) {
+        log.debug("Listando orçamentos recorrentes do usuário={}", currentUserId);
         return recurringBudgetRepositoryPort.findAllByUserId(currentUserId);
     }
 
@@ -93,6 +104,10 @@ public class RecurringBudgetApplicationService {
             BigDecimal limitValue,
             YearMonth endMonth,
             boolean active) {
+        log.debug(
+                "Atualizando orçamento recorrente={} do usuário={}",
+                recurringBudgetId,
+                currentUserId);
         RecurringBudget existing = findOwnedOrThrow(currentUserId, recurringBudgetId);
         requireValidPeriod(existing.startMonth(), endMonth);
         RecurringBudget updated =
@@ -103,6 +118,10 @@ public class RecurringBudgetApplicationService {
 
     /** Exclui só o modelo: os orçamentos já lançados continuam, sem nenhum vínculo com ele. */
     public void delete(Long currentUserId, Long recurringBudgetId) {
+        log.debug(
+                "Removendo orçamento recorrente={} do usuário={}",
+                recurringBudgetId,
+                currentUserId);
         findOwnedOrThrow(currentUserId, recurringBudgetId);
         recurringBudgetRepositoryPort.deleteById(recurringBudgetId);
     }

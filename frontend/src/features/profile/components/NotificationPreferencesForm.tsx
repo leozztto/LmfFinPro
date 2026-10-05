@@ -24,8 +24,9 @@ const notificationPreferencesSchema = z.object({
 const TOGGLES = [
   {
     name: 'billsEnabled',
-    label: 'Contas a vencer',
-    description: 'Despesas pendentes que vencem nos próximos dias.',
+    label: 'Contas a vencer e atrasadas',
+    description:
+      'Despesas pendentes que vencem nos próximos dias e as que já passaram da data sem serem pagas.',
   },
   {
     name: 'budgetsEnabled',

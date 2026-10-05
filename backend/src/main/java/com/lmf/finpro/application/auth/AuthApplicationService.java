@@ -10,8 +10,10 @@ import com.lmf.finpro.domain.port.out.PasswordHasherPort;
 import com.lmf.finpro.domain.port.out.TokenPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthApplicationService {
@@ -22,6 +24,7 @@ public class AuthApplicationService {
     private final RefreshTokenApplicationService refreshTokenApplicationService;
 
     public AuthResult register(RegisterCommand command) {
+        log.debug("Iniciando registro de conta");
         if (userRepositoryPort.existsByEmail(command.email())) {
             FlowLog.detail("reason", "emailInUse");
             throw new EmailAlreadyInUseException("Já existe uma conta cadastrada com este e-mail");
@@ -51,6 +54,7 @@ public class AuthApplicationService {
     }
 
     public AuthResult login(LoginCommand command) {
+        log.debug("Iniciando login na aplicação");
         User user =
                 userRepositoryPort
                         .findByEmail(command.email())

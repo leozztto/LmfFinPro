@@ -10,8 +10,10 @@ import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryApplicationService {
@@ -23,15 +25,22 @@ public class CategoryApplicationService {
 
     public Category create(
             Long currentUserId, String name, CategoryType type, String color, String icon) {
-        return categoryRepositoryPort.save(Category.create(currentUserId, name, type, color, icon));
+        log.debug("Criando categoria do tipo={} para o usuário={}", type, currentUserId);
+        Category saved =
+                categoryRepositoryPort.save(
+                        Category.create(currentUserId, name, type, color, icon));
+        log.debug("Categoria={} criada para o usuário={}", saved.id(), currentUserId);
+        return saved;
     }
 
     /** Categorias do usuário + categorias globais do sistema. */
     public List<Category> list(Long currentUserId) {
+        log.debug("Listando categorias do usuário={}", currentUserId);
         return categoryRepositoryPort.findAllVisibleToUser(currentUserId);
     }
 
     public Category getById(Long currentUserId, Long categoryId) {
+        log.debug("Buscando categoria={} do usuário={}", categoryId, currentUserId);
         return findVisibleOrThrow(currentUserId, categoryId);
     }
 
@@ -44,11 +53,13 @@ public class CategoryApplicationService {
     public Category update(
             Long currentUserId, Long categoryId, String name, String color, String icon) {
         Category existing = findOwnedOrThrow(currentUserId, categoryId);
+        log.debug("Atualizando categoria={} do usuário={}", categoryId, currentUserId);
         return categoryRepositoryPort.save(
                 existing.withDetails(name, existing.type(), color, icon));
     }
 
     public void delete(Long currentUserId, Long categoryId) {
+        log.debug("Removendo categoria={} do usuário={}", categoryId, currentUserId);
         findOwnedOrThrow(currentUserId, categoryId);
         if (transactionRepositoryPort.existsByCategoryId(categoryId)) {
             throw new EntityHasLinkedRecordsException(
