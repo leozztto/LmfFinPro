@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <b>nomes</b> das tags; aqui eles são normalizados e cada um vira a tag existente ou uma nova —
  * assim "#Site Acme" e "site-acme" sempre caem na mesma tag.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TagApplicationService {
@@ -34,6 +36,7 @@ public class TagApplicationService {
     public record TagUsage(Tag tag, long transactionCount) {}
 
     public List<TagUsage> list(Long currentUserId) {
+        log.debug("Listando tags do usuário={}", currentUserId);
         List<Tag> tags = tagRepositoryPort.findAllByUserId(currentUserId);
         Map<Long, Long> counts =
                 tagRepositoryPort.countTransactionsByTagIds(tags.stream().map(Tag::id).toList());
@@ -43,12 +46,16 @@ public class TagApplicationService {
     }
 
     public Tag create(Long currentUserId, String name, String color) {
+        log.debug("Criando tag para o usuário={}", currentUserId);
         Tag tag = Tag.create(currentUserId, name, color);
         requireNameAvailable(currentUserId, tag.name(), null);
-        return tagRepositoryPort.save(tag);
+        Tag saved = tagRepositoryPort.save(tag);
+        log.debug("Tag={} criada para o usuário={}", saved.id(), currentUserId);
+        return saved;
     }
 
     public Tag update(Long currentUserId, Long tagId, String name, String color) {
+        log.debug("Atualizando tag={} do usuário={}", tagId, currentUserId);
         Tag existing = findOwnedOrThrow(currentUserId, tagId);
         Tag updated = existing.withDetails(name, color);
         requireNameAvailable(currentUserId, updated.name(), tagId);
@@ -57,6 +64,7 @@ public class TagApplicationService {
 
     /** Some das transações e recorrências que a usavam; os lançamentos continuam. */
     public void delete(Long currentUserId, Long tagId) {
+        log.debug("Removendo tag={} do usuário={}", tagId, currentUserId);
         findOwnedOrThrow(currentUserId, tagId);
         tagRepositoryPort.deleteById(tagId);
     }
@@ -74,6 +82,7 @@ public class TagApplicationService {
         for (String rawName : rawNames) {
             names.add(Tag.normalizeName(rawName));
         }
+        log.debug("Resolvendo {} tag(s) do usuário={}", names.size(), currentUserId);
         if (names.size() > Tag.MAX_TAGS_PER_ITEM) {
             throw new InvalidTagException(
                     "Use no máximo " + Tag.MAX_TAGS_PER_ITEM + " tags por lançamento.");

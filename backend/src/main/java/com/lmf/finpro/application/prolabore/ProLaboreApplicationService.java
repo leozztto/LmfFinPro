@@ -39,6 +39,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,6 +48,7 @@ import org.springframework.stereotype.Service;
  * duas bases configuráveis, fica em {@link ProLaboreCalculator}. O pró-labore é uma transferência
  * de conta PJ para conta PF — nada novo é persistido além da configuração.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProLaboreApplicationService {
@@ -65,6 +67,7 @@ public class ProLaboreApplicationService {
     private final Clock clock;
 
     public ProLaboreSummary summary(Long currentUserId) {
+        log.debug("Calculando pró-labore do usuário={}", currentUserId);
         LocalDate today = LocalDate.now(clock);
         YearMonth currentMonth = YearMonth.from(today);
         List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
@@ -194,6 +197,7 @@ public class ProLaboreApplicationService {
     }
 
     public ProLaboreSettings getSettings(Long currentUserId) {
+        log.debug("Buscando configurações de pró-labore do usuário={}", currentUserId);
         return proLaboreSettingsRepositoryPort
                 .findByUserId(currentUserId)
                 .orElseGet(() -> ProLaboreSettings.defaults(currentUserId));
@@ -210,6 +214,7 @@ public class ProLaboreApplicationService {
             BigDecimal fixedAmount,
             ProLaboreWithholdingMode withholdingMode,
             BigDecimal employerInssRate) {
+        log.debug("Atualizando configurações de pró-labore do usuário={}", currentUserId);
         return proLaboreSettingsRepositoryPort.save(
                 new ProLaboreSettings(
                         currentUserId,

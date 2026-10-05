@@ -23,9 +23,11 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecurringTransactionApplicationService {
@@ -57,6 +59,11 @@ public class RecurringTransactionApplicationService {
             LocalDate startDate,
             LocalDate endDate,
             List<String> tagNames) {
+        log.debug(
+                "Criando lançamento recorrente do tipo={} na conta={} para o usuário={}",
+                type,
+                accountId,
+                currentUserId);
         requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -80,6 +87,7 @@ public class RecurringTransactionApplicationService {
     }
 
     public List<RecurringTransaction> list(Long currentUserId) {
+        log.debug("Listando lançamentos recorrentes do usuário={}", currentUserId);
         return recurringTransactionRepositoryPort.findAllByUserId(currentUserId);
     }
 
@@ -98,6 +106,10 @@ public class RecurringTransactionApplicationService {
             LocalDate endDate,
             boolean active,
             List<String> tagNames) {
+        log.debug(
+                "Atualizando lançamento recorrente={} do usuário={}",
+                recurringTransactionId,
+                currentUserId);
         RecurringTransaction existing = findOwnedOrThrow(currentUserId, recurringTransactionId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, existing.type());
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -121,6 +133,10 @@ public class RecurringTransactionApplicationService {
 
     /** Exclui só o modelo: as transações já lançadas continuam, apenas sem o vínculo. */
     public void delete(Long currentUserId, Long recurringTransactionId) {
+        log.debug(
+                "Removendo lançamento recorrente={} do usuário={}",
+                recurringTransactionId,
+                currentUserId);
         findOwnedOrThrow(currentUserId, recurringTransactionId);
         recurringTransactionRepositoryPort.deleteById(recurringTransactionId);
     }

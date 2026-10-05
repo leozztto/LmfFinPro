@@ -17,10 +17,12 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Dados cadastrais e senha do próprio usuário logado ("Meu perfil"). */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfileApplicationService {
@@ -38,11 +40,13 @@ public class ProfileApplicationService {
     private final FileStoragePort fileStoragePort;
 
     public User getProfile(Long userId) {
+        log.debug("Buscando perfil do usuário={}", userId);
         return findUser(userId);
     }
 
     @Transactional
     public User updateProfile(Long userId, UpdateProfileCommand command) {
+        log.debug("Atualizando perfil do usuário={}", userId);
         User user = findUser(userId);
 
         boolean emailChanged = !user.email().equalsIgnoreCase(command.email());
@@ -83,6 +87,7 @@ public class ProfileApplicationService {
      */
     @Transactional
     public User updatePhoto(Long userId, byte[] content) {
+        log.debug("Atualizando foto de perfil do usuário={}", userId);
         User user = findUser(userId);
         if (content == null || content.length == 0) {
             throw new AttachmentInvalidException("O arquivo enviado está vazio.");
@@ -116,6 +121,7 @@ public class ProfileApplicationService {
 
     @Transactional
     public User removePhoto(Long userId) {
+        log.debug("Removendo foto de perfil do usuário={}", userId);
         User user = findUser(userId);
         if (!user.hasPhoto()) {
             return user;
@@ -127,6 +133,7 @@ public class ProfileApplicationService {
     }
 
     public PhotoContent getPhoto(Long userId) {
+        log.debug("Buscando foto de perfil do usuário={}", userId);
         User user = findUser(userId);
         if (!user.hasPhoto()) {
             throw new ResourceNotFoundException("Você ainda não tem foto de perfil");
@@ -140,6 +147,7 @@ public class ProfileApplicationService {
      */
     @Transactional
     public AuthResult changePassword(Long userId, String currentPassword, String newPassword) {
+        log.debug("Alterando senha do usuário={}", userId);
         User user = findUser(userId);
         checkCurrentPassword(user, currentPassword, "Senha atual incorreta");
 

@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -42,6 +43,7 @@ import org.springframework.stereotype.Service;
  * filtros, a resolução de nomes e os totais. Transferências entre contas próprias ficam de fora,
  * como nos demais relatórios de receita/despesa.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionReportApplicationService {
@@ -62,6 +64,11 @@ public class TransactionReportApplicationService {
             CategoryType type,
             TransactionReportFilters filters,
             ReportFormat format) {
+        log.debug(
+                "Gerando relatório de transações tipo={} formato={} para o usuário={}",
+                type,
+                format,
+                currentUserId);
         TransactionReportData data = buildData(currentUserId, type, filters);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportTransactionReport(data)

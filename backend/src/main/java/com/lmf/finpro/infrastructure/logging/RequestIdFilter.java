@@ -7,11 +7,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -49,16 +51,21 @@ public class RequestIdFilter extends OncePerRequestFilter {
         MDC.put(MDC_KEY, requestId);
         response.setHeader(HEADER, requestId);
         long start = System.nanoTime();
+        RequestFlowContext.begin();
         try {
             chain.doFilter(request, response);
         } finally {
-            logAccess(request, response, start);
+            logAccess(request, response, start, RequestFlowContext.end());
             MDC.remove(MDC_KEY);
             MDC.remove(USER_MDC_KEY);
         }
     }
 
-    private void logAccess(HttpServletRequest request, HttpServletResponse response, long start) {
+    private void logAccess(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            long start,
+            RequestFlowContext.Summary flowSummary) {
         String path = request.getRequestURI();
         if (path.startsWith("/actuator")) {
             return;
@@ -67,12 +74,22 @@ public class RequestIdFilter extends OncePerRequestFilter {
         long durationMs = (System.nanoTime() - start) / 1_000_000;
         // 5xx e acesso negado (401/403) chamam atenção; o resto é tráfego normal.
         boolean attention = status >= 500 || status == 401 || status == 403;
-        log.atLevel(attention ? Level.WARN : Level.INFO)
-                .setMessage("Requisição HTTP {} {} {} {}")
-                .addArgument(kv("method", request.getMethod()))
-                .addArgument(kv("path", path))
-                .addArgument(kv("status", status))
-                .addArgument(kv("durationMs", durationMs))
-                .log();
+        LoggingEventBuilder event =
+                log.atLevel(attention ? Level.WARN : Level.INFO)
+                        .addArgument(kv("method", request.getMethod()))
+                        .addArgument(kv("path", path))
+                        .addArgument(kv("status", status))
+                        .addArgument(kv("durationMs", durationMs));
+        StringBuilder message = new StringBuilder("Requisição HTTP {} {} {} {}");
+        // O fluxo de negócio e o que ele tocou (ids, tamanho de listas) vão na mesma linha.
+        if (flowSummary != null && flowSummary.flows().length() > 0) {
+            message.append(" {}");
+            event.addArgument(kv("flow", flowSummary.flows().toString()));
+            for (Map.Entry<String, Object> entry : flowSummary.context().entrySet()) {
+                message.append(" {}");
+                event.addArgument(kv(entry.getKey(), entry.getValue()));
+            }
+        }
+        event.setMessage(message.toString()).log();
     }
 }

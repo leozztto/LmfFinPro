@@ -31,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
  * (guardado, quanto falta, valor mensal até o prazo e a sugestão de quanto separar das receitas)
  * são feitas aqui, não no frontend.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SavingsGoalApplicationService {
@@ -57,6 +59,7 @@ public class SavingsGoalApplicationService {
     private final Clock clock;
 
     public List<SavingsGoalSummary> list(Long currentUserId) {
+        log.debug("Listando metas de economia do usuário={}", currentUserId);
         List<SavingsGoal> goals = savingsGoalRepositoryPort.findAllByUserId(currentUserId);
         if (goals.isEmpty()) {
             return List.of();
@@ -66,6 +69,7 @@ public class SavingsGoalApplicationService {
     }
 
     public SavingsGoalSummary get(Long currentUserId, Long goalId) {
+        log.debug("Buscando meta={} do usuário={}", goalId, currentUserId);
         return summarize(findOwnedOrThrow(currentUserId, goalId), monthPaidIncome(currentUserId));
     }
 
@@ -78,6 +82,11 @@ public class SavingsGoalApplicationService {
     @Transactional
     public SavingsGoalSummary create(
             Long currentUserId, Long accountId, Long fundingAccountId, SavingsGoalCommand command) {
+        log.debug(
+                "Criando meta na conta reserva={} com origem={} para o usuário={}",
+                accountId,
+                fundingAccountId,
+                currentUserId);
         requireIncomeRateWhenAutoContribute(command.incomeRate(), command.autoContribute());
         requireValidAccountPair(currentUserId, accountId, fundingAccountId);
         SavingsGoal created =
@@ -96,6 +105,7 @@ public class SavingsGoalApplicationService {
     }
 
     public SavingsGoalSummary update(Long currentUserId, Long goalId, SavingsGoalCommand command) {
+        log.debug("Atualizando meta={} do usuário={}", goalId, currentUserId);
         requireIncomeRateWhenAutoContribute(command.incomeRate(), command.autoContribute());
         SavingsGoal updated =
                 savingsGoalRepositoryPort.save(
@@ -116,6 +126,7 @@ public class SavingsGoalApplicationService {
      * são desfeitas por aqui — só a meta e o histórico de aportes (que já estará vazio de valor).
      */
     public void delete(Long currentUserId, Long goalId) {
+        log.debug("Removendo meta={} do usuário={}", goalId, currentUserId);
         findOwnedOrThrow(currentUserId, goalId);
         BigDecimal saved = savedAmount(goalId);
         if (saved.signum() != 0) {
@@ -128,6 +139,7 @@ public class SavingsGoalApplicationService {
     }
 
     public List<GoalContribution> listContributions(Long currentUserId, Long goalId) {
+        log.debug("Listando aportes da meta={} do usuário={}", goalId, currentUserId);
         findOwnedOrThrow(currentUserId, goalId);
         return goalContributionRepositoryPort.findAllByGoalId(goalId);
     }
@@ -141,6 +153,7 @@ public class SavingsGoalApplicationService {
             BigDecimal amount,
             LocalDate date,
             String note) {
+        log.debug("Registrando {} na meta={} do usuário={}", type, goalId, currentUserId);
         SavingsGoal goal = findOwnedOrThrow(currentUserId, goalId);
         if (type == ContributionType.WITHDRAWAL && amount.compareTo(savedAmount(goalId)) > 0) {
             throw new InsufficientBalanceException(
@@ -156,6 +169,11 @@ public class SavingsGoalApplicationService {
      */
     @Transactional
     public void deleteContribution(Long currentUserId, Long goalId, Long contributionId) {
+        log.debug(
+                "Removendo aporte={} da meta={} do usuário={}",
+                contributionId,
+                goalId,
+                currentUserId);
         findOwnedOrThrow(currentUserId, goalId);
         GoalContribution contribution =
                 goalContributionRepositoryPort
@@ -175,6 +193,7 @@ public class SavingsGoalApplicationService {
     /** Lança como aporte o valor sugerido pelo percentual da meta (o "separar com 1 clique"). */
     @Transactional
     public GoalContribution applySuggestion(Long currentUserId, Long goalId) {
+        log.debug("Aplicando sugestão de aporte na meta={} do usuário={}", goalId, currentUserId);
         SavingsGoalSummary summary = get(currentUserId, goalId);
         BigDecimal suggested = summary.suggestedContribution();
         if (suggested == null || suggested.signum() == 0) {
@@ -257,6 +276,7 @@ public class SavingsGoalApplicationService {
      * está pela metade e puxaria a faixa do autônomo para baixo.
      */
     public BigDecimal suggestedTaxRate(Long currentUserId) {
+        log.debug("Calculando alíquota sugerida para o usuário={}", currentUserId);
         TaxRegime regime =
                 userRepositoryPort
                         .findById(currentUserId)

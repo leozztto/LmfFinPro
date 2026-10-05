@@ -122,4 +122,23 @@ class PushNotificationApplicationServiceTest {
                 .isEqualTo("2 contas a vencer · 1 orçamento no limite · DAS perto do vencimento");
         assertThat(message.url()).isEqualTo("/");
     }
+
+    @Test
+    void mensagemPoeContasAtrasadasPrimeiro() {
+        AlertDigest digest =
+                new AlertDigest(
+                        List.of(new AlertDigest.BillDue("A", BigDecimal.ONE, LocalDate.now())),
+                        List.of(
+                                new AlertDigest.OverdueBill(
+                                        "B", BigDecimal.ONE, LocalDate.now().minusDays(2), 2),
+                                new AlertDigest.OverdueBill(
+                                        "C", BigDecimal.ONE, LocalDate.now().minusDays(5), 5)),
+                        List.of(),
+                        null,
+                        List.of());
+
+        assertThat(PushMessage.fromDigest(digest).body())
+                .isEqualTo("2 contas atrasadas · 1 conta a vencer");
+        assertThat(PushMessage.fromDigest(digest).url()).isEqualTo("/transacoes?atrasadas=true");
+    }
 }

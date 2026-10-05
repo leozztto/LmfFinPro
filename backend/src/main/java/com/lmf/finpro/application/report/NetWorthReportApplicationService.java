@@ -9,6 +9,7 @@ import com.lmf.finpro.domain.port.out.ReceiptGeneratorPort;
 import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
  * mês e a composição de hoje. Reaproveita o cálculo da tela de Patrimônio, então os valores do PDF
  * e do CSV sempre batem com o que o usuário vê na tela.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NetWorthReportApplicationService {
@@ -26,6 +28,11 @@ public class NetWorthReportApplicationService {
     private final ReportCsvExporterPort reportCsvExporterPort;
 
     public byte[] generate(Long currentUserId, int months, ReportFormat format) {
+        log.debug(
+                "Gerando relatório de patrimônio meses={} formato={} para o usuário={}",
+                months,
+                format,
+                currentUserId);
         NetWorthReportData data = buildData(currentUserId, months);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportNetWorthReport(data)

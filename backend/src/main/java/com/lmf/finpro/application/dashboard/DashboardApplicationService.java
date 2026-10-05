@@ -28,8 +28,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardApplicationService {
@@ -42,6 +44,7 @@ public class DashboardApplicationService {
     private final ExchangeRateApplicationService exchangeRateApplicationService;
 
     public DashboardOverview getOverview(Long userId, AccountScope scope) {
+        log.debug("Montando visão geral do dashboard do usuário={} escopo={}", userId, scope);
         List<Account> accounts = accountsForScope(userId, scope);
         List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal initialBalanceTotal = sumInitialBalance(accounts);
@@ -86,12 +89,14 @@ public class DashboardApplicationService {
     }
 
     public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount, AccountScope scope) {
+        log.debug("Calculando fluxo mensal do usuário={} meses={}", userId, monthsCount);
         return DashboardAggregator.monthlyFlow(
                 ownedNonTransferTransactions(userId, scope), currentMonth(), monthsCount);
     }
 
     public List<BalancePoint> getBalanceEvolution(
             Long userId, int monthsCount, AccountScope scope) {
+        log.debug("Calculando evolução do saldo do usuário={} meses={}", userId, monthsCount);
         // Histórico real: só pagas, para o último ponto bater com o saldo atual do overview.
         List<Account> accounts = accountsForScope(userId, scope);
         Function<LocalDate, BigDecimal> investmentGain = investmentGains(accounts);
@@ -118,6 +123,7 @@ public class DashboardApplicationService {
      */
     public List<CashFlowProjectionPoint> getCashFlowProjection(
             Long userId, int monthsAhead, AccountScope scope) {
+        log.debug("Projetando fluxo de caixa do usuário={} meses={}", userId, monthsAhead);
         List<Account> accounts = accountsForScope(userId, scope);
         List<Transaction> transactions = ownedNonTransferTransactions(accounts);
         BigDecimal anchorBalance =
@@ -148,12 +154,18 @@ public class DashboardApplicationService {
 
     public List<BreakdownPoint> getCategoryBreakdown(
             Long userId, CategoryType type, YearMonth month, AccountScope scope) {
+        log.debug(
+                "Calculando distribuição por categoria do usuário={} tipo={} mês={}",
+                userId,
+                type,
+                month);
         return DashboardAggregator.categoryBreakdown(
                 ownedNonTransferTransactions(userId, scope), type, month);
     }
 
     public List<BreakdownPoint> getClientBreakdown(
             Long userId, YearMonth month, AccountScope scope) {
+        log.debug("Calculando distribuição por cliente do usuário={} mês={}", userId, month);
         return DashboardAggregator.clientBreakdown(
                 ownedNonTransferTransactions(userId, scope), month);
     }

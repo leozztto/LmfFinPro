@@ -7,6 +7,7 @@ import com.lmf.finpro.domain.port.out.ReportCsvExporterPort;
 import java.time.Year;
 import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
  * dados de cada tipo de relatório ao seu próprio montador ({@code *DataFactory}), onde ficam as
  * regras de cada um.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReportApplicationService {
@@ -29,6 +31,12 @@ public class ReportApplicationService {
 
     public byte[] generateClientReceipt(
             Long currentUserId, Long clientId, YearMonth referenceMonth, ReportFormat format) {
+        log.debug(
+                "Gerando recibo do cliente={} mês={} formato={} para o usuário={}",
+                clientId,
+                referenceMonth,
+                format,
+                currentUserId);
         var data = clientReportDataFactory.buildReceipt(currentUserId, clientId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportClientReceipt(data)
@@ -37,6 +45,12 @@ public class ReportApplicationService {
 
     public byte[] generateAccountStatement(
             Long currentUserId, Long accountId, YearMonth referenceMonth, ReportFormat format) {
+        log.debug(
+                "Gerando extrato da conta={} mês={} formato={} para o usuário={}",
+                accountId,
+                referenceMonth,
+                format,
+                currentUserId);
         var data = accountStatementDataFactory.build(currentUserId, accountId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportAccountStatement(data)
@@ -45,6 +59,12 @@ public class ReportApplicationService {
 
     public byte[] generateClientAnnualStatement(
             Long currentUserId, Long clientId, Year year, ReportFormat format) {
+        log.debug(
+                "Gerando extrato anual do cliente={} ano={} formato={} para o usuário={}",
+                clientId,
+                year,
+                format,
+                currentUserId);
         var data = clientReportDataFactory.buildAnnualStatement(currentUserId, clientId, year);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportClientAnnualStatement(data)
@@ -53,6 +73,11 @@ public class ReportApplicationService {
 
     public byte[] generateCategoryExpenseReport(
             Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+        log.debug(
+                "Gerando relatório de despesas por categoria mês={} formato={} para o usuário={}",
+                referenceMonth,
+                format,
+                currentUserId);
         var data = categoryExpenseDataFactory.build(currentUserId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportCategoryExpenseReport(data)
@@ -61,6 +86,12 @@ public class ReportApplicationService {
 
     public byte[] generateIncomeStatement(
             Long currentUserId, Year year, ReportGranularity granularity, ReportFormat format) {
+        log.debug(
+                "Gerando DRE ano={} granularidade={} formato={} para o usuário={}",
+                year,
+                granularity,
+                format,
+                currentUserId);
         var data = incomeStatementDataFactory.build(currentUserId, year, granularity);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportIncomeStatement(data)
@@ -69,6 +100,11 @@ public class ReportApplicationService {
 
     public byte[] generateBudgetVsActualReport(
             Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+        log.debug(
+                "Gerando relatório de orçado x realizado mês={} formato={} para o usuário={}",
+                referenceMonth,
+                format,
+                currentUserId);
         var data = budgetVsActualDataFactory.build(currentUserId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportBudgetVsActualReport(data)
@@ -77,6 +113,11 @@ public class ReportApplicationService {
 
     public byte[] generateTransactionExport(
             Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+        log.debug(
+                "Exportando transações mês={} formato={} para o usuário={}",
+                referenceMonth,
+                format,
+                currentUserId);
         var data = transactionExportDataFactory.build(currentUserId, referenceMonth);
         return format == ReportFormat.PDF
                 ? receiptGeneratorPort.generateTransactionExport(data)

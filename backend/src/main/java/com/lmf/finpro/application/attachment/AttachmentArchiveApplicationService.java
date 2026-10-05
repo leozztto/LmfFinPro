@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
  * por mês, e um índice CSV ligando cada arquivo à transação (data, descrição, valor, categoria,
  * cliente). Vale a data da transação, não a do upload.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AttachmentArchiveApplicationService {
@@ -53,6 +55,7 @@ public class AttachmentArchiveApplicationService {
      * 404 com mensagem clara (e não um arquivo vazio).
      */
     public AttachmentArchiveData prepare(Long currentUserId, Year year) {
+        log.debug("Gerando arquivo de comprovantes ano={} do usuário={}", year, currentUserId);
         Map<Long, Account> accountById =
                 accountRepositoryPort.findAllByUserId(currentUserId).stream()
                         .collect(Collectors.toMap(Account::id, Function.identity()));
@@ -111,10 +114,12 @@ public class AttachmentArchiveApplicationService {
                                                                 attachment.transactionId(),
                                                                 List.of()))))
                         .toList();
+        log.debug("Arquivo de comprovantes ano={} com {} comprovante(s)", year, entries.size());
         return new AttachmentArchiveData(year, entries);
     }
 
     public void write(AttachmentArchiveData data, OutputStream output) {
+        log.debug("Escrevendo arquivo de comprovantes ano={}", data.year());
         attachmentArchiveWriterPort.write(data, output);
     }
 

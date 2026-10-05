@@ -25,12 +25,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
  * Calendário financeiro do mês: transações (sem transferências), ocorrências previstas das
  * recorrências, vencimento do DAS (MEI e Simples Nacional) e tudo o que está atrasado.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CalendarApplicationService {
@@ -56,6 +58,11 @@ public class CalendarApplicationService {
             Map<Long, String> clientNames) {}
 
     public Result build(Long currentUserId, YearMonth month, boolean includePaid) {
+        log.debug(
+                "Montando calendário do usuário={} mês={} incluirPagas={}",
+                currentUserId,
+                month,
+                includePaid);
         LocalDate today = LocalDate.now(clock);
         YearMonth referenceMonth = month == null ? YearMonth.from(today) : month;
         YearMonth current = YearMonth.from(today);

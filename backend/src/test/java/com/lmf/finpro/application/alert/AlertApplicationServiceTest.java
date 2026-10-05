@@ -147,6 +147,48 @@ class AlertApplicationServiceTest {
     }
 
     @Test
+    void sendsPendingExpensesPastDueWithinTheLimitAndRecordsThemOnce() {
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                expense(1L, TODAY.minusDays(2), TransactionStatus.PENDING),
+                                expense(2L, TODAY.minusDays(10), TransactionStatus.PENDING),
+                                // paga, hoje, futura e antiga demais não são "atrasadas" a avisar
+                                expense(3L, TODAY.minusDays(3), TransactionStatus.PAID),
+                                expense(4L, TODAY, TransactionStatus.PENDING),
+                                expense(5L, TODAY.plusDays(1), TransactionStatus.PENDING),
+                                expense(
+                                        6L,
+                                        TODAY.minusDays(
+                                                AlertApplicationService.MAX_OVERDUE_DAYS + 1),
+                                        TransactionStatus.PENDING)));
+
+        boolean sent = service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO));
+
+        assertThat(sent).isTrue();
+        AlertDigest digest = sentDigest();
+        assertThat(digest.overdueBills()).hasSize(2);
+        // a mais atrasada primeiro
+        assertThat(digest.overdueBills().get(0).dueDate()).isEqualTo(TODAY.minusDays(10));
+        assertThat(digest.overdueBills().get(0).daysOverdue()).isEqualTo(10);
+        assertThat(digest.overdueBills().get(1).daysOverdue()).isEqualTo(2);
+        verify(sentAlertRepositoryPort).save(new SentAlert(USER_ID, AlertType.BILL_OVERDUE, "1"));
+        verify(sentAlertRepositoryPort).save(new SentAlert(USER_ID, AlertType.BILL_OVERDUE, "2"));
+        verify(sentAlertRepositoryPort, never())
+                .save(new SentAlert(USER_ID, AlertType.BILL_OVERDUE, "6"));
+    }
+
+    @Test
+    void doesNotRepeatAnOverdueBillAlreadyNotified() {
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(List.of(expense(1L, TODAY.minusDays(2), TransactionStatus.PENDING)));
+        when(sentAlertRepositoryPort.exists(USER_ID, AlertType.BILL_OVERDUE, "1")).thenReturn(true);
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
+        verify(alertMailerPort, never()).sendDigest(any(), any(), any());
+    }
+
+    @Test
     void budgetBelowEightyPercentIsNotAlerted() {
         givenBudgetWithSpent("790");
 

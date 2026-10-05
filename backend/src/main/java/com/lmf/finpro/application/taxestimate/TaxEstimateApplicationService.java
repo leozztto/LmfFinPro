@@ -11,8 +11,10 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaxEstimateApplicationService {
@@ -26,16 +28,22 @@ public class TaxEstimateApplicationService {
             TaxRegime regime,
             BigDecimal grossRevenue,
             BigDecimal appliedRate) {
+        log.debug(
+                "Criando estimativa de imposto do mês={} para o usuário={}",
+                referenceMonth,
+                currentUserId);
         return taxEstimateRepositoryPort.save(
                 TaxEstimate.create(
                         currentUserId, referenceMonth, regime, grossRevenue, appliedRate));
     }
 
     public List<TaxEstimate> list(Long currentUserId) {
+        log.debug("Listando estimativas de imposto do usuário={}", currentUserId);
         return taxEstimateRepositoryPort.findAllByUserId(currentUserId);
     }
 
     public BigDecimal suggestRate(TaxRegime regime, BigDecimal grossRevenue) {
+        log.debug("Sugerindo alíquota para o regime={}", regime);
         return TaxRateEstimator.suggestRate(regime, grossRevenue);
     }
 
@@ -44,6 +52,10 @@ public class TaxEstimateApplicationService {
      * receita bruta, que o usuário ainda pode ajustar.
      */
     public BigDecimal suggestGrossRevenue(Long currentUserId, YearMonth referenceMonth) {
+        log.debug(
+                "Sugerindo receita bruta do mês={} para o usuário={}",
+                referenceMonth,
+                currentUserId);
         return transactionRepositoryPort.sumBaseAmountByUserIdAndTypeBetween(
                 currentUserId,
                 CategoryType.INCOME,
@@ -52,6 +64,7 @@ public class TaxEstimateApplicationService {
     }
 
     public void delete(Long currentUserId, Long taxEstimateId) {
+        log.debug("Removendo estimativa de imposto={} do usuário={}", taxEstimateId, currentUserId);
         findOwnedOrThrow(currentUserId, taxEstimateId);
         taxEstimateRepositoryPort.deleteById(taxEstimateId);
     }
