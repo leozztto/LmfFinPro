@@ -11,8 +11,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BudgetApplicationService {
@@ -27,14 +29,24 @@ public class BudgetApplicationService {
             YearMonth referenceMonth,
             BigDecimal limitValue,
             Long clientId) {
+        log.debug(
+                "Criando orçamento da categoria={} mês={} para o usuário={}",
+                categoryId,
+                referenceMonth,
+                currentUserId);
         if (clientId != null) {
             requireOwnedClient(currentUserId, clientId);
         }
-        return budgetRepositoryPort.save(
-                Budget.create(currentUserId, categoryId, referenceMonth, limitValue, clientId));
+        Budget saved =
+                budgetRepositoryPort.save(
+                        Budget.create(
+                                currentUserId, categoryId, referenceMonth, limitValue, clientId));
+        log.debug("Orçamento={} criado para o usuário={}", saved.id(), currentUserId);
+        return saved;
     }
 
     public List<Budget> list(Long currentUserId) {
+        log.debug("Listando orçamentos do usuário={}", currentUserId);
         return budgetRepositoryPort.findAllByUserId(currentUserId);
     }
 
@@ -63,6 +75,7 @@ public class BudgetApplicationService {
     }
 
     public void delete(Long currentUserId, Long budgetId) {
+        log.debug("Removendo orçamento={} do usuário={}", budgetId, currentUserId);
         findOwnedOrThrow(currentUserId, budgetId);
         budgetRepositoryPort.deleteById(budgetId);
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button, CollapsibleFilters, FormField, Input, Modal, Pagination, Select } from '@/shared/ui'
 import { TransactionAttachmentsPanel } from '@/features/attachments/components/TransactionAttachmentsPanel'
 import { TagInput } from '@/features/tags/components/TagInput'
@@ -49,6 +50,15 @@ const EMPTY_FILTERS: Filters = {
 
 const PAGE_SIZE = 20
 
+/** Despesas pendentes que já passaram do vencimento: é para onde o push de contas atrasadas leva (`?atrasadas=true`). */
+function overdueFilters(): Filters {
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  const endDate = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`
+  return { ...EMPTY_FILTERS, type: 'EXPENSE', status: 'PENDING', endDate }
+}
+
 /** Traduz os filtros da tela nos parâmetros da consulta; o que está vazio não vai na URL. */
 function toListParams(filters: Filters, page: number): TransactionListParams {
   return {
@@ -67,7 +77,10 @@ function toListParams(filters: Filters, page: number): TransactionListParams {
 }
 
 export function TransactionList() {
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [searchParams] = useSearchParams()
+  const [filters, setFilters] = useState<Filters>(() =>
+    searchParams.get('atrasadas') === 'true' ? overdueFilters() : EMPTY_FILTERS,
+  )
   const [page, setPage] = useState(0)
   const { data, isLoading, isPlaceholderData } = useTransactions(toListParams(filters, page))
   const transactions = data?.content

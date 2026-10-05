@@ -19,8 +19,10 @@ import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountApplicationService {
@@ -49,21 +51,27 @@ public class AccountApplicationService {
             BigDecimal initialBalance,
             AccountScope scope,
             Currency currency) {
-        return accountRepositoryPort.save(
-                Account.create(
-                        currentUserId,
-                        name,
-                        type,
-                        initialBalance,
-                        scope == null ? AccountScope.PERSONAL : scope,
-                        currency == null ? Currency.BRL : currency));
+        log.debug("Criando conta do tipo={} para o usuário={}", type, currentUserId);
+        Account saved =
+                accountRepositoryPort.save(
+                        Account.create(
+                                currentUserId,
+                                name,
+                                type,
+                                initialBalance,
+                                scope == null ? AccountScope.PERSONAL : scope,
+                                currency == null ? Currency.BRL : currency));
+        log.debug("Conta={} criada para o usuário={}", saved.id(), currentUserId);
+        return saved;
     }
 
     public List<Account> list(Long currentUserId) {
+        log.debug("Listando contas do usuário={}", currentUserId);
         return accountRepositoryPort.findAllByUserId(currentUserId);
     }
 
     public Account getById(Long currentUserId, Long accountId) {
+        log.debug("Buscando conta={} do usuário={}", accountId, currentUserId);
         return findOwnedOrThrow(currentUserId, accountId);
     }
 
@@ -84,6 +92,7 @@ public class AccountApplicationService {
             AccountType type,
             AccountScope scope,
             Currency currency) {
+        log.debug("Atualizando conta={} do usuário={}", accountId, currentUserId);
         Account existing = findOwnedOrThrow(currentUserId, accountId);
         Currency newCurrency = currency == null ? existing.currency() : currency;
         if (newCurrency != existing.currency() && hasLinkedRecords(accountId)) {
@@ -120,6 +129,7 @@ public class AccountApplicationService {
     }
 
     public void delete(Long currentUserId, Long accountId) {
+        log.debug("Removendo conta={} do usuário={}", accountId, currentUserId);
         findOwnedOrThrow(currentUserId, accountId);
         if (transactionRepositoryPort.existsByAccountId(accountId)
                 || transferRepositoryPort.existsByAccountId(accountId)) {

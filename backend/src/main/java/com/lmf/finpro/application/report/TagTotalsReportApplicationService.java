@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
  * (pagas e pendentes, a menos que filtre a situação); transferências entre contas próprias ficam de
  * fora, como nos outros relatórios de receita/despesa.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TagTotalsReportApplicationService {
@@ -38,6 +40,10 @@ public class TagTotalsReportApplicationService {
 
     public byte[] generate(
             Long currentUserId, TagTotalsReportFilters filters, ReportFormat format) {
+        log.debug(
+                "Gerando relatório de totais por tag formato={} para o usuário={}",
+                format,
+                currentUserId);
         TagTotalsReportData data = buildData(currentUserId, filters);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportTagTotalsReport(data)

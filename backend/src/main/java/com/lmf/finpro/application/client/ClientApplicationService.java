@@ -10,8 +10,10 @@ import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClientApplicationService {
@@ -31,25 +33,31 @@ public class ClientApplicationService {
             String notes,
             String color,
             boolean active) {
-        return clientRepositoryPort.save(
-                Client.create(
-                        currentUserId,
-                        name,
-                        email,
-                        phone,
-                        documentType,
-                        documentNumber,
-                        workType,
-                        notes,
-                        color,
-                        active));
+        log.debug("Criando cliente para o usuário={}", currentUserId);
+        Client saved =
+                clientRepositoryPort.save(
+                        Client.create(
+                                currentUserId,
+                                name,
+                                email,
+                                phone,
+                                documentType,
+                                documentNumber,
+                                workType,
+                                notes,
+                                color,
+                                active));
+        log.debug("Cliente={} criado para o usuário={}", saved.id(), currentUserId);
+        return saved;
     }
 
     public List<Client> list(Long currentUserId) {
+        log.debug("Listando clientes do usuário={}", currentUserId);
         return clientRepositoryPort.findAllByUserId(currentUserId);
     }
 
     public Client getById(Long currentUserId, Long clientId) {
+        log.debug("Buscando cliente={} do usuário={}", clientId, currentUserId);
         return findOwnedOrThrow(currentUserId, clientId);
     }
 
@@ -65,6 +73,7 @@ public class ClientApplicationService {
             String notes,
             String color,
             boolean active) {
+        log.debug("Atualizando cliente={} do usuário={}", clientId, currentUserId);
         Client existing = findOwnedOrThrow(currentUserId, clientId);
         return clientRepositoryPort.save(
                 existing.withDetails(
@@ -80,6 +89,7 @@ public class ClientApplicationService {
     }
 
     public void delete(Long currentUserId, Long clientId) {
+        log.debug("Removendo cliente={} do usuário={}", clientId, currentUserId);
         findOwnedOrThrow(currentUserId, clientId);
         if (transactionRepositoryPort.existsByClientId(clientId)) {
             throw new EntityHasLinkedRecordsException(

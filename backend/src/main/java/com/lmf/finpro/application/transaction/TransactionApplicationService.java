@@ -31,9 +31,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionApplicationService {
@@ -124,6 +126,11 @@ public class TransactionApplicationService {
             List<String> tagNames,
             Currency originalCurrency,
             BigDecimal originalAmount) {
+        log.debug(
+                "Criando transação do tipo={} na conta={} para o usuário={}",
+                type,
+                accountId,
+                currentUserId);
         Account account = requireOwnedAccount(currentUserId, accountId);
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
         requireOwnedClientIfPresent(currentUserId, clientId);
@@ -147,6 +154,11 @@ public class TransactionApplicationService {
                                 originalCurrency,
                                 originalAmount));
         tagApplicationService.replaceTransactionTags(currentUserId, saved.id(), tagNames);
+        log.debug(
+                "Transação={} criada na conta={} para o usuário={}",
+                saved.id(),
+                accountId,
+                currentUserId);
         return saved;
     }
 
@@ -158,6 +170,11 @@ public class TransactionApplicationService {
      */
     public PageResult<Transaction> list(
             Long currentUserId, TransactionListFilters filters, Integer page, Integer size) {
+        log.debug(
+                "Listando transações do usuário={} página={} tamanho={}",
+                currentUserId,
+                page,
+                size);
         PageQuery pageQuery =
                 new PageQuery(
                         page == null ? 0 : Math.max(page, 0),
@@ -213,6 +230,7 @@ public class TransactionApplicationService {
     }
 
     public Transaction getById(Long currentUserId, Long transactionId) {
+        log.debug("Buscando transação={} do usuário={}", transactionId, currentUserId);
         return findOwnedOrThrow(currentUserId, transactionId);
     }
 
@@ -260,6 +278,7 @@ public class TransactionApplicationService {
             List<String> tagNames,
             Currency originalCurrency,
             BigDecimal originalAmount) {
+        log.debug("Atualizando transação={} do usuário={}", transactionId, currentUserId);
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         Account account = requireOwnedAccount(currentUserId, existing.accountId());
         requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
@@ -294,6 +313,7 @@ public class TransactionApplicationService {
      * transferência —, porque tag é classificação e não mexe em valor nem em saldo.
      */
     public Transaction updateTags(Long currentUserId, Long transactionId, List<String> tagNames) {
+        log.debug("Atualizando tags da transação={} do usuário={}", transactionId, currentUserId);
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         tagApplicationService.replaceTransactionTags(currentUserId, transactionId, tagNames);
         return existing;
@@ -302,6 +322,11 @@ public class TransactionApplicationService {
     /** Marca como paga — a ação rápida da lista de transações. Paga não volta a pendente. */
     public Transaction updateStatus(
             Long currentUserId, Long transactionId, TransactionStatus status) {
+        log.debug(
+                "Atualizando situação da transação={} para={} do usuário={}",
+                transactionId,
+                status,
+                currentUserId);
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         requireStatusChangeAllowed(existing, status);
         return transactionRepositoryPort.save(existing.withStatus(status));
@@ -333,6 +358,7 @@ public class TransactionApplicationService {
     }
 
     public void delete(Long currentUserId, Long transactionId) {
+        log.debug("Removendo transação={} do usuário={}", transactionId, currentUserId);
         Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
         if (existing.transferId() != null) {
             throw new TransactionLinkedToTransferException(

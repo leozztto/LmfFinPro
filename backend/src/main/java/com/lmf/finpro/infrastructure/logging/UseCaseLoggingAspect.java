@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -34,6 +35,16 @@ import org.springframework.stereotype.Component;
  * (um por item do lote encheria o log; o resumo fica na linha "Scheduler … finalizado"); as falhas
  * saem sempre.
  *
+ * <p>Dentro de uma requisição HTTP, o fluxo bem-sucedido não ganha linha própria em INFO: ele é
+ * entregue ao {@link RequestIdFilter}, que o anexa à linha "Requisição HTTP" ({@code flow=…}, ids,
+ * {@code resultCount}). O detalhe do fluxo (com duração) segue disponível em DEBUG; fora de uma
+ * requisição (chamadas internas) a linha "Fluxo … concluído" continua em INFO.
+ *
+ * <p>Fluxos auxiliares ({@link #isHelperFlow}) — cálculos e consultas que o controller chama em
+ * laço, uma vez por item de uma listagem (saldo de cada conta, cotação, vínculos) — também saem em
+ * DEBUG quando bem-sucedidos: a linha do fluxo principal (ex.: {@code Account.list}) já descreve a
+ * requisição, e eles a multiplicariam por N. As falhas saem sempre.
+ *
  * <p>Para silenciar: {@code
  * logging.level.com.lmf.finpro.infrastructure.logging.UseCaseLoggingAspect=WARN}.
  */
@@ -47,13 +58,27 @@ public class UseCaseLoggingAspect {
     private static final String SERVICE_SUFFIX = "ApplicationService";
     private static final String CURRENT_USER_PARAM = "currentUserId";
 
+    /** Serviços inteiros que só existem para apoiar outros fluxos. */
+    private static final Set<String> HELPER_SERVICES = Set.of("ExchangeRate");
+
+    /** Métodos de apoio chamados em laço por controllers (formato {@code Servico.metodo}). */
+    private static final Set<String> HELPER_FLOWS =
+            Set.of(
+                    "Account.calculateCurrentBalance",
+                    "Account.hasLinkedRecords",
+                    "Budget.calculateSpent",
+                    "Tag.tagsById",
+                    "Tag.tagsByTransactionIds",
+                    "Tag.tagsByRecurringTransactionIds",
+                    "TransactionAttachment.countByTransactionIds");
+
     @Around("execution(public * com.lmf.finpro.application..*ApplicationService.*(..))")
     public Object logFlow(ProceedingJoinPoint joinPoint) throws Throwable {
         if (MDC.get(MDC_FLOW) != null) {
             return joinPoint.proceed();
         }
         String flow = flowName(joinPoint);
-        boolean inScheduler = MDC.get("scheduler") != null;
+        boolean quietOnSuccess = MDC.get("scheduler") != null || isHelperFlow(flow);
         MDC.put(MDC_FLOW, flow);
         FlowLog.begin();
         long start = System.nanoTime();
@@ -61,7 +86,9 @@ public class UseCaseLoggingAspect {
             Object result = joinPoint.proceed();
             Object[] args = arguments(flow, start, null, joinPoint, result);
             String message = "Fluxo {} concluído {}" + " {}".repeat(args.length - 2);
-            if (inScheduler) {
+            // Dentro de uma requisição HTTP o fluxo vai na linha de acesso (RequestIdFilter);
+            // aqui sobra o detalhe, em DEBUG. Sem requisição (ex.: chamada interna), segue em INFO.
+            if (quietOnSuccess || RequestFlowContext.record(flow, context(joinPoint, result))) {
                 log.debug(message, args);
             } else {
                 log.info(message, args);
@@ -93,12 +120,17 @@ public class UseCaseLoggingAspect {
             args.add(kv("error", error.getClass().getSimpleName()));
         }
         args.add(kv("durationMs", elapsedMs(start)));
+        context(joinPoint, result).forEach((key, value) -> args.add(kv(key, value)));
+        return args.toArray();
+    }
+
+    /** Ids dos parâmetros, id/tamanho do retorno e o que o serviço registrou via FlowLog. */
+    private static Map<String, Object> context(ProceedingJoinPoint joinPoint, Object result) {
         Map<String, Object> context = new LinkedHashMap<>();
         collectIds(joinPoint, context);
         collectResult(result, context);
         context.putAll(FlowLog.snapshot());
-        context.forEach((key, value) -> args.add(kv(key, value)));
-        return args.toArray();
+        return context;
     }
 
     private static void collectIds(ProceedingJoinPoint joinPoint, Map<String, Object> context) {
@@ -138,6 +170,11 @@ public class UseCaseLoggingAspect {
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             // Retorno sem id() público (DTO, resumo, Optional…): sem contexto extra, sem erro.
         }
+    }
+
+    static boolean isHelperFlow(String flow) {
+        return HELPER_FLOWS.contains(flow)
+                || HELPER_SERVICES.contains(flow.substring(0, flow.indexOf('.')));
     }
 
     private static String flowName(ProceedingJoinPoint joinPoint) {

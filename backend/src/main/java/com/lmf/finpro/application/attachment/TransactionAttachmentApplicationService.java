@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
  * FileStoragePort}; o registro, para o banco. Não depende do {@code TransactionApplicationService}
  * (que chama a limpeza daqui ao excluir uma transação), só dos ports.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionAttachmentApplicationService {
@@ -39,6 +41,7 @@ public class TransactionAttachmentApplicationService {
     public record AttachmentContent(TransactionAttachment attachment, byte[] content) {}
 
     public List<TransactionAttachment> list(Long currentUserId, Long transactionId) {
+        log.debug("Listando anexos da transação={} do usuário={}", transactionId, currentUserId);
         requireOwnedTransaction(currentUserId, transactionId);
         return attachmentRepositoryPort.findAllByTransactionId(transactionId);
     }
@@ -54,6 +57,7 @@ public class TransactionAttachmentApplicationService {
             AttachmentDocumentType documentType,
             String originalFileName,
             byte[] content) {
+        log.debug("Enviando anexo para a transação={} do usuário={}", transactionId, currentUserId);
         requireOwnedTransaction(currentUserId, transactionId);
         if (content == null || content.length == 0) {
             throw new AttachmentInvalidException("O arquivo enviado está vazio.");
@@ -80,28 +84,52 @@ public class TransactionAttachmentApplicationService {
         String storageKey = UUID.randomUUID() + "." + fileType.extension();
         fileStoragePort.store(storageKey, content);
         try {
-            return attachmentRepositoryPort.save(
-                    TransactionAttachment.create(
-                            transactionId,
-                            currentUserId,
-                            documentType == null ? AttachmentDocumentType.OTHER : documentType,
-                            sanitizeFileName(originalFileName, fileType),
-                            fileType.contentType(),
-                            content.length,
-                            storageKey));
+            TransactionAttachment saved =
+                    attachmentRepositoryPort.save(
+                            TransactionAttachment.create(
+                                    transactionId,
+                                    currentUserId,
+                                    documentType == null
+                                            ? AttachmentDocumentType.OTHER
+                                            : documentType,
+                                    sanitizeFileName(originalFileName, fileType),
+                                    fileType.contentType(),
+                                    content.length,
+                                    storageKey));
+            log.info(
+                    "Anexo={} salvo na transação={} tipo={} tamanhoBytes={}",
+                    saved.id(),
+                    transactionId,
+                    fileType.contentType(),
+                    content.length);
+            return saved;
         } catch (RuntimeException e) {
+            log.error(
+                    "Falha ao salvar o anexo da transação={}; arquivo removido do armazenamento (erro={})",
+                    transactionId,
+                    e.getClass().getSimpleName());
             fileStoragePort.delete(storageKey);
             throw e;
         }
     }
 
     public AttachmentContent download(Long currentUserId, Long transactionId, Long attachmentId) {
+        log.debug(
+                "Baixando anexo={} da transação={} do usuário={}",
+                attachmentId,
+                transactionId,
+                currentUserId);
         TransactionAttachment attachment =
                 findOwnedOrThrow(currentUserId, transactionId, attachmentId);
         return new AttachmentContent(attachment, fileStoragePort.load(attachment.storageKey()));
     }
 
     public void delete(Long currentUserId, Long transactionId, Long attachmentId) {
+        log.debug(
+                "Removendo anexo={} da transação={} do usuário={}",
+                attachmentId,
+                transactionId,
+                currentUserId);
         TransactionAttachment attachment =
                 findOwnedOrThrow(currentUserId, transactionId, attachmentId);
         attachmentRepositoryPort.deleteById(attachment.id());
@@ -124,6 +152,7 @@ public class TransactionAttachmentApplicationService {
     }
 
     public void deleteStoredFiles(Collection<String> storageKeys) {
+        log.debug("Removendo {} arquivo(s) de anexo do armazenamento", storageKeys.size());
         storageKeys.forEach(fileStoragePort::delete);
     }
 

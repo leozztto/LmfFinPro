@@ -8,6 +8,7 @@ import com.lmf.finpro.domain.model.AlertDigest;
 import com.lmf.finpro.domain.model.AlertDigest.BillDue;
 import com.lmf.finpro.domain.model.AlertDigest.BudgetAlert;
 import com.lmf.finpro.domain.model.AlertDigest.DasReminder;
+import com.lmf.finpro.domain.model.AlertDigest.OverdueBill;
 import com.lmf.finpro.domain.model.AlertDigest.RecurringBudgetExpiring;
 import com.lmf.finpro.domain.model.AlertType;
 import com.lmf.finpro.domain.model.Budget;
@@ -34,10 +35,12 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,11 +49,15 @@ import org.springframework.transaction.annotation.Transactional;
  * ou 100%, orçamentos recorrentes perto de expirar e o lembrete do DAS. Cada aviso é enviado uma
  * única vez — o que já foi avisado fica em {@code sent_alerts} e não entra nos resumos seguintes.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AlertApplicationService {
 
     private static final BigDecimal WARNING_RATIO = new BigDecimal("0.8");
+
+    /** Até quantos dias de atraso uma conta ainda entra no aviso de contas atrasadas. */
+    static final int MAX_OVERDUE_DAYS = 30;
 
     private final UserRepositoryPort userRepositoryPort;
     private final NotificationPreferencesRepositoryPort notificationPreferencesRepositoryPort;
@@ -89,10 +96,11 @@ public class AlertApplicationService {
                         .orElseGet(() -> NotificationPreferences.defaults(user.id()));
 
         List<SentAlert> toRecord = new ArrayList<>();
+        List<Transaction> pending =
+                preferences.billsEnabled() ? pendingExpenses(user.id()) : List.of();
+        List<OverdueBill> overdueBills = collectOverdueBills(user.id(), today, pending, toRecord);
         List<BillDue> bills =
-                preferences.billsEnabled()
-                        ? collectBills(user.id(), today, preferences.billDaysBefore(), toRecord)
-                        : List.of();
+                collectBills(user.id(), today, preferences.billDaysBefore(), pending, toRecord);
         List<BudgetAlert> budgets =
                 preferences.budgetsEnabled()
                         ? collectBudgets(user.id(), YearMonth.from(today), toRecord)
@@ -107,7 +115,8 @@ public class AlertApplicationService {
                                 user.id(), YearMonth.from(today), toRecord)
                         : List.of();
 
-        AlertDigest digest = new AlertDigest(bills, budgets, das, recurringBudgetsExpiring);
+        AlertDigest digest =
+                new AlertDigest(bills, overdueBills, budgets, das, recurringBudgetsExpiring);
         FlowLog.detail("userId", user.id());
         if (digest.isEmpty()) {
             FlowLog.detail("digestSent", false);
@@ -118,26 +127,84 @@ public class AlertApplicationService {
         toRecord.forEach(sentAlertRepositoryPort::save);
         FlowLog.detail("digestSent", true);
         FlowLog.detail("bills", bills.size());
+        FlowLog.detail("overdueBills", overdueBills.size());
         FlowLog.detail("budgets", budgets.size());
         FlowLog.detail("das", das != null);
         FlowLog.detail("recurringBudgetsExpiring", recurringBudgetsExpiring.size());
+        // Só quando há o que avisar: o scheduler roda um fluxo por usuário em DEBUG e a maioria
+        // não tem nada novo, então esta é a única linha em INFO que diz quem recebeu o resumo.
+        log.info(
+                "Resumo de alertas enviado userId={} contas={} atrasadas={} orçamentos={} das={} recorrentes={}",
+                user.id(),
+                bills.size(),
+                overdueBills.size(),
+                budgets.size(),
+                das != null,
+                recurringBudgetsExpiring.size());
         return true;
     }
 
-    /** Despesas pendentes (sem transferências) com vencimento entre hoje e hoje + N dias. */
-    private List<BillDue> collectBills(
-            Long userId, LocalDate today, int daysBefore, List<SentAlert> toRecord) {
+    /**
+     * Despesas pendentes (sem transferências) do usuário: a base das contas a vencer e atrasadas.
+     */
+    private List<Transaction> pendingExpenses(Long userId) {
         List<Long> accountIds =
                 accountRepositoryPort.findAllByUserId(userId).stream().map(Account::id).toList();
         if (accountIds.isEmpty()) {
             return List.of();
         }
+        return transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
+                .filter(transaction -> transaction.type() == CategoryType.EXPENSE)
+                .filter(transaction -> !transaction.isPaid())
+                .filter(transaction -> transaction.transferId() == null)
+                .toList();
+    }
+
+    /**
+     * Despesas pendentes que venceram antes de hoje, até {@link #MAX_OVERDUE_DAYS} dias atrás (as
+     * mais antigas já não são novidade e despejariam um monte de avisos de uma vez). Cada conta é
+     * avisada uma única vez, quando passa a constar como atrasada; a mais atrasada vem primeiro.
+     */
+    private List<OverdueBill> collectOverdueBills(
+            Long userId, LocalDate today, List<Transaction> pending, List<SentAlert> toRecord) {
+        LocalDate oldest = today.minusDays(MAX_OVERDUE_DAYS);
+        List<Transaction> overdue =
+                pending.stream()
+                        .filter(transaction -> transaction.transactionDate().isBefore(today))
+                        .filter(transaction -> !transaction.transactionDate().isBefore(oldest))
+                        .filter(
+                                transaction ->
+                                        !alreadySent(
+                                                userId,
+                                                AlertType.BILL_OVERDUE,
+                                                transaction.id().toString()))
+                        .sorted(Comparator.comparing(Transaction::transactionDate))
+                        .toList();
+
+        List<OverdueBill> bills = new ArrayList<>();
+        for (Transaction transaction : overdue) {
+            bills.add(
+                    new OverdueBill(
+                            transaction.description(),
+                            transaction.baseAmount(),
+                            transaction.transactionDate(),
+                            ChronoUnit.DAYS.between(transaction.transactionDate(), today)));
+            toRecord.add(
+                    new SentAlert(userId, AlertType.BILL_OVERDUE, transaction.id().toString()));
+        }
+        return bills;
+    }
+
+    /** Despesas pendentes com vencimento entre hoje e hoje + N dias. */
+    private List<BillDue> collectBills(
+            Long userId,
+            LocalDate today,
+            int daysBefore,
+            List<Transaction> pending,
+            List<SentAlert> toRecord) {
         LocalDate windowEnd = today.plusDays(daysBefore);
         List<Transaction> due =
-                transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
-                        .filter(transaction -> transaction.type() == CategoryType.EXPENSE)
-                        .filter(transaction -> !transaction.isPaid())
-                        .filter(transaction -> transaction.transferId() == null)
+                pending.stream()
                         .filter(transaction -> !transaction.transactionDate().isBefore(today))
                         .filter(transaction -> !transaction.transactionDate().isAfter(windowEnd))
                         .filter(

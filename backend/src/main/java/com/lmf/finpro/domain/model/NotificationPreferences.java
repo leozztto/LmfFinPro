@@ -3,6 +3,7 @@ package com.lmf.finpro.domain.model;
 /**
  * O que o usuário quer receber no resumo diário de alertas por e-mail.
  *
+ * @param billsEnabled liga os avisos de contas a vencer e de contas atrasadas
  * @param billDaysBefore com quantos dias de antecedência avisar sobre contas a vencer e sobre o DAS
  *     (0 = só no próprio dia)
  */

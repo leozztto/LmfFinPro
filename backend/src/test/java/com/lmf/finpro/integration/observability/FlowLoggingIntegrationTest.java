@@ -1,6 +1,7 @@
 package com.lmf.finpro.integration.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.infrastructure.web.dto.account.AccountRequest;
@@ -9,6 +10,7 @@ import com.lmf.finpro.integration.support.AbstractIntegrationTest;
 import com.lmf.finpro.integration.support.TestDataFactory;
 import com.lmf.finpro.integration.support.TestUser;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,8 +48,15 @@ class FlowLoggingIntegrationTest extends AbstractIntegrationTest {
     void protectedRouteWithoutTokenLogsAnAccessWarning(CapturedOutput output) {
         restTemplate.getForEntity("/api/accounts", String.class);
 
-        assertThat(output.getAll())
-                .contains("Requisição HTTP method=GET path=/api/accounts status=401");
+        // A linha de acesso sai no finally do filtro, possivelmente depois de o cliente já ter
+        // recebido a resposta; por isso espera em vez de ler o log uma única vez.
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () ->
+                                assertThat(output.getAll())
+                                        .contains(
+                                                "Requisição HTTP method=GET path=/api/accounts"
+                                                        + " status=401"));
     }
 
     @Test
@@ -70,9 +79,13 @@ class FlowLoggingIntegrationTest extends AbstractIntegrationTest {
                 String.class);
 
         assertThat(output.getAll())
-                .contains("Fluxo Account.create concluído")
+                .contains("path=/api/accounts status=201")
+                .contains("flow=Account.create")
                 .contains("resultId=" + created.getBody().id())
-                .contains("Fluxo Account.list concluído")
-                .contains("resultCount=1");
+                .contains("flow=Account.list")
+                .contains("resultCount=1")
+                // Uma linha por requisição: o fluxo não ganha linha própria em INFO.
+                .doesNotContain("Fluxo Account.create concluído")
+                .doesNotContain("Fluxo Account.list concluído");
     }
 }

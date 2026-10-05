@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ImportApplicationService {
@@ -44,6 +46,7 @@ public class ImportApplicationService {
 
     public ImportBatch importFile(
             Long currentUserId, Long accountId, String originalFileName, InputStream fileContent) {
+        log.debug("Importando arquivo na conta={} para o usuário={}", accountId, currentUserId);
         Account account = requireOwnedAccount(currentUserId, accountId);
         ImportFormat format = detectFormat(originalFileName);
         List<ParsedTransactionRow> rows =
@@ -101,6 +104,14 @@ public class ImportApplicationService {
         FlowLog.detail("imported", rows.size() - duplicateCount);
         FlowLog.detail("duplicates", duplicateCount);
         FlowLog.detail("uncategorized", uncategorizedCount);
+        log.info(
+                "Importação={} concluída formato={} linhas={} importadas={} duplicadas={} semCategoria={}",
+                batch.id(),
+                format,
+                rows.size(),
+                rows.size() - duplicateCount,
+                duplicateCount,
+                uncategorizedCount);
         return importBatchRepositoryPort.save(
                 batch.withStatus(ImportStatus.COMPLETED).withDuplicateCount(duplicateCount));
     }
@@ -133,14 +144,17 @@ public class ImportApplicationService {
             CategoryType type) {}
 
     public List<ImportBatch> list(Long currentUserId) {
+        log.debug("Listando importações do usuário={}", currentUserId);
         return importBatchRepositoryPort.findAllByUserId(currentUserId);
     }
 
     public ImportBatch getById(Long currentUserId, Long batchId) {
+        log.debug("Buscando importação={} do usuário={}", batchId, currentUserId);
         return findOwnedBatchOrThrow(currentUserId, batchId);
     }
 
     public List<Transaction> listTransactions(Long currentUserId, Long batchId) {
+        log.debug("Listando transações da importação={} do usuário={}", batchId, currentUserId);
         ImportBatch batch = findOwnedBatchOrThrow(currentUserId, batchId);
         return transactionRepositoryPort.findAllByImportBatchId(batch.id());
     }
@@ -152,6 +166,11 @@ public class ImportApplicationService {
      */
     public Transaction reviewTransaction(
             Long currentUserId, Long batchId, Long transactionId, Long categoryId, Long clientId) {
+        log.debug(
+                "Revisando transação={} da importação={} do usuário={}",
+                transactionId,
+                batchId,
+                currentUserId);
         ImportBatch batch = findOwnedBatchOrThrow(currentUserId, batchId);
         Transaction existing =
                 transactionRepositoryPort

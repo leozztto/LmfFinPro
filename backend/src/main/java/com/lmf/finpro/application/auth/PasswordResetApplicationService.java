@@ -44,11 +44,13 @@ public class PasswordResetApplicationService {
      */
     @Transactional
     public void requestReset(String email) {
+        log.debug("Solicitação de redefinição de senha recebida");
         userRepositoryPort.findByEmail(email).ifPresent(this::issueAndSendToken);
     }
 
     @Transactional
     public void resetPassword(String rawToken, String newRawPassword) {
+        log.debug("Redefinindo senha com token de redefinição");
         LocalDateTime now = LocalDateTime.now();
         PasswordResetToken token =
                 tokenRepositoryPort
@@ -69,6 +71,7 @@ public class PasswordResetApplicationService {
 
         userRepositoryPort.save(user.withPasswordHash(passwordHasherPort.hash(newRawPassword)));
         tokenRepositoryPort.save(token.markUsed(now));
+        log.info("Senha redefinida para o usuário={}", user.id());
     }
 
     private void issueAndSendToken(User user) {

@@ -11,18 +11,33 @@ import java.util.List;
  */
 public record AlertDigest(
         List<BillDue> bills,
+        List<OverdueBill> overdueBills,
         List<BudgetAlert> budgets,
         DasReminder das,
         List<RecurringBudgetExpiring> recurringBudgetsExpiring) {
 
+    /** Resumo sem contas atrasadas. */
+    public AlertDigest(
+            List<BillDue> bills,
+            List<BudgetAlert> budgets,
+            DasReminder das,
+            List<RecurringBudgetExpiring> recurringBudgetsExpiring) {
+        this(bills, List.of(), budgets, das, recurringBudgetsExpiring);
+    }
+
     public boolean isEmpty() {
         return bills.isEmpty()
+                && overdueBills.isEmpty()
                 && budgets.isEmpty()
                 && das == null
                 && recurringBudgetsExpiring.isEmpty();
     }
 
     public record BillDue(String description, BigDecimal amount, LocalDate dueDate) {}
+
+    /** Despesa pendente cuja data de vencimento já passou. */
+    public record OverdueBill(
+            String description, BigDecimal amount, LocalDate dueDate, long daysOverdue) {}
 
     /**
      * @param threshold 80 ou 100 — o maior limiar atingido

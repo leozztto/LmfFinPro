@@ -4,8 +4,9 @@
 
 ## 1. Visão geral
 
-Todo dia de manhã o sistema monta, para cada usuário, um **resumo de alertas** e envia um único e-mail — só quando há algo novo a avisar. São quatro tipos:
+Todo dia de manhã o sistema monta, para cada usuário, um **resumo de alertas** e envia um único e-mail — só quando há algo novo a avisar. São cinco tipos:
 
+- **Contas atrasadas**: despesas `PENDING` (sem transferências) com data anterior a hoje, até 30 dias atrás.
 - **Contas a vencer**: despesas `PENDING` (sem transferências) com data entre hoje e hoje + N dias.
 - **Orçamentos do mês**: orçamentos do mês atual cujo gasto passou de **80%** ou de **100%** do limite.
 - **Orçamentos recorrentes perto de expirar**: `RecurringBudget` ativo cujo `endMonth` é o mês atual ou o próximo.
@@ -36,7 +37,7 @@ flowchart TD
     end
 
     subgraph domain
-        Digest["AlertDigest\n(bills · budgets · recurringBudgetsExpiring · das)"]
+        Digest["AlertDigest\n(bills · overdueBills · budgets · recurringBudgetsExpiring · das)"]
         Das["DasSchedule\n(dia 20 do mês seguinte)"]
         Prefs["NotificationPreferences.defaults"]
     end
@@ -83,7 +84,8 @@ sequenceDiagram
 
 ## 5. Regras de negócio
 
-- **Janela das contas**: `transactionDate` entre hoje e hoje + `billDaysBefore`, ambos inclusos. Contas já vencidas não entram. Chave: id da transação.
+- **Janela das contas**: `transactionDate` entre hoje e hoje + `billDaysBefore`, ambos inclusos. Contas já vencidas não entram aqui (vão em *atrasadas*). Chave: id da transação.
+- **Contas atrasadas** (`AlertType.BILL_OVERDUE`): despesa pendente com `transactionDate` anterior a hoje e de até `MAX_OVERDUE_DAYS` (30) dias atrás — as mais antigas já não são novidade e despejariam muitos avisos de uma vez. Avisa **uma única vez** por conta, quando ela passa a constar como atrasada (chave: id da transação, tipo diferente do `BILL_DUE`, então uma conta já avisada como "a vencer" também é avisada ao atrasar). A mais atrasada vem primeiro e o e-mail traz os dias de atraso. Segue o mesmo interruptor `billsEnabled` das contas a vencer (não depende de `billDaysBefore`). No e-mail e no push, aparece antes das contas a vencer (ex.: "2 contas atrasadas · 1 conta a vencer").
 - **Orçamentos**: só os do mês atual, com limite maior que zero. O gasto é o mesmo da tela de orçamentos (`calculateSpent`, pagas e pendentes). Chave: id do orçamento.
   - Com gasto ≥ 100% do limite, envia o aviso de 100% e marca também o de 80%. Assim, um orçamento que estourou de uma vez não recebe depois um "passou de 80%".
   - Com gasto ≥ 80% (e o aviso de 80% ainda não enviado), envia o aviso de 80%.
@@ -111,9 +113,9 @@ sequenceDiagram
 | E-mail | `infrastructure/mail/{SmtpAlertMailer,LoggingAlertMailer}.java`, `infrastructure/config/{AlertConfig,AlertProperties}.java` |
 | Persistência | `infrastructure/persistence/{entity,repository,adapter}/…NotificationPreferences…`, `…SentAlert…` |
 | API | `infrastructure/web/controller/NotificationPreferencesController.java` (`GET/PUT /api/profile/notifications`) |
-| Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql`, `V27__add_recurring_budget_expiring_alert.sql` (toggle + `alert_type` de VARCHAR(20) pra VARCHAR(30), pra caber `RECURRING_BUDGET_EXPIRING`) |
+| Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql`, `V27__add_recurring_budget_expiring_alert.sql` (toggle + `alert_type` de VARCHAR(20) pra VARCHAR(30), pra caber `RECURRING_BUDGET_EXPIRING`; `BILL_OVERDUE` também cabe, então as contas atrasadas não precisaram de migration) |
 | Frontend | `frontend/src/features/profile/components/{NotificationsPage,NotificationPreferencesForm,PushNotificationsCard}.tsx`, `hooks/{useNotificationPreferences,usePushNotifications}.ts`, `api/pushApi.ts`, `pushSupport.ts`; PWA em `frontend/public/{sw.js,manifest.webmanifest,icons/}` |
-| Testes | `AlertApplicationServiceTest`, `DasScheduleTest`, `integration/alert/AlertIntegrationTest` |
+| Testes | `AlertApplicationServiceTest`, `DasScheduleTest`, `integration/alert/AlertIntegrationTest`, `infrastructure/mail/SmtpAlertMailerTest` (texto do e-mail), `PushNotificationApplicationServiceTest` (mensagem do push) |
 
 **Testando localmente:** suba com `docker compose up` e `FINPRO_ALERTS_CRON="0 * * * * *"` (a cada minuto), crie uma despesa pendente para amanhã e veja o e-mail no Mailpit (http://localhost:8025).
 
@@ -123,7 +125,9 @@ O mesmo resumo diário também sai como **notificação push** nos aparelhos que
 
 - **Frontend instalável**: `manifest.webmanifest` + ícones em `frontend/public`. O service worker (`public/sw.js`) só trata `push` e `notificationclick` — **sem cache offline**, de propósito (dados financeiros).
 - **Inscrição**: o navegador se inscreve com a chave VAPID pública (`GET /api/push/config`) e o frontend registra a inscrição (`POST /api/push/subscriptions`; `DELETE` para desativar). Tabela `push_subscriptions` (V34), uma linha por aparelho, `endpoint` único.
-- **Envio**: dentro do `sendAlertsTo`, logo depois do e-mail e antes de gravar `sent_alerts`, `PushNotificationApplicationService.sendDigest` manda uma frase curta (ex.: "2 contas a vencer · 1 orçamento no limite") a cada aparelho. **Nunca lança**: falha de push não impede o registro dos avisos. Resposta 404/410 do serviço de push remove a inscrição.
+- **Envio**: dentro do `sendAlertsTo`, logo depois do e-mail e antes de gravar `sent_alerts`, `PushNotificationApplicationService.sendDigest` manda uma frase curta (ex.: "2 contas atrasadas · 1 conta a vencer · 1 orçamento no limite") a cada aparelho. **Nunca lança**: falha de push não impede o registro dos avisos. Resposta 404/410 do serviço de push remove a inscrição.
+- **Destino do toque**: com contas atrasadas no resumo, o push abre `/transacoes?atrasadas=true` (`PushMessage.OVERDUE_BILLS_URL`); a `TransactionList` lê o parâmetro e já abre filtrada em despesas pendentes com vencimento até ontem. Sem atrasadas, abre a tela inicial (`/`). O `sw.js` repassa a `url` da mensagem ao `notificationclick`.
+- **Log**: o scheduler resume a execução em `Scheduler dailyAlerts finalizado … items=… produced=…`; os fluxos por usuário saem em `DEBUG`. Quando um resumo é de fato enviado, `AlertApplicationService` registra em `INFO` `Resumo de alertas enviado userId=… contas=… atrasadas=… orçamentos=… das=… recorrentes=…` (sem e-mail).
 - **Sem chaves VAPID** (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`), `NoopPushSender` entra em cena, `/api/push/config` devolve `enabled: false` e a opção some da tela. Gere o par com `npx web-push generate-vapid-keys`.
 - **Requisitos do navegador**: HTTPS (ou localhost). No iPhone/iPad só funciona com o app instalado na Tela de Início (iOS 16.4+).
 - **Testando localmente**: configure as chaves, ative na tela, use `FINPRO_ALERTS_CRON="0 * * * * *"` e crie uma despesa pendente para amanhã.
