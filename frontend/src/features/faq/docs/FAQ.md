@@ -34,10 +34,55 @@ O sistema renova seu acesso sozinho enquanto você usa, e a sessão dura até 30
 Sim, é de propósito. Redefinir a senha encerra todas as sessões que estavam abertas — assim, se alguém tinha acesso à sua conta com a senha antiga, perde o acesso imediatamente. Basta entrar de novo com a senha nova.
 
 **Meus dados financeiros são visíveis para outros usuários?**
-Não. Toda informação (contas, transações, clientes, etc.) é isolada por usuário — mesmo tentando acessar um registro de outra pessoa diretamente pela URL, o sistema trata como se ele não existisse.
+Só para quem você convidar. Toda informação (contas, transações, clientes, etc.) é isolada por usuário, e só passa a ser vista por outras pessoas se você a colocar num **grupo** (casal ou família) e convidar alguém para ele — ver a seção **Grupos (casal e família)**. Mesmo tentando acessar um registro de outra pessoa diretamente pela URL, o sistema trata como se ele não existisse.
 
 **Dá pra usar o sistema no modo escuro?**
 Sim. Use o botão de tema no topo da tela (também disponível na tela de login). Na primeira visita o sistema segue a preferência do seu sistema operacional, e depois lembra a sua escolha neste navegador.
+___
+
+## Grupos (casal e família)
+
+**Como duas pessoas usam as mesmas contas e relatórios?**
+Cada pessoa mantém o próprio login. Uma delas cria um **grupo** em **Configurações** → **Grupos** e convida a outra por e-mail. Dentro do grupo, todos os membros veem e editam as mesmas contas, transações, orçamentos, metas e relatórios. Os seus dados pessoais continuam separados e só seus.
+
+**Como alterno entre os meus dados e os do grupo?**
+Quem participa de um grupo ganha um seletor no topo da tela, ao lado do tema. Ele define de quem são os dados em todas as telas: **Meus dados** ou o grupo escolhido. Com um grupo em exibição, o seletor fica destacado em verde — confira nele antes de lançar algo, para não registrar no lugar errado.
+
+**O que acontece com as contas que eu já tinha ao entrar num grupo?**
+Nada: entrar num grupo não move nem apaga nenhum dado seu. Para levar contas para o grupo, use **Compartilhar contas** no cartão do grupo e marque quais vão. O histórico de cada conta (transações, importações, recorrências e anexos) vai junto.
+
+**Como compartilho uma conta sozinha, direto da tela de Contas?**
+Com os seus dados pessoais em exibição, cada conta tem o botão **Compartilhar com um grupo**. Escolha o grupo (se participar de mais de um) e confirme: a conta e todo o histórico dela passam a ser do grupo. Em **Configurações** → **Grupos** também dá para compartilhar várias contas de uma vez.
+
+**Posso descompartilhar uma conta?**
+Sim. Com o grupo em exibição, a conta tem o botão **Descompartilhar**: ela volta para os seus dados pessoais com todo o histórico, inclusive os lançamentos que outros membros fizeram nela, e deixa de aparecer para o grupo. Só pode descompartilhar quem criou a conta ou a trouxe para o grupo (a tela mostra "Trazida por ..."); nem o dono do grupo leva embora a conta de outra pessoa. A exceção são as contas compartilhadas antes de a conta ter dono registrado: nessas, quem descompartilha é o dono do grupo. Sair do grupo, ou ser removido dele, não leva as contas de volta: descompartilhe antes. Transferências entre a conta e outras que ficam no grupo são divididas, e voltam a se juntar se as duas contas estiverem no mesmo espaço de novo. Metas de economia que ligam a conta a outra impedem o descompartilhamento enquanto as duas não forem juntas.
+
+**Fiz transferências entre a conta que vou compartilhar e uma pessoal. A pessoal precisa ir junto?**
+Não. A transferência é dividida: o grupo passa a ver só o lado da conta compartilhada (por exemplo, a entrada de dinheiro na conta conjunta) e, na lista de transferências, o **nome** da conta que enviou, mas nada mais dela — saldo, extrato e demais lançamentos continuam só seus. No seu espaço pessoal continua a saída da conta pessoal. O saldo de cada espaço considera a sua parte: a entrada soma no saldo do grupo e a saída subtrai do seu saldo pessoal. Se você compartilhar a outra conta depois, as duas metades da transferência voltam a se juntar no grupo.
+
+**Na tela de Transações, vejo a saída e a entrada de uma transferência entre uma conta minha e uma do grupo?**
+Sim, quem participa das duas contas vê as duas pontas, tanto nos seus dados pessoais quanto no grupo: a saída da conta pessoal e a entrada na conta compartilhada. A ponta que está no outro espaço aparece só com o nome da conta e fica somente para leitura (sem tags nem comprovantes); o saldo e os totais não a contam duas vezes. Os outros membros do grupo veem apenas a entrada na conta compartilhada, nunca a saída da sua conta pessoal.
+
+**Por que o sistema não deixa compartilhar uma conta por causa de uma meta?**
+Uma meta de economia liga duas contas (a conta reserva e a conta de onde o dinheiro sai) e pertence a um grupo só. Se só uma das contas fosse para o grupo, a meta ficaria dividida, então o sistema avisa quais contas estão ligadas e pede para compartilhar todas juntas.
+
+**Categorias, clientes e tags vão junto com as contas?**
+As que as transações compartilhadas usam são copiadas para o grupo (se o grupo já tiver uma com o mesmo nome, ela é reaproveitada), e as transações passam a apontar para as cópias. As originais continuam nos seus dados pessoais. Orçamentos, estimativas de imposto e dívidas não pertencem a uma conta e não vão para o grupo.
+
+**Preciso abrir o link do e-mail para aceitar um convite?**
+Não. Se o convite foi enviado para o e-mail da sua conta no FinPro, ele aparece dentro do app, em **Configurações** → **Grupos**, no quadro **Convites recebidos**, com os botões **Aceitar** e **Recusar**. Enquanto houver convite esperando resposta, aparece uma bolinha com o número deles na foto do usuário (no topo, em qualquer tela), no item **Grupos** do menu e na aba de Configurações. Ao aceitar, você entra no grupo e a tela já passa a mostrar os dados dele, com o painel atualizado; para voltar aos seus dados, use o seletor de grupo no topo. Seus dados pessoais não mudam. Recusar apaga o convite: o link do e-mail deixa de funcionar, e para entrar depois será preciso um novo convite. O aviso só mostra convites enviados para o e-mail exato da sua conta. Se o convite foi para outro e-mail, use o link recebido nele.
+
+**Quem pode convidar e remover pessoas?**
+Só o **dono** do grupo, que é quem o criou. Os demais membros veem e editam os dados, mas não gerenciam pessoas. O dono não sai do grupo sem antes passar a posse a outro membro, em **Tornar dono**, para o grupo nunca ficar sem responsável.
+
+**Quem pode excluir um lançamento ou uma transferência de uma conta compartilhada?**
+Só quem criou. Mesmo numa conta conjunta, se a Bia lançou uma despesa, apenas a Bia pode excluí-la; os demais membros continuam vendo, e o botão de excluir fica desabilitado, com o nome de quem criou. Isso vale também para os lançamentos que você já tinha antes de compartilhar a conta (eles continuam sendo seus) e para os aportes de metas. Já o que o sistema cria sozinho, como as ocorrências de lançamentos recorrentes e os aportes automáticos, não tem um autor, e qualquer membro pode excluir. A edição não tem essa trava: todos os membros editam.
+
+**O convite precisa ser aberto com o mesmo e-mail em que foi enviado?**
+Não: quem abrir o link entra no grupo, mesmo com outro e-mail, tendo conta ou criando uma na hora. Em troca, trate o link como acesso aos dados do grupo e não o repasse. Ele vale por 7 dias e só pode ser usado uma vez; o dono pode cancelar um convite pendente a qualquer momento.
+
+**Posso participar de mais de um grupo?**
+Sim. Por exemplo, o grupo do casal e o da família. Cada um tem os próprios dados, e o seletor do topo alterna entre eles. Os alertas por e-mail e as notificações consideram os dados de todos os grupos de que você participa.
 ___
 
 ## Contas bancárias
@@ -123,11 +168,14 @@ ___
 **Como faço uma transferência entre minhas contas?**
 Na tela de Transferências, clique no botão **+** (Nova transferência) e informe conta de origem, conta de destino (têm que ser diferentes), valor, data e uma descrição opcional. O sistema não deixa transferir mais do que o saldo disponível na conta de origem.
 
+**Posso transferir entre a minha conta pessoal e a conta conjunta de um grupo?**
+Sim, nos dois sentidos. No formulário de transferência, as contas dos seus outros espaços aparecem numa lista à parte, com o nome do espaço (por exemplo, o grupo): estando no espaço pessoal, escolha a conta conjunta como destino; estando no grupo, escolha a sua conta pessoal. Uma das contas precisa ser do espaço em que você está. Cada espaço guarda só a sua parte: o saldo de quem envia diminui no espaço de origem e o de quem recebe aumenta no espaço de destino, e cada um vê o nome da conta do outro lado, nada além disso. Para excluir, apague a transferência em cada espaço, e só quem a criou pode fazer isso na conta compartilhada.
+
 **Por que uma transferência gera duas transações?**
 Porque, financeiramente, uma transferência é uma saída de uma conta e uma entrada em outra ao mesmo tempo — o sistema modela isso como duas transações (uma despesa na origem, uma receita no destino) ligadas entre si, pra que o saldo de cada conta continue batendo individualmente.
 
 **Transferências contam como receita ou despesa no Dashboard?**
-Não. Elas são excluídas de todo cálculo de receita/despesa (nos cards, gráficos, orçamentos, estimativa de imposto e relatórios consolidados) — afinal, transferir dinheiro entre suas próprias contas não é ganhar nem gastar, só reorganizar onde o dinheiro está. A única exceção é a **Exportação de transações** (em Relatórios), que traz o extrato bruto completo, incluindo transferências.
+Depende. Entre contas do **mesmo espaço** (por exemplo, duas contas pessoais), não: elas ficam de fora de todo cálculo de receita/despesa (nos cards, gráficos, orçamentos, estimativa de imposto e relatórios), porque transferir dinheiro entre suas próprias contas não é ganhar nem gastar, só reorganizar onde o dinheiro está. Já a transferência entre o seu **espaço pessoal e um grupo** conta nos dois lados: no grupo, o dinheiro que chegou é **receita** do mês; no espaço de quem enviou, é **despesa**. Isso vale para o Dashboard e para os relatórios (demonstrativo de resultado e despesas por categoria); orçamentos e estimativa de imposto continuam ignorando transferências. Outra exceção é a **Exportação de transações** (em Relatórios), que traz o extrato bruto completo, incluindo transferências.
 ___
 
 ## Lançamentos recorrentes

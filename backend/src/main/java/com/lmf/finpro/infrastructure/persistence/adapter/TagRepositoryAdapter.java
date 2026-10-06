@@ -32,7 +32,7 @@ public class TagRepositoryAdapter implements TagRepositoryPort {
                 tagRepository.save(
                         TagJpaEntity.builder()
                                 .id(tag.id())
-                                .userId(tag.userId())
+                                .householdId(tag.householdId())
                                 .name(tag.name())
                                 .color(tag.color())
                                 .createdAt(tag.createdAt())
@@ -45,18 +45,18 @@ public class TagRepositoryAdapter implements TagRepositoryPort {
     }
 
     @Override
-    public List<Tag> findAllByUserId(Long userId) {
-        return tagRepository.findByUserIdOrderByNameAsc(userId).stream()
+    public List<Tag> findAllByHouseholdId(Long householdId) {
+        return tagRepository.findByHouseholdIdOrderByNameAsc(householdId).stream()
                 .map(this::toDomain)
                 .toList();
     }
 
     @Override
-    public List<Tag> findAllByUserIdAndNames(Long userId, Collection<String> names) {
+    public List<Tag> findAllByHouseholdIdAndNames(Long householdId, Collection<String> names) {
         if (names.isEmpty()) {
             return List.of();
         }
-        return tagRepository.findByUserIdAndNameIn(userId, names).stream()
+        return tagRepository.findByHouseholdIdAndNameIn(householdId, names).stream()
                 .map(this::toDomain)
                 .toList();
     }
@@ -137,7 +137,7 @@ public class TagRepositoryAdapter implements TagRepositoryPort {
     private Tag toDomain(TagJpaEntity entity) {
         return new Tag(
                 entity.getId(),
-                entity.getUserId(),
+                entity.getHouseholdId(),
                 entity.getName(),
                 entity.getColor(),
                 entity.getCreatedAt());

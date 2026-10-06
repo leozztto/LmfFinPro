@@ -9,10 +9,13 @@ import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
 import com.lmf.finpro.domain.exception.ExchangeRateUnavailableException;
+import com.lmf.finpro.domain.exception.HouseholdPermissionException;
+import com.lmf.finpro.domain.exception.HouseholdRuleException;
 import com.lmf.finpro.domain.exception.ImportFileInvalidException;
 import com.lmf.finpro.domain.exception.IncorrectCurrentPasswordException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
+import com.lmf.finpro.domain.exception.InvalidHouseholdInviteException;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.InvalidTagException;
@@ -89,6 +92,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidPasswordResetTokenException.class)
     public ResponseEntity<ApiError> handleInvalidPasswordResetToken(
             InvalidPasswordResetTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(HouseholdPermissionException.class)
+    public ResponseEntity<ApiError> handleHouseholdPermission(
+            HouseholdPermissionException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(HouseholdRuleException.class)
+    public ResponseEntity<ApiError> handleHouseholdRule(
+            HouseholdRuleException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidHouseholdInviteException.class)
+    public ResponseEntity<ApiError> handleInvalidHouseholdInvite(
+            InvalidHouseholdInviteException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 

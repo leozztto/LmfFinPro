@@ -24,7 +24,7 @@ public class BudgetApplicationService {
     private final ClientRepositoryPort clientRepositoryPort;
 
     public Budget create(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long categoryId,
             YearMonth referenceMonth,
             BigDecimal limitValue,
@@ -33,21 +33,25 @@ public class BudgetApplicationService {
                 "Criando orçamento da categoria={} mês={} para o usuário={}",
                 categoryId,
                 referenceMonth,
-                currentUserId);
+                currentHouseholdId);
         if (clientId != null) {
-            requireOwnedClient(currentUserId, clientId);
+            requireOwnedClient(currentHouseholdId, clientId);
         }
         Budget saved =
                 budgetRepositoryPort.save(
                         Budget.create(
-                                currentUserId, categoryId, referenceMonth, limitValue, clientId));
-        log.debug("Orçamento={} criado para o usuário={}", saved.id(), currentUserId);
+                                currentHouseholdId,
+                                categoryId,
+                                referenceMonth,
+                                limitValue,
+                                clientId));
+        log.debug("Orçamento={} criado para o usuário={}", saved.id(), currentHouseholdId);
         return saved;
     }
 
-    public List<Budget> list(Long currentUserId) {
-        log.debug("Listando orçamentos do usuário={}", currentUserId);
-        return budgetRepositoryPort.findAllByUserId(currentUserId);
+    public List<Budget> list(Long currentHouseholdId) {
+        log.debug("Listando orçamentos do usuário={}", currentHouseholdId);
+        return budgetRepositoryPort.findAllByHouseholdId(currentHouseholdId);
     }
 
     /**
@@ -62,38 +66,38 @@ public class BudgetApplicationService {
         LocalDate end = budget.referenceMonth().plusMonths(1).atDay(1);
         if (budget.clientId() != null) {
             return transactionRepositoryPort
-                    .sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
-                            budget.userId(),
+                    .sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
+                            budget.householdId(),
                             budget.categoryId(),
                             budget.clientId(),
                             CategoryType.EXPENSE,
                             start,
                             end);
         }
-        return transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
-                budget.userId(), budget.categoryId(), CategoryType.EXPENSE, start, end);
+        return transactionRepositoryPort.sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
+                budget.householdId(), budget.categoryId(), CategoryType.EXPENSE, start, end);
     }
 
-    public void delete(Long currentUserId, Long budgetId) {
-        log.debug("Removendo orçamento={} do usuário={}", budgetId, currentUserId);
-        findOwnedOrThrow(currentUserId, budgetId);
+    public void delete(Long currentHouseholdId, Long budgetId) {
+        log.debug("Removendo orçamento={} do usuário={}", budgetId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, budgetId);
         budgetRepositoryPort.deleteById(budgetId);
     }
 
     /** Cliente de outro usuário é tratado como inexistente (404), não como 403. */
-    private void requireOwnedClient(Long currentUserId, Long clientId) {
+    private void requireOwnedClient(Long currentHouseholdId, Long clientId) {
         clientRepositoryPort
                 .findById(clientId)
-                .filter(client -> client.belongsTo(currentUserId))
+                .filter(client -> client.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }
 
     /** Acesso a orçamento de outro usuário é tratado como inexistente (404), não como 403. */
-    private Budget findOwnedOrThrow(Long currentUserId, Long budgetId) {
+    private Budget findOwnedOrThrow(Long currentHouseholdId, Long budgetId) {
         return budgetRepositoryPort
                 .findById(budgetId)
-                .filter(budget -> budget.belongsTo(currentUserId))
+                .filter(budget -> budget.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(

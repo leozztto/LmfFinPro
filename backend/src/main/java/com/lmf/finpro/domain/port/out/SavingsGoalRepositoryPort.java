@@ -9,7 +9,7 @@ public interface SavingsGoalRepositoryPort {
 
     Optional<SavingsGoal> findById(Long id);
 
-    List<SavingsGoal> findAllByUserId(Long userId);
+    List<SavingsGoal> findAllByHouseholdId(Long householdId);
 
     /** Metas com aporte automático ligado, de todos os usuários — usado pelo scheduler diário. */
     List<SavingsGoal> findAllAutoContribute();

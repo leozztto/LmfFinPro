@@ -21,7 +21,7 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
                 repository.save(
                         SavingsGoalJpaEntity.builder()
                                 .id(goal.id())
-                                .userId(goal.userId())
+                                .householdId(goal.householdId())
                                 .name(goal.name())
                                 .type(goal.type())
                                 .targetAmount(goal.targetAmount())
@@ -40,8 +40,8 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
     }
 
     @Override
-    public List<SavingsGoal> findAllByUserId(Long userId) {
-        return repository.findByUserIdOrderByCreatedAtAsc(userId).stream()
+    public List<SavingsGoal> findAllByHouseholdId(Long householdId) {
+        return repository.findByHouseholdIdOrderByCreatedAtAsc(householdId).stream()
                 .map(this::toDomain)
                 .toList();
     }
@@ -64,7 +64,7 @@ public class SavingsGoalRepositoryAdapter implements SavingsGoalRepositoryPort {
     private SavingsGoal toDomain(SavingsGoalJpaEntity entity) {
         return new SavingsGoal(
                 entity.getId(),
-                entity.getUserId(),
+                entity.getHouseholdId(),
                 entity.getName(),
                 entity.getType(),
                 entity.getTargetAmount(),

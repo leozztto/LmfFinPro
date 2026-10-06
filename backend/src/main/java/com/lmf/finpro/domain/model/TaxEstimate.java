@@ -6,7 +6,7 @@ import java.time.YearMonth;
 
 public record TaxEstimate(
         Long id,
-        Long userId,
+        Long householdId,
         YearMonth referenceMonth,
         TaxRegime regime,
         BigDecimal grossRevenue,
@@ -14,7 +14,7 @@ public record TaxEstimate(
         BigDecimal estimatedValue) {
 
     public static TaxEstimate create(
-            Long userId,
+            Long householdId,
             YearMonth referenceMonth,
             TaxRegime regime,
             BigDecimal grossRevenue,
@@ -22,10 +22,16 @@ public record TaxEstimate(
         BigDecimal estimatedValue =
                 grossRevenue.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
         return new TaxEstimate(
-                null, userId, referenceMonth, regime, grossRevenue, appliedRate, estimatedValue);
+                null,
+                householdId,
+                referenceMonth,
+                regime,
+                grossRevenue,
+                appliedRate,
+                estimatedValue);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 }

@@ -8,10 +8,10 @@ describe('parseFaq', () => {
 
     expect(document.title).toBe('FinPro — Perguntas Frequentes (FAQ)')
     expect(document.subtitle).toBe('Dúvidas comuns de quem usa o FinPro no dia a dia.')
-    expect(document.categories).toHaveLength(19)
+    expect(document.categories).toHaveLength(20)
 
     const totalItems = document.categories.reduce((sum, category) => sum + category.items.length, 0)
-    expect(totalItems).toBe(109)
+    expect(totalItems).toBe(124)
   })
 
   it('generates accent-free, hyphenated slugs for categories', () => {

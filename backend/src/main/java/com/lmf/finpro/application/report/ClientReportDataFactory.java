@@ -32,8 +32,9 @@ class ClientReportDataFactory {
      * reaproveitando {@code findAllByClientIdAndTypeAndDateBetween} com o intervalo do ano inteiro
      * em vez de um mês, igual ao recibo mensal.
      */
-    ClientAnnualStatementData buildAnnualStatement(Long currentUserId, Long clientId, Year year) {
-        Client client = lookups.findOwnedClientOrThrow(currentUserId, clientId);
+    ClientAnnualStatementData buildAnnualStatement(
+            Long currentHouseholdId, Long currentUserId, Long clientId, Year year) {
+        Client client = lookups.findOwnedClientOrThrow(currentHouseholdId, clientId);
         User issuer = lookups.findUserOrThrow(currentUserId);
 
         LocalDate start = year.atDay(1);
@@ -69,8 +70,9 @@ class ClientReportDataFactory {
         return new ClientAnnualStatementData(issuer, client, year, monthlyIncomes, totalYear);
     }
 
-    ClientReceiptData buildReceipt(Long currentUserId, Long clientId, YearMonth referenceMonth) {
-        Client client = lookups.findOwnedClientOrThrow(currentUserId, clientId);
+    ClientReceiptData buildReceipt(
+            Long currentHouseholdId, Long currentUserId, Long clientId, YearMonth referenceMonth) {
+        Client client = lookups.findOwnedClientOrThrow(currentHouseholdId, clientId);
         User issuer = lookups.findUserOrThrow(currentUserId);
 
         LocalDate start = referenceMonth.atDay(1);

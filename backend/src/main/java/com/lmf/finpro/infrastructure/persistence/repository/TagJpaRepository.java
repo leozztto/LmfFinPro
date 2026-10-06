@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TagJpaRepository extends JpaRepository<TagJpaEntity, Long> {
 
-    List<TagJpaEntity> findByUserIdOrderByNameAsc(Long userId);
+    List<TagJpaEntity> findByHouseholdIdOrderByNameAsc(Long householdId);
 
-    List<TagJpaEntity> findByUserIdAndNameIn(Long userId, Collection<String> names);
+    List<TagJpaEntity> findByHouseholdIdAndNameIn(Long householdId, Collection<String> names);
 }

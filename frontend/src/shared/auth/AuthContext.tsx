@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { endRemoteSession, httpClient, refreshSession } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import {
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
   const [restoring, setRestoring] = useState<boolean>(needsRestore)
   const { showToast } = useToast()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!restoring) return
@@ -70,11 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function handleSessionExpired() {
       setSession(null)
+      queryClient.clear()
       showToast('Sua sessão expirou. Faça login novamente.')
     }
     authEvents.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
     return () => authEvents.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
-  }, [showToast])
+  }, [queryClient, showToast])
 
   // Sair em uma aba remove o usuário do localStorage: as outras abas acompanham.
   useEffect(() => {
@@ -82,14 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event.key === SESSION_KEY && event.newValue === null) {
         clearSession()
         setSession(null)
+        queryClient.clear()
       }
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+  }, [queryClient])
 
   async function authenticate(path: string, payload: LoginPayload | RegisterPayload) {
     const response = await httpClient.post<AuthResponseBody>(path, payload)
+    // Dados em cache são da sessão anterior (ex.: ela expirou e outra pessoa entrou): descarta tudo.
+    queryClient.clear()
     const nextSession: AuthSession = {
       token: response.token,
       userId: response.userId,
@@ -112,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void endRemoteSession()
     clearSession()
     setSession(null)
+    queryClient.clear()
   }
 
   function updateSession(changes: Partial<AuthSession>) {

@@ -6,5 +6,5 @@ import java.util.Optional;
 public interface ProLaboreSettingsRepositoryPort {
     ProLaboreSettings save(ProLaboreSettings settings);
 
-    Optional<ProLaboreSettings> findByUserId(Long userId);
+    Optional<ProLaboreSettings> findByHouseholdId(Long householdId);
 }

@@ -36,32 +36,33 @@ public class ImportBatchController {
 
     @GetMapping
     public List<ImportBatchResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return importApplicationService.list(currentUser.userId()).stream()
+        return importApplicationService.list(currentUser.householdId()).stream()
                 .map(
                         batch ->
                                 mapper.toResponse(
                                         batch,
                                         importApplicationService.listTransactions(
-                                                currentUser.userId(), batch.id())))
+                                                currentUser.householdId(), batch.id())))
                 .toList();
     }
 
     @GetMapping("/{id}")
     public ImportBatchResponse getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        ImportBatch batch = importApplicationService.getById(currentUser.userId(), id);
+        ImportBatch batch = importApplicationService.getById(currentUser.householdId(), id);
         return mapper.toResponse(
-                batch, importApplicationService.listTransactions(currentUser.userId(), id));
+                batch, importApplicationService.listTransactions(currentUser.householdId(), id));
     }
 
     @GetMapping("/{id}/transactions")
     public List<TransactionResponse> listTransactions(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         List<Transaction> transactions =
-                importApplicationService.listTransactions(currentUser.userId(), id);
+                importApplicationService.listTransactions(currentUser.householdId(), id);
         Map<Long, List<Tag>> tags =
                 tagApplicationService.tagsByTransactionIds(
-                        currentUser.userId(), transactions.stream().map(Transaction::id).toList());
+                        currentUser.householdId(),
+                        transactions.stream().map(Transaction::id).toList());
         return transactions.stream()
                 .map(
                         transaction ->
@@ -79,9 +80,14 @@ public class ImportBatchController {
         try (InputStream content = file.getInputStream()) {
             ImportBatch batch =
                     importApplicationService.importFile(
-                            currentUser.userId(), accountId, file.getOriginalFilename(), content);
+                            currentUser.householdId(),
+                            currentUser.userId(),
+                            accountId,
+                            file.getOriginalFilename(),
+                            content);
             List<Transaction> transactions =
-                    importApplicationService.listTransactions(currentUser.userId(), batch.id());
+                    importApplicationService.listTransactions(
+                            currentUser.householdId(), batch.id());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(mapper.toResponse(batch, transactions));
         } catch (IOException e) {
@@ -97,7 +103,7 @@ public class ImportBatchController {
             @RequestBody TransactionReviewRequest request) {
         Transaction updated =
                 importApplicationService.reviewTransaction(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         batchId,
                         transactionId,
                         request.categoryId(),
@@ -105,7 +111,7 @@ public class ImportBatchController {
         return transactionMapper.toResponse(
                 updated,
                 tagApplicationService
-                        .tagsByTransactionIds(currentUser.userId(), List.of(transactionId))
+                        .tagsByTransactionIds(currentUser.householdId(), List.of(transactionId))
                         .getOrDefault(transactionId, List.of()));
     }
 }

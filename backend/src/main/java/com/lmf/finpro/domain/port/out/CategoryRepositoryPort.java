@@ -10,7 +10,7 @@ public interface CategoryRepositoryPort {
     Optional<Category> findById(Long id);
 
     /** Categorias do usuário + categorias padrão do sistema (globais). */
-    List<Category> findAllVisibleToUser(Long userId);
+    List<Category> findAllVisibleToUser(Long householdId);
 
     void deleteById(Long id);
 }

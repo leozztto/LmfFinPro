@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RecurringTransactionJpaRepository
         extends JpaRepository<RecurringTransactionJpaEntity, Long> {
-    List<RecurringTransactionJpaEntity> findByUserIdOrderByStartDateAsc(Long userId);
+    List<RecurringTransactionJpaEntity> findByHouseholdIdOrderByStartDateAsc(Long householdId);
 
     List<RecurringTransactionJpaEntity> findByActiveTrue();
 

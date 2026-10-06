@@ -10,11 +10,11 @@ public interface BudgetRepositoryPort {
 
     Optional<Budget> findById(Long id);
 
-    List<Budget> findAllByUserId(Long userId);
+    List<Budget> findAllByHouseholdId(Long householdId);
 
     /** {@code clientId} nulo procura o orçamento geral (sem cliente) da categoria/mês. */
-    boolean existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
-            Long userId, Long categoryId, YearMonth referenceMonth, Long clientId);
+    boolean existsByHouseholdIdAndCategoryIdAndReferenceMonthAndClientId(
+            Long householdId, Long categoryId, YearMonth referenceMonth, Long clientId);
 
     boolean existsByCategoryId(Long categoryId);
 

@@ -24,7 +24,7 @@ public class CategoryController {
 
     @GetMapping
     public List<CategoryResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return categoryApplicationService.list(currentUser.userId()).stream()
+        return categoryApplicationService.list(currentUser.householdId()).stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -32,7 +32,7 @@ public class CategoryController {
     @GetMapping("/{id}")
     public CategoryResponse getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return mapper.toResponse(categoryApplicationService.getById(currentUser.userId(), id));
+        return mapper.toResponse(categoryApplicationService.getById(currentUser.householdId(), id));
     }
 
     @PostMapping
@@ -41,7 +41,7 @@ public class CategoryController {
             @Valid @RequestBody CategoryRequest request) {
         Category created =
                 categoryApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.name(),
                         request.type(),
                         request.color(),
@@ -56,14 +56,18 @@ public class CategoryController {
             @Valid @RequestBody CategoryRequest request) {
         Category updated =
                 categoryApplicationService.update(
-                        currentUser.userId(), id, request.name(), request.color(), request.icon());
+                        currentUser.householdId(),
+                        id,
+                        request.name(),
+                        request.color(),
+                        request.icon());
         return mapper.toResponse(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        categoryApplicationService.delete(currentUser.userId(), id);
+        categoryApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 }

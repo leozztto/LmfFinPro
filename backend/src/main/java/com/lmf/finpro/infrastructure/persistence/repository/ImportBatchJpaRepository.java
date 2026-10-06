@@ -5,5 +5,5 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ImportBatchJpaRepository extends JpaRepository<ImportBatchJpaEntity, Long> {
-    List<ImportBatchJpaEntity> findByUserIdOrderByImportedAtDesc(Long userId);
+    List<ImportBatchJpaEntity> findByHouseholdIdOrderByImportedAtDesc(Long householdId);
 }

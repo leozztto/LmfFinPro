@@ -32,7 +32,11 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateClientReceipt(
-                        currentUser.userId(), clientId, referenceMonth, format);
+                        currentUser.householdId(),
+                        currentUser.userId(),
+                        clientId,
+                        referenceMonth,
+                        format);
 
         String filename = "recibo-cliente-" + clientId + "-" + referenceMonth + extension(format);
         return respond(body, filename, format);
@@ -46,7 +50,11 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateAccountStatement(
-                        currentUser.userId(), accountId, referenceMonth, format);
+                        currentUser.householdId(),
+                        currentUser.userId(),
+                        accountId,
+                        referenceMonth,
+                        format);
 
         String filename = "extrato-conta-" + accountId + "-" + referenceMonth + extension(format);
         return respond(body, filename, format);
@@ -60,7 +68,7 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateClientAnnualStatement(
-                        currentUser.userId(), clientId, year, format);
+                        currentUser.householdId(), currentUser.userId(), clientId, year, format);
 
         String filename =
                 "demonstrativo-anual-cliente-" + clientId + "-" + year + extension(format);
@@ -74,7 +82,7 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateCategoryExpenseReport(
-                        currentUser.userId(), referenceMonth, format);
+                        currentUser.householdId(), currentUser.userId(), referenceMonth, format);
 
         String filename = "despesas-por-categoria-" + referenceMonth + extension(format);
         return respond(body, filename, format);
@@ -88,7 +96,7 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateIncomeStatement(
-                        currentUser.userId(), year, granularity, format);
+                        currentUser.householdId(), currentUser.userId(), year, granularity, format);
 
         String filename = "resultado-periodo-" + year + "-" + granularity + extension(format);
         return respond(body, filename, format);
@@ -101,7 +109,7 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateBudgetVsActualReport(
-                        currentUser.userId(), referenceMonth, format);
+                        currentUser.householdId(), currentUser.userId(), referenceMonth, format);
 
         String filename = "orcamento-vs-realizado-" + referenceMonth + extension(format);
         return respond(body, filename, format);
@@ -114,7 +122,7 @@ public class ReportController {
             @RequestParam(defaultValue = "CSV") ReportFormat format) {
         byte[] body =
                 reportApplicationService.generateTransactionExport(
-                        currentUser.userId(), referenceMonth, format);
+                        currentUser.householdId(), referenceMonth, format);
 
         String filename = "transacoes-" + referenceMonth + extension(format);
         return respond(body, filename, format);

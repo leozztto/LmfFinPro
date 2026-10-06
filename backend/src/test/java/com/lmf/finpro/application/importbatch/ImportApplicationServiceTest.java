@@ -89,7 +89,7 @@ class ImportApplicationServiceTest {
                             return batch.id() == null
                                     ? new ImportBatch(
                                             99L,
-                                            batch.userId(),
+                                            batch.householdId(),
                                             batch.accountId(),
                                             batch.originalFile(),
                                             batch.format(),
@@ -270,7 +270,9 @@ class ImportApplicationServiceTest {
                         1L,
                         "extrato.csv",
                         csv(
-                                "date,description,amount\n2026-09-01,Mercado,-100\n2026-09-01,Mercado,-100\n"));
+                                "date,description,amount\n"
+                                        + "2026-09-01,Mercado,-100\n"
+                                        + "2026-09-01,Mercado,-100\n"));
 
         verify(transactionRepositoryPort, times(1)).save(any());
         assertThat(result.duplicateCount()).isEqualTo(1);
@@ -486,7 +488,7 @@ class ImportApplicationServiceTest {
         when(transactionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         CategoryRule existingRule = new CategoryRule(2L, 10L, "UBER TRIP", 5L, 3);
-        when(categoryRuleRepositoryPort.findByUserIdAndPattern(10L, "UBER TRIP"))
+        when(categoryRuleRepositoryPort.findByHouseholdIdAndPattern(10L, "UBER TRIP"))
                 .thenReturn(Optional.of(existingRule));
         when(categoryRuleRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));

@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.auth;
 
+import com.lmf.finpro.application.support.SecureTokens;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
 import com.lmf.finpro.domain.model.PasswordResetToken;
 import com.lmf.finpro.domain.model.User;
@@ -7,13 +8,7 @@ import com.lmf.finpro.domain.port.out.PasswordHasherPort;
 import com.lmf.finpro.domain.port.out.PasswordResetMailerPort;
 import com.lmf.finpro.domain.port.out.PasswordResetTokenRepositoryPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HexFormat;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,7 +25,6 @@ public class PasswordResetApplicationService {
 
     private static final String INVALID_TOKEN_MESSAGE =
             "Link de redefinição inválido ou expirado. Solicite um novo.";
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordResetTokenRepositoryPort tokenRepositoryPort;
@@ -54,7 +48,7 @@ public class PasswordResetApplicationService {
         LocalDateTime now = LocalDateTime.now();
         PasswordResetToken token =
                 tokenRepositoryPort
-                        .findByTokenHash(sha256(rawToken))
+                        .findByTokenHash(SecureTokens.sha256(rawToken))
                         .filter(t -> t.isUsable(now))
                         .orElseThrow(
                                 () ->
@@ -78,10 +72,10 @@ public class PasswordResetApplicationService {
         LocalDateTime now = LocalDateTime.now();
         tokenRepositoryPort.invalidateActiveTokens(user.id(), now);
 
-        String rawToken = generateRawToken();
+        String rawToken = SecureTokens.generate();
         tokenRepositoryPort.save(
                 PasswordResetToken.issue(
-                        user.id(), sha256(rawToken), now, settings.tokenTtlMinutes()));
+                        user.id(), SecureTokens.sha256(rawToken), now, settings.tokenTtlMinutes()));
 
         String link = settings.resetPageUrl() + "?token=" + rawToken;
         try {
@@ -105,22 +99,5 @@ public class PasswordResetApplicationService {
             cause = cause.getCause();
         }
         return cause;
-    }
-
-    private static String generateRawToken() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private static String sha256(String value) {
-        try {
-            byte[] digest =
-                    MessageDigest.getInstance("SHA-256")
-                            .digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 indisponível na JVM", ex);
-        }
     }
 }

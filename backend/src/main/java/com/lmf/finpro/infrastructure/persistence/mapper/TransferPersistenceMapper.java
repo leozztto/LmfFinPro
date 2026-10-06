@@ -3,7 +3,6 @@ package com.lmf.finpro.infrastructure.persistence.mapper;
 import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.infrastructure.persistence.entity.AccountJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransferJpaEntity;
-import com.lmf.finpro.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,7 +11,7 @@ public class TransferPersistenceMapper {
     public TransferJpaEntity toEntity(Transfer transfer) {
         return TransferJpaEntity.builder()
                 .id(transfer.id())
-                .user(UserJpaEntity.builder().id(transfer.userId()).build())
+                .householdId(transfer.householdId())
                 .fromAccount(AccountJpaEntity.builder().id(transfer.fromAccountId()).build())
                 .toAccount(AccountJpaEntity.builder().id(transfer.toAccountId()).build())
                 .amount(transfer.amount())
@@ -26,7 +25,7 @@ public class TransferPersistenceMapper {
     public Transfer toDomain(TransferJpaEntity entity) {
         return new Transfer(
                 entity.getId(),
-                entity.getUser().getId(),
+                entity.getHouseholdId(),
                 entity.getFromAccount().getId(),
                 entity.getToAccount().getId(),
                 entity.getAmount(),

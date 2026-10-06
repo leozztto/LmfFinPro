@@ -16,13 +16,13 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
       reportsDirectory: 'coverage',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/main.tsx', 'src/vite-env.d.ts'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx', 'src/vite-env.d.ts'],
     },
   },
 })

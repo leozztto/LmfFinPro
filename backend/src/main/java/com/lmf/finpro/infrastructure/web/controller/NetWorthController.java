@@ -28,7 +28,7 @@ public class NetWorthController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(defaultValue = "12") int months) {
         NetWorthCalculator.Report report =
-                netWorthApplicationService.summary(currentUser.userId(), months);
+                netWorthApplicationService.summary(currentUser.householdId(), months);
         return new NetWorthResponse(
                 toRow(report.current()),
                 report.changeFromPreviousMonth(),

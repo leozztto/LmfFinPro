@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { UserAvatar } from '@/features/profile/components/UserAvatar'
 import { useProfilePhotoUrl } from '@/features/profile/hooks/useProfilePhoto'
-import { LogOutIcon, SettingsIcon } from '@/shared/ui/icons'
+import { LogOutIcon, SettingsIcon, UsersIcon } from '@/shared/ui/icons'
+import { AvatarInvitesBadge } from '@/features/households/components/AvatarInvitesBadge'
+import { PendingInvitesBadge } from '@/features/households/components/PendingInvitesBadge'
+import { pendingInvitesLabel } from '@/features/households/badgeCount'
+import { useReceivedInvites } from '@/features/households/hooks/useHouseholds'
 
 const itemClassName =
   'flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:text-zinc-200 dark:hover:bg-zinc-700/60 dark:focus:bg-zinc-700/60'
@@ -12,6 +16,8 @@ const itemClassName =
 export function UserMenu() {
   const { session, logout } = useAuth()
   const photoUrl = useProfilePhotoUrl()
+  const { data: receivedInvites } = useReceivedInvites()
+  const pendingInvites = receivedInvites?.length ?? 0
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -45,11 +51,14 @@ export function UserMenu() {
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Menu do usuário"
+        aria-label={
+          pendingInvites > 0 ? `Menu do usuário, ${pendingInvitesLabel(pendingInvites)}` : 'Menu do usuário'
+        }
         title={session?.name}
-        className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+        className="relative rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
       >
         <UserAvatar photoUrl={photoUrl} name={session?.name} />
+        <AvatarInvitesBadge count={pendingInvites} />
       </button>
 
       {open && (
@@ -65,6 +74,11 @@ export function UserMenu() {
           <Link to="/configuracoes" role="menuitem" onClick={() => setOpen(false)} className={itemClassName}>
             <SettingsIcon className="h-4 w-4 shrink-0" />
             Configurações
+          </Link>
+          <Link to="/configuracoes/grupos" role="menuitem" onClick={() => setOpen(false)} className={itemClassName}>
+            <UsersIcon className="h-4 w-4 shrink-0" />
+            Grupos (casal/família)
+            <PendingInvitesBadge />
           </Link>
           <button
             type="button"

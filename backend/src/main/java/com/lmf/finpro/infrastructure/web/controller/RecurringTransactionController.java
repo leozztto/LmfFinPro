@@ -31,8 +31,8 @@ public class RecurringTransactionController {
     public List<RecurringTransactionResponse> list(
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
         return toResponses(
-                currentUser.userId(),
-                recurringTransactionApplicationService.list(currentUser.userId()));
+                currentUser.householdId(),
+                recurringTransactionApplicationService.list(currentUser.householdId()));
     }
 
     @PostMapping
@@ -41,7 +41,7 @@ public class RecurringTransactionController {
             @Valid @RequestBody RecurringTransactionRequest request) {
         RecurringTransaction created =
                 recurringTransactionApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.accountId(),
                         request.categoryId(),
                         request.clientId(),
@@ -53,7 +53,7 @@ public class RecurringTransactionController {
                         request.endDate(),
                         request.tagNames());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toResponses(currentUser.userId(), List.of(created)).get(0));
+                .body(toResponses(currentUser.householdId(), List.of(created)).get(0));
     }
 
     @PutMapping("/{id}")
@@ -63,7 +63,7 @@ public class RecurringTransactionController {
             @Valid @RequestBody RecurringTransactionUpdateRequest request) {
         RecurringTransaction updated =
                 recurringTransactionApplicationService.update(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         id,
                         request.categoryId(),
                         request.clientId(),
@@ -72,13 +72,13 @@ public class RecurringTransactionController {
                         request.endDate(),
                         request.active(),
                         request.tagNames());
-        return toResponses(currentUser.userId(), List.of(updated)).get(0);
+        return toResponses(currentUser.householdId(), List.of(updated)).get(0);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        recurringTransactionApplicationService.delete(currentUser.userId(), id);
+        recurringTransactionApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 

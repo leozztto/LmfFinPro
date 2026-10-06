@@ -9,9 +9,9 @@ public interface CategoryRuleRepositoryPort {
 
     Optional<CategoryRule> findById(Long id);
 
-    List<CategoryRule> findVisibleToUserOrderByPriorityDesc(Long userId);
+    List<CategoryRule> findVisibleToUserOrderByPriorityDesc(Long householdId);
 
-    Optional<CategoryRule> findByUserIdAndPattern(Long userId, String pattern);
+    Optional<CategoryRule> findByHouseholdIdAndPattern(Long householdId, String pattern);
 
     void deleteById(Long id);
 }

@@ -38,9 +38,9 @@ public class DebtApplicationService {
         }
     }
 
-    public List<DebtSummary> list(Long currentUserId) {
-        log.debug("Listando dívidas do usuário={}", currentUserId);
-        List<Debt> debts = debtRepositoryPort.findAllByUserId(currentUserId);
+    public List<DebtSummary> list(Long currentHouseholdId) {
+        log.debug("Listando dívidas do usuário={}", currentHouseholdId);
+        List<Debt> debts = debtRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         Map<Long, List<DebtBalance>> balancesByDebt =
                 debtBalanceRepositoryPort
                         .findAllByDebtIds(debts.stream().map(Debt::id).toList())
@@ -61,54 +61,54 @@ public class DebtApplicationService {
 
     @Transactional
     public DebtSummary create(
-            Long currentUserId,
+            Long currentHouseholdId,
             String name,
             DebtType type,
             String creditor,
             BigDecimal initialBalance,
             LocalDate balanceDate) {
-        log.debug("Criando dívida do tipo={} para o usuário={}", type, currentUserId);
+        log.debug("Criando dívida do tipo={} para o usuário={}", type, currentHouseholdId);
         requireNotFuture(balanceDate);
         Debt debt =
                 debtRepositoryPort.save(
-                        Debt.create(currentUserId, name.trim(), type, blankToNull(creditor)));
+                        Debt.create(currentHouseholdId, name.trim(), type, blankToNull(creditor)));
         DebtBalance balance =
                 debtBalanceRepositoryPort.save(
                         DebtBalance.create(debt.id(), balanceDate, initialBalance));
-        log.debug("Dívida={} criada para o usuário={}", debt.id(), currentUserId);
+        log.debug("Dívida={} criada para o usuário={}", debt.id(), currentHouseholdId);
         return new DebtSummary(debt, balance);
     }
 
     public DebtSummary update(
-            Long currentUserId, Long debtId, String name, DebtType type, String creditor) {
-        log.debug("Atualizando dívida={} do usuário={}", debtId, currentUserId);
-        Debt debt = findOwnedOrThrow(currentUserId, debtId);
+            Long currentHouseholdId, Long debtId, String name, DebtType type, String creditor) {
+        log.debug("Atualizando dívida={} do usuário={}", debtId, currentHouseholdId);
+        Debt debt = findOwnedOrThrow(currentHouseholdId, debtId);
         Debt updated =
                 debtRepositoryPort.save(debt.withDetails(name.trim(), type, blankToNull(creditor)));
         return new DebtSummary(updated, lastBalance(debtId));
     }
 
     /** Os saldos informados vão junto (ON DELETE CASCADE). */
-    public void delete(Long currentUserId, Long debtId) {
-        log.debug("Removendo dívida={} do usuário={}", debtId, currentUserId);
-        findOwnedOrThrow(currentUserId, debtId);
+    public void delete(Long currentHouseholdId, Long debtId) {
+        log.debug("Removendo dívida={} do usuário={}", debtId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, debtId);
         debtRepositoryPort.deleteById(debtId);
     }
 
-    public List<DebtBalance> listBalances(Long currentUserId, Long debtId) {
-        log.debug("Listando saldos da dívida={} do usuário={}", debtId, currentUserId);
-        findOwnedOrThrow(currentUserId, debtId);
+    public List<DebtBalance> listBalances(Long currentHouseholdId, Long debtId) {
+        log.debug("Listando saldos da dívida={} do usuário={}", debtId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, debtId);
         return debtBalanceRepositoryPort.findAllByDebtId(debtId);
     }
 
     public DebtBalance saveBalance(
-            Long currentUserId, Long debtId, LocalDate balanceDate, BigDecimal balance) {
+            Long currentHouseholdId, Long debtId, LocalDate balanceDate, BigDecimal balance) {
         log.debug(
                 "Salvando saldo da dívida={} na data={} do usuário={}",
                 debtId,
                 balanceDate,
-                currentUserId);
-        findOwnedOrThrow(currentUserId, debtId);
+                currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, debtId);
         requireNotFuture(balanceDate);
         return debtBalanceRepositoryPort.save(
                 debtBalanceRepositoryPort
@@ -117,10 +117,13 @@ public class DebtApplicationService {
                         .orElseGet(() -> DebtBalance.create(debtId, balanceDate, balance)));
     }
 
-    public void deleteBalance(Long currentUserId, Long debtId, Long balanceId) {
+    public void deleteBalance(Long currentHouseholdId, Long debtId, Long balanceId) {
         log.debug(
-                "Removendo saldo={} da dívida={} do usuário={}", balanceId, debtId, currentUserId);
-        findOwnedOrThrow(currentUserId, debtId);
+                "Removendo saldo={} da dívida={} do usuário={}",
+                balanceId,
+                debtId,
+                currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, debtId);
         DebtBalance balance =
                 debtBalanceRepositoryPort
                         .findById(balanceId)
@@ -128,7 +131,8 @@ public class DebtApplicationService {
                         .orElseThrow(() -> new ResourceNotFoundException("Saldo não encontrado"));
         if (debtBalanceRepositoryPort.countByDebtId(debtId) <= 1) {
             throw new IllegalArgumentException(
-                    "A dívida precisa de pelo menos um saldo devedor. Para quitá-la, informe saldo zero.");
+                    "A dívida precisa de pelo menos um saldo devedor. Para quitá-la, informe saldo"
+                            + " zero.");
         }
         debtBalanceRepositoryPort.deleteById(balance.id());
     }
@@ -150,10 +154,10 @@ public class DebtApplicationService {
     }
 
     /** Dívida de outro usuário é tratada como inexistente (404), não como 403. */
-    private Debt findOwnedOrThrow(Long currentUserId, Long debtId) {
+    private Debt findOwnedOrThrow(Long currentHouseholdId, Long debtId) {
         return debtRepositoryPort
                 .findById(debtId)
-                .filter(debt -> debt.belongsTo(currentUserId))
+                .filter(debt -> debt.belongsTo(currentHouseholdId))
                 .orElseThrow(() -> new ResourceNotFoundException("Dívida não encontrada"));
     }
 }

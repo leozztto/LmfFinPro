@@ -40,8 +40,8 @@ public class NetWorthApplicationService {
     private final Clock clock;
     private final ExchangeRateApplicationService exchangeRateApplicationService;
 
-    public NetWorthCalculator.Report summary(Long currentUserId, int monthsCount) {
-        log.debug("Calculando patrimônio do usuário={} meses={}", currentUserId, monthsCount);
+    public NetWorthCalculator.Report summary(Long currentHouseholdId, int monthsCount) {
+        log.debug("Calculando patrimônio do usuário={} meses={}", currentHouseholdId, monthsCount);
         if (monthsCount < 1 || monthsCount > MAX_MONTHS) {
             throw new IllegalArgumentException(
                     "O período deve ter de 1 a " + MAX_MONTHS + " meses");
@@ -52,9 +52,9 @@ public class NetWorthApplicationService {
             months.add(currentMonth.minusMonths(offset));
         }
 
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
+        List<Account> accounts = accountRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
-        List<Debt> debts = debtRepositoryPort.findAllByUserId(currentUserId);
+        List<Debt> debts = debtRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         return NetWorthCalculator.calculate(
                 accounts,
                 accountIds.isEmpty()

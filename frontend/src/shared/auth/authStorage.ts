@@ -1,3 +1,4 @@
+import { clearActiveHousehold } from '@/shared/household/householdStorage'
 import type { AuthSession } from './types'
 
 export const SESSION_KEY = 'finpro.auth.session'
@@ -53,6 +54,7 @@ export function saveSession(session: AuthSession): void {
 
 export function clearSession(): void {
   accessToken = null
+  clearActiveHousehold()
   try {
     localStorage.removeItem(SESSION_KEY)
   } catch {

@@ -15,7 +15,7 @@ import java.math.BigDecimal;
  * @param employerInssRate INSS patronal sobre o pró-labore; null = automático pelo regime
  */
 public record ProLaboreSettings(
-        Long userId,
+        Long householdId,
         ProLaboreCalculationBase calculationBase,
         int cashCushionMonths,
         BigDecimal reserveRate,
@@ -42,9 +42,9 @@ public record ProLaboreSettings(
         }
     }
 
-    public static ProLaboreSettings defaults(Long userId) {
+    public static ProLaboreSettings defaults(Long householdId) {
         return new ProLaboreSettings(
-                userId,
+                householdId,
                 ProLaboreCalculationBase.MONTH_INCOME,
                 DEFAULT_CASH_CUSHION_MONTHS,
                 DEFAULT_RESERVE_RATE,

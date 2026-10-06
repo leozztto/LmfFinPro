@@ -3,6 +3,8 @@ import type { Account, AccountInput, AccountValuation, AccountValuationInput } f
 
 export const accountsApi = {
   list: () => httpClient.get<Account[]>('/accounts'),
+  /** As contas de um grupo específico, mesmo que outro esteja ativo (ex.: as do espaço pessoal ao compartilhar). */
+  listOfHousehold: (householdId: number) => httpClient.get<Account[]>('/accounts', { householdId }),
   create: (input: AccountInput) => httpClient.post<Account, AccountInput>('/accounts', input),
   update: (id: number, input: AccountInput) => httpClient.put<Account, AccountInput>(`/accounts/${id}`, input),
   remove: (id: number) => httpClient.delete(`/accounts/${id}`),

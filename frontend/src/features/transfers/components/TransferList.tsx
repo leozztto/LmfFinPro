@@ -3,6 +3,8 @@ import { Button, CollapsibleFilters, FormField, Input, Select } from '@/shared/u
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
+import { useAuth } from '@/shared/auth/AuthContext'
+import { deleteBlockedReason } from '@/shared/household/recordAuthorship'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useTransfers } from '../hooks/useTransfers'
 import { useDeleteTransfer } from '../hooks/useDeleteTransfer'
@@ -17,6 +19,7 @@ interface Filters {
 const EMPTY_FILTERS: Filters = { accountId: '', startDate: '', endDate: '' }
 
 export function TransferList() {
+  const { session } = useAuth()
   const { data: transfers, isLoading } = useTransfers()
   const { data: accounts } = useAccounts()
   const deleteTransfer = useDeleteTransfer()
@@ -122,12 +125,18 @@ export function TransferList() {
             <TransferCard
               key={transfer.id}
               transfer={transfer}
-              fromAccountName={accountNameById.get(transfer.fromAccountId) ?? 'conta desconhecida'}
-              toAccountName={accountNameById.get(transfer.toAccountId) ?? 'conta desconhecida'}
+              fromAccountName={accountNameById.get(transfer.fromAccountId) ?? transfer.fromAccountName ?? 'conta de outro espaço'}
+              toAccountName={accountNameById.get(transfer.toAccountId) ?? transfer.toAccountName ?? 'conta de outro espaço'}
               fromCurrency={accountCurrencyById.get(transfer.fromAccountId)}
               toCurrency={accountCurrencyById.get(transfer.toAccountId)}
               onDelete={() => handleDelete(transfer.id)}
               isDeleting={deleteTransfer.isPending}
+              deleteBlockedReason={deleteBlockedReason(
+                transfer.createdByUserId,
+                transfer.createdByName,
+                session?.userId,
+                'transferência',
+              )}
             />
           ))}
         </div>

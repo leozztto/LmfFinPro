@@ -28,7 +28,7 @@ public class RecurringBudgetController {
     @GetMapping
     public List<RecurringBudgetResponse> list(
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return recurringBudgetApplicationService.list(currentUser.userId()).stream()
+        return recurringBudgetApplicationService.list(currentUser.householdId()).stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -39,7 +39,7 @@ public class RecurringBudgetController {
             @Valid @RequestBody RecurringBudgetRequest request) {
         RecurringBudget created =
                 recurringBudgetApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.categoryId(),
                         request.limitValue(),
                         request.startMonth(),
@@ -57,7 +57,7 @@ public class RecurringBudgetController {
                         .toList();
         List<RecurringBudget> created =
                 recurringBudgetApplicationService.createBatch(
-                        currentUser.userId(), request.startMonth(), request.endMonth(), items);
+                        currentUser.householdId(), request.startMonth(), request.endMonth(), items);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(created.stream().map(mapper::toResponse).toList());
     }
@@ -69,7 +69,7 @@ public class RecurringBudgetController {
             @Valid @RequestBody RecurringBudgetUpdateRequest request) {
         RecurringBudget updated =
                 recurringBudgetApplicationService.update(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         id,
                         request.limitValue(),
                         request.endMonth(),
@@ -80,7 +80,7 @@ public class RecurringBudgetController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        recurringBudgetApplicationService.delete(currentUser.userId(), id);
+        recurringBudgetApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -2,7 +2,6 @@ package com.lmf.finpro.infrastructure.persistence.mapper;
 
 import com.lmf.finpro.domain.model.TaxEstimate;
 import com.lmf.finpro.infrastructure.persistence.entity.TaxEstimateJpaEntity;
-import com.lmf.finpro.infrastructure.persistence.entity.UserJpaEntity;
 import java.time.YearMonth;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +11,7 @@ public class TaxEstimatePersistenceMapper {
     public TaxEstimateJpaEntity toEntity(TaxEstimate taxEstimate) {
         return TaxEstimateJpaEntity.builder()
                 .id(taxEstimate.id())
-                .user(UserJpaEntity.builder().id(taxEstimate.userId()).build())
+                .householdId(taxEstimate.householdId())
                 .referenceMonth(taxEstimate.referenceMonth().atDay(1))
                 .regime(taxEstimate.regime())
                 .grossRevenue(taxEstimate.grossRevenue())
@@ -24,7 +23,7 @@ public class TaxEstimatePersistenceMapper {
     public TaxEstimate toDomain(TaxEstimateJpaEntity entity) {
         return new TaxEstimate(
                 entity.getId(),
-                entity.getUser().getId(),
+                entity.getHouseholdId(),
                 YearMonth.from(entity.getReferenceMonth()),
                 entity.getRegime(),
                 entity.getGrossRevenue(),

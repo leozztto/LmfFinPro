@@ -27,8 +27,8 @@ public class CategoryRepositoryAdapter implements CategoryRepositoryPort {
     }
 
     @Override
-    public List<Category> findAllVisibleToUser(Long userId) {
-        return categoryJpaRepository.findByUserIdOrUserIdIsNull(userId).stream()
+    public List<Category> findAllVisibleToUser(Long householdId) {
+        return categoryJpaRepository.findByHouseholdIdOrHouseholdIdIsNull(householdId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }

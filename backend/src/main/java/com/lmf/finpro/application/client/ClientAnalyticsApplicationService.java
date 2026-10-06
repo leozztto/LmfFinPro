@@ -38,10 +38,10 @@ public class ClientAnalyticsApplicationService {
     /** Relatório com o nome de cada cliente do ranking já resolvido. */
     public record Result(ClientAnalytics.Report report, Map<Long, Client> clientsById) {}
 
-    public Result analyze(Long currentUserId, int monthsCount, boolean onlyReceived) {
+    public Result analyze(Long currentHouseholdId, int monthsCount, boolean onlyReceived) {
         log.debug(
                 "Analisando clientes do usuário={} meses={} apenasRecebido={}",
-                currentUserId,
+                currentHouseholdId,
                 monthsCount,
                 onlyReceived);
         if (monthsCount < 1 || monthsCount > MAX_MONTHS) {
@@ -51,7 +51,7 @@ public class ClientAnalyticsApplicationService {
         List<YearMonth> months = lastMonths(monthsCount);
 
         List<Long> accountIds =
-                accountRepositoryPort.findAllByUserId(currentUserId).stream()
+                accountRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .map(Account::id)
                         .toList();
         List<Transaction> transactions =
@@ -63,7 +63,7 @@ public class ClientAnalyticsApplicationService {
                                 .toList();
 
         Map<Long, Client> clientsById =
-                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                clientRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Client::id, client -> client));
         return new Result(ClientAnalytics.analyze(transactions, months), clientsById);
     }

@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SavingsGoalJpaRepository extends JpaRepository<SavingsGoalJpaEntity, Long> {
-    List<SavingsGoalJpaEntity> findByUserIdOrderByCreatedAtAsc(Long userId);
+    List<SavingsGoalJpaEntity> findByHouseholdIdOrderByCreatedAtAsc(Long householdId);
 
     List<SavingsGoalJpaEntity> findByAutoContributeTrue();
 

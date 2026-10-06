@@ -18,6 +18,7 @@ import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRuleRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.ImportBatchRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecordAuthorshipPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -43,11 +44,29 @@ public class ImportApplicationService {
     private final AccountRepositoryPort accountRepositoryPort;
     private final ClientRepositoryPort clientRepositoryPort;
     private final ExchangeRateApplicationService exchangeRateApplicationService;
+    private final RecordAuthorshipPort recordAuthorshipPort;
 
+    /** Sem autor conhecido (uso do sistema): qualquer membro do grupo pode excluir depois. */
     public ImportBatch importFile(
-            Long currentUserId, Long accountId, String originalFileName, InputStream fileContent) {
-        log.debug("Importando arquivo na conta={} para o usuário={}", accountId, currentUserId);
-        Account account = requireOwnedAccount(currentUserId, accountId);
+            Long currentHouseholdId,
+            Long accountId,
+            String originalFileName,
+            InputStream fileContent) {
+        return importFile(currentHouseholdId, null, accountId, originalFileName, fileContent);
+    }
+
+    /**
+     * Quem importou fica como autor dos lançamentos: numa conta compartilhada, só ele os exclui.
+     */
+    public ImportBatch importFile(
+            Long currentHouseholdId,
+            Long currentUserId,
+            Long accountId,
+            String originalFileName,
+            InputStream fileContent) {
+        log.debug(
+                "Importando arquivo na conta={} para o usuário={}", accountId, currentHouseholdId);
+        Account account = requireOwnedAccount(currentHouseholdId, accountId);
         ImportFormat format = detectFormat(originalFileName);
         List<ParsedTransactionRow> rows =
                 switch (format) {
@@ -57,13 +76,14 @@ public class ImportApplicationService {
 
         ImportBatch batch =
                 importBatchRepositoryPort.save(
-                        ImportBatch.start(currentUserId, accountId, originalFileName, format));
+                        ImportBatch.start(currentHouseholdId, accountId, originalFileName, format));
 
         List<CategoryRule> rules =
-                categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentUserId);
+                categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentHouseholdId);
         Set<DuplicateKey> existingKeys = duplicateKeysOf(accountId);
         int duplicateCount = 0;
         int uncategorizedCount = 0;
+        List<Long> importedIds = new java.util.ArrayList<>();
         for (ParsedTransactionRow row : rows) {
             CategoryType type =
                     row.signedAmount().signum() < 0 ? CategoryType.EXPENSE : CategoryType.INCOME;
@@ -95,7 +115,10 @@ public class ImportApplicationService {
                                 exchangeRateApplicationService.toBrl(
                                         account.currency(), imported.amount(), row.date()));
             }
-            transactionRepositoryPort.save(imported);
+            importedIds.add(transactionRepositoryPort.save(imported).id());
+        }
+        if (currentUserId != null) {
+            recordAuthorshipPort.recordTransactionAuthors(importedIds, currentUserId);
         }
 
         FlowLog.detail("batchId", batch.id());
@@ -105,7 +128,8 @@ public class ImportApplicationService {
         FlowLog.detail("duplicates", duplicateCount);
         FlowLog.detail("uncategorized", uncategorizedCount);
         log.info(
-                "Importação={} concluída formato={} linhas={} importadas={} duplicadas={} semCategoria={}",
+                "Importação={} concluída formato={} linhas={} importadas={} duplicadas={}"
+                        + " semCategoria={}",
                 batch.id(),
                 format,
                 rows.size(),
@@ -143,19 +167,20 @@ public class ImportApplicationService {
             BigDecimal amount,
             CategoryType type) {}
 
-    public List<ImportBatch> list(Long currentUserId) {
-        log.debug("Listando importações do usuário={}", currentUserId);
-        return importBatchRepositoryPort.findAllByUserId(currentUserId);
+    public List<ImportBatch> list(Long currentHouseholdId) {
+        log.debug("Listando importações do usuário={}", currentHouseholdId);
+        return importBatchRepositoryPort.findAllByHouseholdId(currentHouseholdId);
     }
 
-    public ImportBatch getById(Long currentUserId, Long batchId) {
-        log.debug("Buscando importação={} do usuário={}", batchId, currentUserId);
-        return findOwnedBatchOrThrow(currentUserId, batchId);
+    public ImportBatch getById(Long currentHouseholdId, Long batchId) {
+        log.debug("Buscando importação={} do usuário={}", batchId, currentHouseholdId);
+        return findOwnedBatchOrThrow(currentHouseholdId, batchId);
     }
 
-    public List<Transaction> listTransactions(Long currentUserId, Long batchId) {
-        log.debug("Listando transações da importação={} do usuário={}", batchId, currentUserId);
-        ImportBatch batch = findOwnedBatchOrThrow(currentUserId, batchId);
+    public List<Transaction> listTransactions(Long currentHouseholdId, Long batchId) {
+        log.debug(
+                "Listando transações da importação={} do usuário={}", batchId, currentHouseholdId);
+        ImportBatch batch = findOwnedBatchOrThrow(currentHouseholdId, batchId);
         return transactionRepositoryPort.findAllByImportBatchId(batch.id());
     }
 
@@ -165,13 +190,17 @@ public class ImportApplicationService {
      * as correções do usuário para futuras importações.
      */
     public Transaction reviewTransaction(
-            Long currentUserId, Long batchId, Long transactionId, Long categoryId, Long clientId) {
+            Long currentHouseholdId,
+            Long batchId,
+            Long transactionId,
+            Long categoryId,
+            Long clientId) {
         log.debug(
                 "Revisando transação={} da importação={} do usuário={}",
                 transactionId,
                 batchId,
-                currentUserId);
-        ImportBatch batch = findOwnedBatchOrThrow(currentUserId, batchId);
+                currentHouseholdId);
+        ImportBatch batch = findOwnedBatchOrThrow(currentHouseholdId, batchId);
         Transaction existing =
                 transactionRepositoryPort
                         .findById(transactionId)
@@ -182,8 +211,8 @@ public class ImportApplicationService {
                                                 "Transação não encontrada nesta importação: "
                                                         + transactionId));
 
-        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, existing.type());
-        requireOwnedClientIfPresent(currentUserId, clientId);
+        requireMatchingCategoryTypeIfPresent(currentHouseholdId, categoryId, existing.type());
+        requireOwnedClientIfPresent(currentHouseholdId, clientId);
 
         Transaction updated =
                 transactionRepositoryPort.save(
@@ -197,7 +226,7 @@ public class ImportApplicationService {
                                 .withBaseAmount(existing.baseAmount()));
 
         if (categoryId != null) {
-            reinforceRule(currentUserId, existing.description(), categoryId);
+            reinforceRule(currentHouseholdId, existing.description(), categoryId);
         }
 
         return updated;
@@ -230,43 +259,43 @@ public class ImportApplicationService {
         return null;
     }
 
-    private void reinforceRule(Long userId, String description, Long categoryId) {
+    private void reinforceRule(Long householdId, String description, Long categoryId) {
         String pattern = description.trim();
         CategoryRule rule =
                 categoryRuleRepositoryPort
-                        .findByUserIdAndPattern(userId, pattern)
+                        .findByHouseholdIdAndPattern(householdId, pattern)
                         .map(existing -> existing.reinforcedWith(categoryId))
-                        .orElseGet(() -> CategoryRule.create(userId, pattern, categoryId));
+                        .orElseGet(() -> CategoryRule.create(householdId, pattern, categoryId));
         categoryRuleRepositoryPort.save(rule);
     }
 
-    private ImportBatch findOwnedBatchOrThrow(Long currentUserId, Long batchId) {
+    private ImportBatch findOwnedBatchOrThrow(Long currentHouseholdId, Long batchId) {
         return importBatchRepositoryPort
                 .findById(batchId)
-                .filter(batch -> batch.belongsTo(currentUserId))
+                .filter(batch -> batch.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(
                                         "Importação não encontrada: " + batchId));
     }
 
-    private Account requireOwnedAccount(Long currentUserId, Long accountId) {
+    private Account requireOwnedAccount(Long currentHouseholdId, Long accountId) {
         return accountRepositoryPort
                 .findById(accountId)
-                .filter(account -> account.belongsTo(currentUserId))
+                .filter(account -> account.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
     private void requireMatchingCategoryTypeIfPresent(
-            Long currentUserId, Long categoryId, CategoryType type) {
+            Long currentHouseholdId, Long categoryId, CategoryType type) {
         if (categoryId == null) {
             return;
         }
         Category category =
                 categoryRepositoryPort
                         .findById(categoryId)
-                        .filter(candidate -> candidate.isVisibleTo(currentUserId))
+                        .filter(candidate -> candidate.isVisibleTo(currentHouseholdId))
                         .orElseThrow(
                                 () ->
                                         new ResourceNotFoundException(
@@ -283,13 +312,13 @@ public class ImportApplicationService {
         }
     }
 
-    private void requireOwnedClientIfPresent(Long currentUserId, Long clientId) {
+    private void requireOwnedClientIfPresent(Long currentHouseholdId, Long clientId) {
         if (clientId == null) {
             return;
         }
         clientRepositoryPort
                 .findById(clientId)
-                .filter(client -> client.belongsTo(currentUserId))
+                .filter(client -> client.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }

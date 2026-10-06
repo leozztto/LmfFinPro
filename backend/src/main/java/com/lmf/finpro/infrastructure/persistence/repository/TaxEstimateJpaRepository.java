@@ -5,5 +5,5 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TaxEstimateJpaRepository extends JpaRepository<TaxEstimateJpaEntity, Long> {
-    List<TaxEstimateJpaEntity> findByUserId(Long userId);
+    List<TaxEstimateJpaEntity> findByHouseholdId(Long householdId);
 }

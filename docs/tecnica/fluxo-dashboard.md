@@ -158,7 +158,7 @@ flowchart TD
     Marca --> Loop
 ```
 
-**Regra de negócio importante — transferências ficam de fora de tudo:** todo o dashboard consome `ownedNonTransferTransactions()`, que filtra `transaction.transferId() == null` antes de passar qualquer coisa para o `DashboardAggregator` (ver `DashboardApplicationService`). Uma transferência entre duas contas do próprio usuário move dinheiro de um lugar para outro, mas não é receita nem despesa — se não fosse filtrada, contaria duas vezes (uma perna de saída em EXPENSE, uma de entrada em INCOME) e infllaria tanto o gráfico de receita x despesa quanto os breakdowns por categoria/cliente.
+**Regra de negócio importante — transferências não são receita nem despesa, mas movem o saldo:** o fluxo mensal, a projeção e os breakdowns por categoria e cliente consomem `ownedNonTransferTransactions()`, que filtra `transaction.transferId() == null` antes de passar para o `DashboardAggregator` (ver `DashboardApplicationService`). Já o **saldo** (atual, o do mês anterior, a evolução e a âncora da projeção) usa todas as transações, inclusive as pernas de transferência: entre contas do mesmo espaço elas se anulam (mesmo valor em reais), mas uma transferência com uma conta de outro espaço (pessoal x grupo) deixa só uma perna aqui, e é ela que movimenta o saldo — a entrada na conta conjunta soma no saldo do grupo, a saída da conta pessoal subtrai do saldo pessoal. Uma transferência entre duas contas do próprio usuário move dinheiro de um lugar para outro, mas não é receita nem despesa — se não fosse filtrada, contaria duas vezes (uma perna de saída em EXPENSE, uma de entrada em INCOME) e infllaria tanto o gráfico de receita x despesa quanto os breakdowns por categoria/cliente.
 
 ## 6. Onde cada peça vive no repositório
 

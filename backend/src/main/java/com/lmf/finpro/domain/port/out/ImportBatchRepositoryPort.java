@@ -9,5 +9,5 @@ public interface ImportBatchRepositoryPort {
 
     Optional<ImportBatch> findById(Long id);
 
-    List<ImportBatch> findAllByUserId(Long userId);
+    List<ImportBatch> findAllByHouseholdId(Long householdId);
 }

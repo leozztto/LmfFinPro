@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.calendar;
 
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
+import com.lmf.finpro.application.support.HouseholdTaxProfile;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.Client;
@@ -8,15 +9,14 @@ import com.lmf.finpro.domain.model.DasSchedule;
 import com.lmf.finpro.domain.model.FinancialCalendar;
 import com.lmf.finpro.domain.model.RecurringTransaction;
 import com.lmf.finpro.domain.model.TaxEstimate;
+import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
-import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -40,7 +40,7 @@ public class CalendarApplicationService {
     /** Até quantos anos para trás ou para frente do mês atual o calendário pode ser consultado. */
     public static final int MAX_YEARS_AWAY = 5;
 
-    private final UserRepositoryPort userRepositoryPort;
+    private final HouseholdTaxProfile householdTaxProfile;
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
@@ -57,10 +57,10 @@ public class CalendarApplicationService {
             Map<Long, String> categoryNames,
             Map<Long, String> clientNames) {}
 
-    public Result build(Long currentUserId, YearMonth month, boolean includePaid) {
+    public Result build(Long currentHouseholdId, YearMonth month, boolean includePaid) {
         log.debug(
                 "Montando calendário do usuário={} mês={} incluirPagas={}",
-                currentUserId,
+                currentHouseholdId,
                 month,
                 includePaid);
         LocalDate today = LocalDate.now(clock);
@@ -72,7 +72,7 @@ public class CalendarApplicationService {
                     "O mês deve estar a até " + MAX_YEARS_AWAY + " anos do mês atual");
         }
 
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
+        List<Account> accounts = accountRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
         List<Transaction> transactions =
                 accountIds.isEmpty()
@@ -88,16 +88,17 @@ public class CalendarApplicationService {
                         transactions,
                         recurrencesInBrl(
                                 accounts,
-                                recurringTransactionRepositoryPort.findAllByUserId(currentUserId)),
-                        dasDue(currentUserId, referenceMonth),
+                                recurringTransactionRepositoryPort.findAllByHouseholdId(
+                                        currentHouseholdId)),
+                        dasDue(currentHouseholdId, referenceMonth),
                         includePaid);
 
         return new Result(
                 report,
                 accounts.stream().collect(Collectors.toMap(Account::id, Account::name)),
-                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name)),
-                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                clientRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name)));
     }
 
@@ -110,14 +111,15 @@ public class CalendarApplicationService {
     }
 
     /** O DAS que vence no mês (dia 20) é o da competência anterior. */
-    private FinancialCalendar.DasDue dasDue(Long userId, YearMonth month) {
-        User user = userRepositoryPort.findById(userId).orElse(null);
-        if (user == null || !DasSchedule.appliesTo(user.taxRegime())) {
+    private FinancialCalendar.DasDue dasDue(Long householdId, YearMonth month) {
+        // O DAS é da pessoa: só aparece no calendário do espaço pessoal.
+        TaxRegime regime = householdTaxProfile.regimeOf(householdId);
+        if (regime == null || !DasSchedule.appliesTo(regime)) {
             return null;
         }
         YearMonth competence = month.minusMonths(1);
         BigDecimal estimatedValue =
-                taxEstimateRepositoryPort.findAllByUserId(userId).stream()
+                taxEstimateRepositoryPort.findAllByHouseholdId(householdId).stream()
                         .filter(estimate -> estimate.referenceMonth().equals(competence))
                         .map(TaxEstimate::estimatedValue)
                         .findFirst()

@@ -19,6 +19,11 @@ export interface Account {
   currentBalanceInBrl: number | null
   /** A conta já tem lançamentos: a moeda não pode mais ser trocada. */
   hasEntries: boolean
+  /** Quem criou a conta ou a trouxe para o grupo; nulo quando não se sabe. */
+  ownerUserId?: number | null
+  ownerName?: string | null
+  /** Quem consulta pode descompartilhar a conta (se ela estiver num grupo). O servidor é quem decide. */
+  canUnshare?: boolean
 }
 
 export interface AccountInput {

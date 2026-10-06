@@ -36,6 +36,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
     public static final String HEADER = "X-Request-Id";
     public static final String MDC_KEY = "requestId";
     public static final String USER_MDC_KEY = "userId";
+    public static final String HOUSEHOLD_MDC_KEY = "householdId";
 
     private static final Pattern SAFE = Pattern.compile("[A-Za-z0-9._-]{1,64}");
 
@@ -58,6 +59,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
             logAccess(request, response, start, RequestFlowContext.end());
             MDC.remove(MDC_KEY);
             MDC.remove(USER_MDC_KEY);
+            MDC.remove(HOUSEHOLD_MDC_KEY);
         }
     }
 

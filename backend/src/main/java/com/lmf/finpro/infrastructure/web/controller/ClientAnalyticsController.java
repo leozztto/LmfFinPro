@@ -29,7 +29,7 @@ public class ClientAnalyticsController {
             @RequestParam(defaultValue = "false") boolean onlyReceived) {
         ClientAnalyticsApplicationService.Result result =
                 clientAnalyticsApplicationService.analyze(
-                        currentUser.userId(), months, onlyReceived);
+                        currentUser.householdId(), months, onlyReceived);
         ClientAnalytics.Report report = result.report();
         return new ClientAnalyticsResponse(
                 report.months(),

@@ -29,7 +29,7 @@ public class SavingsGoalController {
 
     @GetMapping
     public List<SavingsGoalResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return savingsGoalApplicationService.list(currentUser.userId()).stream()
+        return savingsGoalApplicationService.list(currentUser.householdId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -38,7 +38,7 @@ public class SavingsGoalController {
     public SuggestedTaxRateResponse suggestedTaxRate(
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
         return new SuggestedTaxRateResponse(
-                savingsGoalApplicationService.suggestedTaxRate(currentUser.userId()));
+                savingsGoalApplicationService.suggestedTaxRate(currentUser.householdId()));
     }
 
     @PostMapping
@@ -47,7 +47,7 @@ public class SavingsGoalController {
             @Valid @RequestBody SavingsGoalRequest request) {
         SavingsGoalSummary created =
                 savingsGoalApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.accountId(),
                         request.fundingAccountId(),
                         toCommand(request));
@@ -60,20 +60,23 @@ public class SavingsGoalController {
             @PathVariable Long id,
             @Valid @RequestBody SavingsGoalUpdateRequest request) {
         return toResponse(
-                savingsGoalApplicationService.update(currentUser.userId(), id, toCommand(request)));
+                savingsGoalApplicationService.update(
+                        currentUser.householdId(), id, toCommand(request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        savingsGoalApplicationService.delete(currentUser.userId(), id);
+        savingsGoalApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/contributions")
     public List<GoalContributionResponse> listContributions(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return savingsGoalApplicationService.listContributions(currentUser.userId(), id).stream()
+        return savingsGoalApplicationService
+                .listContributions(currentUser.householdId(), id)
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -85,6 +88,7 @@ public class SavingsGoalController {
             @Valid @RequestBody GoalContributionRequest request) {
         GoalContribution created =
                 savingsGoalApplicationService.addContribution(
+                        currentUser.householdId(),
                         currentUser.userId(),
                         id,
                         request.type(),
@@ -99,7 +103,8 @@ public class SavingsGoalController {
     public ResponseEntity<GoalContributionResponse> applySuggestion(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
         GoalContribution created =
-                savingsGoalApplicationService.applySuggestion(currentUser.userId(), id);
+                savingsGoalApplicationService.applySuggestion(
+                        currentUser.householdId(), currentUser.userId(), id);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
@@ -108,7 +113,8 @@ public class SavingsGoalController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long id,
             @PathVariable Long contributionId) {
-        savingsGoalApplicationService.deleteContribution(currentUser.userId(), id, contributionId);
+        savingsGoalApplicationService.deleteContribution(
+                currentUser.householdId(), currentUser.userId(), id, contributionId);
         return ResponseEntity.noContent().build();
     }
 

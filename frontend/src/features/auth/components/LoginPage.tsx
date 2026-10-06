@@ -4,18 +4,23 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button, FormField, Input } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { useLogin } from '../hooks/useLogin'
+import { safeInternalPath } from '../redirect'
 import { loginSchema, type LoginFormValues } from '../schemas'
 import { AuthPageShell, authLinkClassName } from './AuthPageShell'
 
 /** Setado pela tela de redefinir senha ao concluir, para o login avisar que a senha mudou. */
 export interface LoginLocationState {
   passwordReset?: boolean
+  /** Caminho interno para onde ir depois de entrar (ex.: o convite que estava sendo aberto). */
+  redirectTo?: string
 }
 
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const passwordReset = (location.state as LoginLocationState | null)?.passwordReset === true
+  const locationState = location.state as LoginLocationState | null
+  const passwordReset = locationState?.passwordReset === true
+  const redirectTo = safeInternalPath(locationState?.redirectTo)
   const login = useLogin()
   const {
     register,
@@ -29,7 +34,7 @@ export function LoginPage() {
 
   async function onSubmit(values: LoginFormValues) {
     await login.mutateAsync(values)
-    navigate('/')
+    navigate(redirectTo ?? '/', { replace: redirectTo !== null })
   }
 
   return (

@@ -30,7 +30,7 @@ public class ProLaboreController {
 
     @GetMapping
     public ProLaboreResponse summary(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return toResponse(proLaboreApplicationService.summary(currentUser.userId()));
+        return toResponse(proLaboreApplicationService.summary(currentUser.householdId()));
     }
 
     /** Devolve o resumo já recalculado com a nova configuração. */
@@ -39,7 +39,7 @@ public class ProLaboreController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ProLaboreSettingsRequest request) {
         proLaboreApplicationService.updateSettings(
-                currentUser.userId(),
+                currentUser.householdId(),
                 request.calculationBase(),
                 request.cashCushionMonths(),
                 request.reserveRate(),
@@ -48,7 +48,7 @@ public class ProLaboreController {
                 request.fixedAmount(),
                 request.withholdingMode(),
                 request.employerInssRate());
-        return toResponse(proLaboreApplicationService.summary(currentUser.userId()));
+        return toResponse(proLaboreApplicationService.summary(currentUser.householdId()));
     }
 
     private ProLaboreResponse toResponse(ProLaboreSummary summary) {

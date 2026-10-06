@@ -9,7 +9,7 @@ public interface DebtRepositoryPort {
 
     Optional<Debt> findById(Long id);
 
-    List<Debt> findAllByUserId(Long userId);
+    List<Debt> findAllByHouseholdId(Long householdId);
 
     void deleteById(Long id);
 }

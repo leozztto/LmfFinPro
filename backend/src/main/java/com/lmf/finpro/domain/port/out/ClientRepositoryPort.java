@@ -9,7 +9,7 @@ public interface ClientRepositoryPort {
 
     Optional<Client> findById(Long id);
 
-    List<Client> findAllByUserId(Long userId);
+    List<Client> findAllByHouseholdId(Long householdId);
 
     void deleteById(Long id);
 }

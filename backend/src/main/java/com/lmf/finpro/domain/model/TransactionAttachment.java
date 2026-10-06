@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public record TransactionAttachment(
         Long id,
         Long transactionId,
-        Long userId,
+        Long householdId,
         AttachmentDocumentType documentType,
         String fileName,
         String contentType,
@@ -21,7 +21,7 @@ public record TransactionAttachment(
 
     public static TransactionAttachment create(
             Long transactionId,
-            Long userId,
+            Long householdId,
             AttachmentDocumentType documentType,
             String fileName,
             String contentType,
@@ -30,7 +30,7 @@ public record TransactionAttachment(
         return new TransactionAttachment(
                 null,
                 transactionId,
-                userId,
+                householdId,
                 documentType,
                 fileName,
                 contentType,
@@ -39,7 +39,7 @@ public record TransactionAttachment(
                 LocalDateTime.now());
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 }

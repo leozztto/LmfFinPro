@@ -6,10 +6,10 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
+import com.lmf.finpro.application.support.HouseholdTaxProfile;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.CategoryType;
-import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.FinancialCalendar.Entry;
 import com.lmf.finpro.domain.model.FinancialCalendar.EntryKind;
 import com.lmf.finpro.domain.model.TaxEstimate;
@@ -17,21 +17,18 @@ import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionOrigin;
 import com.lmf.finpro.domain.model.TransactionStatus;
-import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TaxEstimateRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +44,7 @@ class CalendarApplicationServiceTest {
 
     @Mock private ExchangeRateApplicationService exchangeRateApplicationService;
 
-    @Mock private UserRepositoryPort userRepositoryPort;
+    @Mock private HouseholdTaxProfile householdTaxProfile;
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
@@ -61,7 +58,7 @@ class CalendarApplicationServiceTest {
     void setUp() {
         service =
                 new CalendarApplicationService(
-                        userRepositoryPort,
+                        householdTaxProfile,
                         accountRepositoryPort,
                         transactionRepositoryPort,
                         recurringTransactionRepositoryPort,
@@ -71,7 +68,7 @@ class CalendarApplicationServiceTest {
                         Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE),
                         exchangeRateApplicationService);
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
@@ -82,10 +79,10 @@ class CalendarApplicationServiceTest {
                                         BigDecimal.ZERO,
                                         null)));
         lenient()
-                .when(recurringTransactionRepositoryPort.findAllByUserId(USER_ID))
+                .when(recurringTransactionRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(List.of());
         lenient().when(categoryRepositoryPort.findAllVisibleToUser(USER_ID)).thenReturn(List.of());
-        lenient().when(clientRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        lenient().when(clientRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of());
     }
 
     @Test
@@ -110,7 +107,7 @@ class CalendarApplicationServiceTest {
     void addsDasWithTheEstimateOfThePreviousCompetence() {
         givenUser(TaxRegime.MEI);
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
-        when(taxEstimateRepositoryPort.findAllByUserId(USER_ID))
+        when(taxEstimateRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new TaxEstimate(
@@ -135,7 +132,7 @@ class CalendarApplicationServiceTest {
     @Test
     void userWithoutAccountsGetsAnEmptyCalendar() {
         givenUser(TaxRegime.AUTONOMO);
-        when(accountRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        when(accountRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of());
 
         CalendarApplicationService.Result result = service.build(USER_ID, null, true);
 
@@ -152,21 +149,7 @@ class CalendarApplicationServiceTest {
     }
 
     private void givenUser(TaxRegime regime) {
-        when(userRepositoryPort.findById(USER_ID))
-                .thenReturn(
-                        Optional.of(
-                                new User(
-                                        USER_ID,
-                                        "Pessoa",
-                                        "pessoa@teste.com",
-                                        "hash",
-                                        DocumentType.CPF,
-                                        "00000000000",
-                                        null,
-                                        regime,
-                                        null,
-                                        null,
-                                        0)));
+        when(householdTaxProfile.regimeOf(USER_ID)).thenReturn(regime);
     }
 
     private static Transaction pending(

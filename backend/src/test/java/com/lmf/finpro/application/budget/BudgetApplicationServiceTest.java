@@ -43,7 +43,7 @@ class BudgetApplicationServiceTest {
 
         Budget created = service.create(10L, 5L, month, BigDecimal.valueOf(500), null);
 
-        assertThat(created.userId()).isEqualTo(10L);
+        assertThat(created.householdId()).isEqualTo(10L);
         assertThat(created.categoryId()).isEqualTo(5L);
         assertThat(created.referenceMonth()).isEqualTo(month);
         assertThat(created.limitValue()).isEqualByComparingTo("500");
@@ -54,7 +54,7 @@ class BudgetApplicationServiceTest {
     void listReturnsAllBudgetsForUser() {
         Budget budget =
                 new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
-        when(budgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(budget));
+        when(budgetRepositoryPort.findAllByHouseholdId(10L)).thenReturn(List.of(budget));
 
         assertThat(service.list(10L)).containsExactly(budget);
     }
@@ -63,7 +63,7 @@ class BudgetApplicationServiceTest {
     void calculateSpentQueriesTransactionsForTheBudgetsCategoryAndMonth() {
         Budget budget =
                 new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), null);
-        when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
+        when(transactionRepositoryPort.sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
                         10L,
                         5L,
                         CategoryType.EXPENSE,
@@ -151,7 +151,7 @@ class BudgetApplicationServiceTest {
     @Test
     void calculateSpentRestrictsToTheClientWhenBudgetIsLinked() {
         Budget budget = new Budget(1L, 10L, 5L, YearMonth.of(2026, 9), BigDecimal.valueOf(500), 7L);
-        when(transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
+        when(transactionRepositoryPort.sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
                         10L,
                         5L,
                         7L,
@@ -163,10 +163,10 @@ class BudgetApplicationServiceTest {
         assertThat(service.calculateSpent(budget)).isEqualByComparingTo("120");
     }
 
-    private static Client ownedClient(Long id, Long userId) {
+    private static Client ownedClient(Long id, Long householdId) {
         return new Client(
                 id,
-                userId,
+                householdId,
                 "Acme",
                 "a@acme.com",
                 "11999998888",

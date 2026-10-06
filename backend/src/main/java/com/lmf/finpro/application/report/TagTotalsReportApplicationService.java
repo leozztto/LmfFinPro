@@ -39,25 +39,25 @@ public class TagTotalsReportApplicationService {
     private final ReportCsvExporterPort reportCsvExporterPort;
 
     public byte[] generate(
-            Long currentUserId, TagTotalsReportFilters filters, ReportFormat format) {
+            Long currentHouseholdId, TagTotalsReportFilters filters, ReportFormat format) {
         log.debug(
                 "Gerando relatório de totais por tag formato={} para o usuário={}",
                 format,
-                currentUserId);
-        TagTotalsReportData data = buildData(currentUserId, filters);
+                currentHouseholdId);
+        TagTotalsReportData data = buildData(currentHouseholdId, filters);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportTagTotalsReport(data)
                 : receiptGeneratorPort.generateTagTotalsReport(data);
     }
 
-    TagTotalsReportData buildData(Long currentUserId, TagTotalsReportFilters filters) {
+    TagTotalsReportData buildData(Long currentHouseholdId, TagTotalsReportFilters filters) {
         if (filters.startDate() != null
                 && filters.endDate() != null
                 && filters.startDate().isAfter(filters.endDate())) {
             throw new IllegalArgumentException(
                     "A data inicial deve ser anterior ou igual à data final");
         }
-        Map<Long, Tag> tagById = tagApplicationService.tagsById(currentUserId);
+        Map<Long, Tag> tagById = tagApplicationService.tagsById(currentHouseholdId);
         for (Long tagId : filters.tagIds()) {
             if (!tagById.containsKey(tagId)) {
                 throw new ResourceNotFoundException("Tag não encontrada: " + tagId);
@@ -68,7 +68,7 @@ public class TagTotalsReportApplicationService {
         List<Transaction> transactions =
                 transactionRepositoryPort.search(
                         new TransactionSearchCriteria(
-                                currentUserId,
+                                currentHouseholdId,
                                 null,
                                 filters.startDate(),
                                 filters.endDate(),
@@ -85,7 +85,8 @@ public class TagTotalsReportApplicationService {
         Map<Long, List<Long>> tagIdsByTransaction =
                 tagApplicationService
                         .tagsByTransactionIds(
-                                currentUserId, transactions.stream().map(Transaction::id).toList())
+                                currentHouseholdId,
+                                transactions.stream().map(Transaction::id).toList())
                         .entrySet()
                         .stream()
                         .collect(

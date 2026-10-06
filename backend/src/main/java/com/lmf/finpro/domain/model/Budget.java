@@ -9,22 +9,22 @@ import java.time.YearMonth;
  */
 public record Budget(
         Long id,
-        Long userId,
+        Long householdId,
         Long categoryId,
         YearMonth referenceMonth,
         BigDecimal limitValue,
         Long clientId) {
 
     public static Budget create(
-            Long userId,
+            Long householdId,
             Long categoryId,
             YearMonth referenceMonth,
             BigDecimal limitValue,
             Long clientId) {
-        return new Budget(null, userId, categoryId, referenceMonth, limitValue, clientId);
+        return new Budget(null, householdId, categoryId, referenceMonth, limitValue, clientId);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 }

@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.report;
 
+import com.lmf.finpro.application.support.TransferFlow;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.IncomeStatementData;
@@ -31,22 +32,27 @@ class IncomeStatementDataFactory {
     private final ReportLookups lookups;
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
+    private final TransferFlow transferFlow;
 
     /**
      * Receita, despesa e resultado consolidados por período (mês, trimestre ou o ano inteiro,
      * conforme {@code granularity}) dentro do ano informado, em todas as contas do usuário —
-     * transferências entre contas próprias são excluídas, igual ao Dashboard.
+     * transferências entre contas do mesmo espaço são excluídas, igual ao Dashboard; as que cruzam
+     * para outro espaço (pessoal x grupo) contam como receita ou despesa.
      */
-    IncomeStatementData build(Long currentUserId, Year year, ReportGranularity granularity) {
+    IncomeStatementData build(
+            Long currentHouseholdId, Long currentUserId, Year year, ReportGranularity granularity) {
         User issuer = lookups.findUserOrThrow(currentUserId);
 
         List<Long> accountIds =
-                accountRepositoryPort.findAllByUserId(currentUserId).stream()
+                accountRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .map(Account::id)
                         .toList();
         List<Transaction> transactionsInYear =
-                transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
-                        .filter(transaction -> transaction.transferId() == null)
+                transferFlow
+                        .withoutInternalTransfers(
+                                transactionRepositoryPort.findAllByAccountIds(accountIds))
+                        .stream()
                         .filter(
                                 transaction ->
                                         transaction.transactionDate().getYear() == year.getValue())

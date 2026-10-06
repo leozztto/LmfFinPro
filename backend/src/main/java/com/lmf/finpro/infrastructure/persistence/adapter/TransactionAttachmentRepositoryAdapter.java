@@ -25,7 +25,7 @@ public class TransactionAttachmentRepositoryAdapter implements TransactionAttach
                         TransactionAttachmentJpaEntity.builder()
                                 .id(attachment.id())
                                 .transactionId(attachment.transactionId())
-                                .userId(attachment.userId())
+                                .householdId(attachment.householdId())
                                 .documentType(attachment.documentType())
                                 .fileName(attachment.fileName())
                                 .contentType(attachment.contentType())
@@ -78,7 +78,7 @@ public class TransactionAttachmentRepositoryAdapter implements TransactionAttach
         return new TransactionAttachment(
                 entity.getId(),
                 entity.getTransactionId(),
-                entity.getUserId(),
+                entity.getHouseholdId(),
                 entity.getDocumentType(),
                 entity.getFileName(),
                 entity.getContentType(),

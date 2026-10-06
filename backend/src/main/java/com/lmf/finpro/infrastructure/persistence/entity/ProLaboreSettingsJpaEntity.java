@@ -17,8 +17,8 @@ import lombok.*;
 public class ProLaboreSettingsJpaEntity {
 
     @Id
-    @Column(name = "user_id")
-    private Long userId;
+    @Column(name = "household_id")
+    private Long householdId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "calculation_base", nullable = false, length = 20)
