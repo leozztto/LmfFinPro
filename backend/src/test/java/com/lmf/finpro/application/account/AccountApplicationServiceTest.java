@@ -72,7 +72,7 @@ class AccountApplicationServiceTest {
                         BigDecimal.ZERO,
                         AccountScope.BUSINESS);
 
-        assertThat(created.userId()).isEqualTo(10L);
+        assertThat(created.householdId()).isEqualTo(10L);
         assertThat(created.name()).isEqualTo("Carteira");
         assertThat(created.type()).isEqualTo(AccountType.WALLET);
         assertThat(created.scope()).isEqualTo(AccountScope.BUSINESS);
@@ -90,7 +90,7 @@ class AccountApplicationServiceTest {
 
     @Test
     void listReturnsAllAccountsForUser() {
-        when(accountRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(existingAccount));
+        when(accountRepositoryPort.findAllByHouseholdId(10L)).thenReturn(List.of(existingAccount));
 
         assertThat(service.list(10L)).containsExactly(existingAccount);
     }

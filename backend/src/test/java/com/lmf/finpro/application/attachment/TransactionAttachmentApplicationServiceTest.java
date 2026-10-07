@@ -95,7 +95,7 @@ class TransactionAttachmentApplicationServiceTest {
         assertThat(saved.contentType()).isEqualTo("application/pdf");
         assertThat(saved.sizeBytes()).isEqualTo(PDF.length);
         assertThat(saved.documentType()).isEqualTo(AttachmentDocumentType.INVOICE);
-        assertThat(saved.userId()).isEqualTo(USER_ID);
+        assertThat(saved.householdId()).isEqualTo(USER_ID);
     }
 
     @Test
@@ -207,11 +207,11 @@ class TransactionAttachmentApplicationServiceTest {
                 USER_ID, TRANSACTION_ID, AttachmentDocumentType.RECEIPT, "a.pdf", content);
     }
 
-    private static TransactionAttachment attachment(Long id, Long userId) {
+    private static TransactionAttachment attachment(Long id, Long householdId) {
         return new TransactionAttachment(
                 id,
                 TRANSACTION_ID,
-                userId,
+                householdId,
                 AttachmentDocumentType.OTHER,
                 "a.pdf",
                 "application/pdf",

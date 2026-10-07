@@ -37,11 +37,11 @@ class TransactionExportDataFactory {
      * dos relatórios agregados, inclui transferências, já que o objetivo aqui é auditar o extrato
      * completo, não somar receita/despesa.
      */
-    TransactionExportData build(Long currentUserId, YearMonth referenceMonth) {
+    TransactionExportData build(Long currentHouseholdId, YearMonth referenceMonth) {
         LocalDate start = referenceMonth.atDay(1);
         LocalDate end = referenceMonth.plusMonths(1).atDay(1);
 
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
+        List<Account> accounts = accountRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         Map<Long, String> accountNameById =
                 accounts.stream().collect(Collectors.toMap(Account::id, Account::name));
         Map<Long, Currency> accountCurrencyById =
@@ -49,10 +49,10 @@ class TransactionExportDataFactory {
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
 
         Map<Long, String> categoryNameById =
-                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
         Map<Long, String> clientNameById =
-                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                clientRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name));
 
         List<Transaction> transactionsInMonth =
@@ -65,7 +65,8 @@ class TransactionExportDataFactory {
                         .toList();
         Map<Long, List<Tag>> tagsByTransaction =
                 tagApplicationService.tagsByTransactionIds(
-                        currentUserId, transactionsInMonth.stream().map(Transaction::id).toList());
+                        currentHouseholdId,
+                        transactionsInMonth.stream().map(Transaction::id).toList());
 
         List<TransactionExportData.TransactionExportRow> rows =
                 transactionsInMonth.stream()

@@ -18,9 +18,8 @@ public class ClientJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserJpaEntity user;
+    @Column(name = "household_id", nullable = false)
+    private Long householdId;
 
     @Column(nullable = false, length = 150)
     private String name;

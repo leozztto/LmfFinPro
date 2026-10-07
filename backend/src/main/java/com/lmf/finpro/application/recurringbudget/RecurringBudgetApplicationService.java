@@ -36,7 +36,7 @@ public class RecurringBudgetApplicationService {
      */
     @Transactional
     public RecurringBudget create(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long categoryId,
             BigDecimal limitValue,
             YearMonth startMonth,
@@ -44,9 +44,9 @@ public class RecurringBudgetApplicationService {
         log.debug(
                 "Criando orçamento recorrente da categoria={} para o usuário={}",
                 categoryId,
-                currentUserId);
+                currentHouseholdId);
         requireValidPeriod(startMonth, endMonth);
-        return createOne(currentUserId, categoryId, limitValue, startMonth, endMonth);
+        return createOne(currentHouseholdId, categoryId, limitValue, startMonth, endMonth);
     }
 
     /**
@@ -56,21 +56,21 @@ public class RecurringBudgetApplicationService {
      */
     @Transactional
     public List<RecurringBudget> createBatch(
-            Long currentUserId,
+            Long currentHouseholdId,
             YearMonth startMonth,
             YearMonth endMonth,
             List<CategoryLimit> items) {
         log.debug(
                 "Criando lote de {} orçamento(s) recorrente(s) para o usuário={}",
                 items.size(),
-                currentUserId);
+                currentHouseholdId);
         requireValidPeriod(startMonth, endMonth);
         requireNoDuplicateCategories(items);
         return items.stream()
                 .map(
                         item ->
                                 createOne(
-                                        currentUserId,
+                                        currentHouseholdId,
                                         item.categoryId(),
                                         item.limitValue(),
                                         startMonth,
@@ -79,27 +79,27 @@ public class RecurringBudgetApplicationService {
     }
 
     private RecurringBudget createOne(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long categoryId,
             BigDecimal limitValue,
             YearMonth startMonth,
             YearMonth endMonth) {
-        requireMatchingCategory(currentUserId, categoryId);
+        requireMatchingCategory(currentHouseholdId, categoryId);
         RecurringBudget saved =
                 recurringBudgetRepositoryPort.save(
                         RecurringBudget.create(
-                                currentUserId, categoryId, limitValue, startMonth, endMonth));
+                                currentHouseholdId, categoryId, limitValue, startMonth, endMonth));
         return generateDueBudgets(saved);
     }
 
-    public List<RecurringBudget> list(Long currentUserId) {
-        log.debug("Listando orçamentos recorrentes do usuário={}", currentUserId);
-        return recurringBudgetRepositoryPort.findAllByUserId(currentUserId);
+    public List<RecurringBudget> list(Long currentHouseholdId) {
+        log.debug("Listando orçamentos recorrentes do usuário={}", currentHouseholdId);
+        return recurringBudgetRepositoryPort.findAllByHouseholdId(currentHouseholdId);
     }
 
     @Transactional
     public RecurringBudget update(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long recurringBudgetId,
             BigDecimal limitValue,
             YearMonth endMonth,
@@ -107,8 +107,8 @@ public class RecurringBudgetApplicationService {
         log.debug(
                 "Atualizando orçamento recorrente={} do usuário={}",
                 recurringBudgetId,
-                currentUserId);
-        RecurringBudget existing = findOwnedOrThrow(currentUserId, recurringBudgetId);
+                currentHouseholdId);
+        RecurringBudget existing = findOwnedOrThrow(currentHouseholdId, recurringBudgetId);
         requireValidPeriod(existing.startMonth(), endMonth);
         RecurringBudget updated =
                 recurringBudgetRepositoryPort.save(
@@ -117,12 +117,12 @@ public class RecurringBudgetApplicationService {
     }
 
     /** Exclui só o modelo: os orçamentos já lançados continuam, sem nenhum vínculo com ele. */
-    public void delete(Long currentUserId, Long recurringBudgetId) {
+    public void delete(Long currentHouseholdId, Long recurringBudgetId) {
         log.debug(
                 "Removendo orçamento recorrente={} do usuário={}",
                 recurringBudgetId,
-                currentUserId);
-        findOwnedOrThrow(currentUserId, recurringBudgetId);
+                currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, recurringBudgetId);
         recurringBudgetRepositoryPort.deleteById(recurringBudgetId);
     }
 
@@ -147,14 +147,15 @@ public class RecurringBudgetApplicationService {
         int skipped = 0;
         for (YearMonth month : dueMonths) {
             boolean alreadyExists =
-                    budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
-                            recurrence.userId(), recurrence.categoryId(), month, null);
+                    budgetRepositoryPort
+                            .existsByHouseholdIdAndCategoryIdAndReferenceMonthAndClientId(
+                                    recurrence.householdId(), recurrence.categoryId(), month, null);
             if (alreadyExists) {
                 skipped++;
             } else {
                 budgetRepositoryPort.save(
                         Budget.create(
-                                recurrence.userId(),
+                                recurrence.householdId(),
                                 recurrence.categoryId(),
                                 month,
                                 recurrence.limitValue(),
@@ -181,10 +182,10 @@ public class RecurringBudgetApplicationService {
     }
 
     /** Acesso a recorrência de outro usuário é tratado como inexistente (404), não como 403. */
-    private RecurringBudget findOwnedOrThrow(Long currentUserId, Long recurringBudgetId) {
+    private RecurringBudget findOwnedOrThrow(Long currentHouseholdId, Long recurringBudgetId) {
         return recurringBudgetRepositoryPort
                 .findById(recurringBudgetId)
-                .filter(recurrence -> recurrence.belongsTo(currentUserId))
+                .filter(recurrence -> recurrence.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(
@@ -192,11 +193,11 @@ public class RecurringBudgetApplicationService {
                                                 + recurringBudgetId));
     }
 
-    private void requireMatchingCategory(Long currentUserId, Long categoryId) {
+    private void requireMatchingCategory(Long currentHouseholdId, Long categoryId) {
         Category category =
                 categoryRepositoryPort
                         .findById(categoryId)
-                        .filter(candidate -> candidate.isVisibleTo(currentUserId))
+                        .filter(candidate -> candidate.isVisibleTo(currentHouseholdId))
                         .orElseThrow(
                                 () ->
                                         new ResourceNotFoundException(

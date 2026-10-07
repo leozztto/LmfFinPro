@@ -6,6 +6,12 @@ import {
   markSessionExpiredOnce,
   setAccessToken,
 } from '@/shared/auth/authStorage'
+import {
+  HOUSEHOLD_FORBIDDEN_EVENT,
+  HOUSEHOLD_HEADER,
+  getActiveHouseholdId,
+  householdEvents,
+} from '@/shared/household/householdStorage'
 
 let apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
 
@@ -18,6 +24,29 @@ export function __setApiBaseUrlForTests(url: string): void {
 
 interface ApiErrorBody {
   message?: string
+}
+
+/** Por padrão a requisição usa o grupo que a pessoa está vendo. `householdId` força um grupo
+ *  específico (ex.: listar as contas do espaço pessoal enquanto se vê um grupo compartilhado). */
+export interface RequestScope {
+  householdId?: number
+}
+
+/** Gestão de grupos e autenticação não dependem do grupo ativo: com um grupo ativo já inválido (a
+ *  pessoa foi removida) o header faria até a lista de grupos dar 403, impedindo a recuperação. */
+const HOUSEHOLD_AGNOSTIC_PREFIXES = ['/auth/', '/households']
+
+function householdFor(path: string, scope?: RequestScope): number | null {
+  if (scope?.householdId !== undefined) return scope.householdId
+  if (HOUSEHOLD_AGNOSTIC_PREFIXES.some((prefix) => path.startsWith(prefix))) return null
+  return getActiveHouseholdId()
+}
+
+/** 403 com um grupo escolhido: avisa a UI para conferir se a pessoa ainda participa dele. */
+function notifyIfHouseholdForbidden(response: Response, householdId: number | null): void {
+  if (response.status === 403 && householdId !== null) {
+    householdEvents.dispatchEvent(new Event(HOUSEHOLD_FORBIDDEN_EVENT))
+  }
 }
 
 export class ApiError extends Error {
@@ -91,6 +120,7 @@ async function request<TResponse>(
   path: string,
   options: RequestInit = {},
   canRetryAfterRefresh = true,
+  scope?: RequestScope,
 ): Promise<TResponse> {
   const token = getAccessToken()
   const headers = new Headers(options.headers)
@@ -102,6 +132,10 @@ async function request<TResponse>(
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
+  const householdId = householdFor(path, scope)
+  if (householdId !== null) {
+    headers.set(HOUSEHOLD_HEADER, String(householdId))
+  }
 
   // `include`: em dev a API está em outra origem (localhost:8080) e só assim o navegador aceita o
   // Set-Cookie do refresh token devolvido pelo login/cadastro/troca de senha.
@@ -111,11 +145,12 @@ async function request<TResponse>(
   // outra requisição já renovou enquanto esta voava, o token em memória mudou e basta repetir.
   if (response.status === 401 && token && canRetryAfterRefresh && !path.startsWith('/auth/')) {
     if (getAccessToken() !== token || (await refreshSession())) {
-      return request<TResponse>(path, options, false)
+      return request<TResponse>(path, options, false, scope)
     }
   }
 
   if (!response.ok) {
+    notifyIfHouseholdForbidden(response, householdId)
     await handleErrorResponse(response)
   }
 
@@ -135,6 +170,10 @@ async function requestBlob(path: string, canRetryAfterRefresh = true): Promise<B
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
+  const householdId = householdFor(path)
+  if (householdId !== null) {
+    headers.set(HOUSEHOLD_HEADER, String(householdId))
+  }
 
   const response = await fetch(`${apiBaseUrl}${path}`, { headers })
 
@@ -145,6 +184,7 @@ async function requestBlob(path: string, canRetryAfterRefresh = true): Promise<B
   }
 
   if (!response.ok) {
+    notifyIfHouseholdForbidden(response, householdId)
     await handleErrorResponse(response)
   }
 
@@ -152,7 +192,8 @@ async function requestBlob(path: string, canRetryAfterRefresh = true): Promise<B
 }
 
 export const httpClient = {
-  get: <TResponse>(path: string) => request<TResponse>(path, { method: 'GET' }),
+  get: <TResponse>(path: string, scope?: RequestScope) =>
+    request<TResponse>(path, { method: 'GET' }, true, scope),
   post: <TResponse, TBody = unknown>(path: string, body: TBody) =>
     request<TResponse>(path, { method: 'POST', body: JSON.stringify(body) }),
   put: <TResponse, TBody = unknown>(path: string, body: TBody) =>

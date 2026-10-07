@@ -42,7 +42,7 @@ class TagApplicationServiceTest {
 
     @Test
     void resolveReusesExistingTagsCreatesTheRestAndIgnoresRepeatedSpellings() {
-        when(tagRepositoryPort.findAllByUserIdAndNames(eq(USER_ID), anyCollection()))
+        when(tagRepositoryPort.findAllByHouseholdIdAndNames(eq(USER_ID), anyCollection()))
                 .thenReturn(List.of(tag(1, "site-acme")));
         AtomicLong nextId = new AtomicLong(100);
         when(tagRepositoryPort.save(any()))
@@ -51,7 +51,7 @@ class TagApplicationServiceTest {
                             Tag created = invocation.getArgument(0);
                             return new Tag(
                                     nextId.getAndIncrement(),
-                                    created.userId(),
+                                    created.householdId(),
                                     created.name(),
                                     created.color(),
                                     created.createdAt());
@@ -85,7 +85,7 @@ class TagApplicationServiceTest {
 
     @Test
     void replacingTagsLinksTheResolvedIds() {
-        when(tagRepositoryPort.findAllByUserIdAndNames(eq(USER_ID), anyCollection()))
+        when(tagRepositoryPort.findAllByHouseholdIdAndNames(eq(USER_ID), anyCollection()))
                 .thenReturn(List.of(tag(1, "site-acme")));
 
         service.replaceTransactionTags(USER_ID, 55L, List.of("site-acme"));
@@ -95,7 +95,7 @@ class TagApplicationServiceTest {
 
     @Test
     void createAndRenameRefuseANameAlreadyInUse() {
-        when(tagRepositoryPort.findAllByUserIdAndNames(USER_ID, List.of("site-acme")))
+        when(tagRepositoryPort.findAllByHouseholdIdAndNames(USER_ID, List.of("site-acme")))
                 .thenReturn(List.of(tag(1, "site-acme")));
         when(tagRepositoryPort.findById(2L)).thenReturn(Optional.of(tag(2, "outra")));
 
@@ -109,7 +109,7 @@ class TagApplicationServiceTest {
     @Test
     void renamingATagToItsOwnNameIsAllowed() {
         when(tagRepositoryPort.findById(1L)).thenReturn(Optional.of(tag(1, "site-acme")));
-        when(tagRepositoryPort.findAllByUserIdAndNames(USER_ID, List.of("site-acme")))
+        when(tagRepositoryPort.findAllByHouseholdIdAndNames(USER_ID, List.of("site-acme")))
                 .thenReturn(List.of(tag(1, "site-acme")));
         when(tagRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -130,7 +130,7 @@ class TagApplicationServiceTest {
 
     @Test
     void listCarriesHowManyTransactionsUseEachTag() {
-        when(tagRepositoryPort.findAllByUserId(USER_ID))
+        when(tagRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(List.of(tag(1, "a"), tag(2, "b")));
         when(tagRepositoryPort.countTransactionsByTagIds(List.of(1L, 2L)))
                 .thenReturn(Map.of(1L, 3L));

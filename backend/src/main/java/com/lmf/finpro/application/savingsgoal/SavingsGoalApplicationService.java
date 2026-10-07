@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.savingsgoal;
 
 import com.lmf.finpro.application.FlowLog;
+import com.lmf.finpro.application.support.HouseholdTaxProfile;
 import com.lmf.finpro.application.transfer.TransferApplicationService;
 import com.lmf.finpro.application.transfer.TransferResult;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
@@ -21,7 +22,6 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.GoalContributionRepositoryPort;
 import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -54,23 +54,25 @@ public class SavingsGoalApplicationService {
     private final GoalContributionRepositoryPort goalContributionRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
-    private final UserRepositoryPort userRepositoryPort;
+    private final HouseholdTaxProfile householdTaxProfile;
     private final TransferApplicationService transferApplicationService;
     private final Clock clock;
 
-    public List<SavingsGoalSummary> list(Long currentUserId) {
-        log.debug("Listando metas de economia do usuário={}", currentUserId);
-        List<SavingsGoal> goals = savingsGoalRepositoryPort.findAllByUserId(currentUserId);
+    public List<SavingsGoalSummary> list(Long currentHouseholdId) {
+        log.debug("Listando metas de economia do usuário={}", currentHouseholdId);
+        List<SavingsGoal> goals =
+                savingsGoalRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         if (goals.isEmpty()) {
             return List.of();
         }
-        BigDecimal monthPaidIncome = monthPaidIncome(currentUserId);
+        BigDecimal monthPaidIncome = monthPaidIncome(currentHouseholdId);
         return goals.stream().map(goal -> summarize(goal, monthPaidIncome)).toList();
     }
 
-    public SavingsGoalSummary get(Long currentUserId, Long goalId) {
-        log.debug("Buscando meta={} do usuário={}", goalId, currentUserId);
-        return summarize(findOwnedOrThrow(currentUserId, goalId), monthPaidIncome(currentUserId));
+    public SavingsGoalSummary get(Long currentHouseholdId, Long goalId) {
+        log.debug("Buscando meta={} do usuário={}", goalId, currentHouseholdId);
+        return summarize(
+                findOwnedOrThrow(currentHouseholdId, goalId), monthPaidIncome(currentHouseholdId));
     }
 
     /**
@@ -81,18 +83,21 @@ public class SavingsGoalApplicationService {
      */
     @Transactional
     public SavingsGoalSummary create(
-            Long currentUserId, Long accountId, Long fundingAccountId, SavingsGoalCommand command) {
+            Long currentHouseholdId,
+            Long accountId,
+            Long fundingAccountId,
+            SavingsGoalCommand command) {
         log.debug(
                 "Criando meta na conta reserva={} com origem={} para o usuário={}",
                 accountId,
                 fundingAccountId,
-                currentUserId);
+                currentHouseholdId);
         requireIncomeRateWhenAutoContribute(command.incomeRate(), command.autoContribute());
-        requireValidAccountPair(currentUserId, accountId, fundingAccountId);
+        requireValidAccountPair(currentHouseholdId, accountId, fundingAccountId);
         SavingsGoal created =
                 savingsGoalRepositoryPort.save(
                         SavingsGoal.create(
-                                currentUserId,
+                                currentHouseholdId,
                                 command.name().trim(),
                                 command.type(),
                                 command.targetAmount(),
@@ -101,15 +106,16 @@ public class SavingsGoalApplicationService {
                                 command.autoContribute(),
                                 accountId,
                                 fundingAccountId));
-        return summarize(created, monthPaidIncome(currentUserId));
+        return summarize(created, monthPaidIncome(currentHouseholdId));
     }
 
-    public SavingsGoalSummary update(Long currentUserId, Long goalId, SavingsGoalCommand command) {
-        log.debug("Atualizando meta={} do usuário={}", goalId, currentUserId);
+    public SavingsGoalSummary update(
+            Long currentHouseholdId, Long goalId, SavingsGoalCommand command) {
+        log.debug("Atualizando meta={} do usuário={}", goalId, currentHouseholdId);
         requireIncomeRateWhenAutoContribute(command.incomeRate(), command.autoContribute());
         SavingsGoal updated =
                 savingsGoalRepositoryPort.save(
-                        findOwnedOrThrow(currentUserId, goalId)
+                        findOwnedOrThrow(currentHouseholdId, goalId)
                                 .withDetails(
                                         command.name().trim(),
                                         command.type(),
@@ -117,7 +123,7 @@ public class SavingsGoalApplicationService {
                                         command.deadline(),
                                         command.incomeRate(),
                                         command.autoContribute()));
-        return summarize(updated, monthPaidIncome(currentUserId));
+        return summarize(updated, monthPaidIncome(currentHouseholdId));
     }
 
     /**
@@ -125,9 +131,9 @@ public class SavingsGoalApplicationService {
      * saldo apagaria o rótulo sem o usuário ter resgatado nada. As transferências já feitas nunca
      * são desfeitas por aqui — só a meta e o histórico de aportes (que já estará vazio de valor).
      */
-    public void delete(Long currentUserId, Long goalId) {
-        log.debug("Removendo meta={} do usuário={}", goalId, currentUserId);
-        findOwnedOrThrow(currentUserId, goalId);
+    public void delete(Long currentHouseholdId, Long goalId) {
+        log.debug("Removendo meta={} do usuário={}", goalId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, goalId);
         BigDecimal saved = savedAmount(goalId);
         if (saved.signum() != 0) {
             throw new EntityHasLinkedRecordsException(
@@ -138,28 +144,30 @@ public class SavingsGoalApplicationService {
         savingsGoalRepositoryPort.deleteById(goalId);
     }
 
-    public List<GoalContribution> listContributions(Long currentUserId, Long goalId) {
-        log.debug("Listando aportes da meta={} do usuário={}", goalId, currentUserId);
-        findOwnedOrThrow(currentUserId, goalId);
+    public List<GoalContribution> listContributions(Long currentHouseholdId, Long goalId) {
+        log.debug("Listando aportes da meta={} do usuário={}", goalId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, goalId);
         return goalContributionRepositoryPort.findAllByGoalId(goalId);
     }
 
     /** Resgate não pode deixar a meta com valor guardado negativo. */
     @Transactional
     public GoalContribution addContribution(
+            Long currentHouseholdId,
             Long currentUserId,
             Long goalId,
             ContributionType type,
             BigDecimal amount,
             LocalDate date,
             String note) {
-        log.debug("Registrando {} na meta={} do usuário={}", type, goalId, currentUserId);
-        SavingsGoal goal = findOwnedOrThrow(currentUserId, goalId);
+        log.debug("Registrando {} na meta={} do usuário={}", type, goalId, currentHouseholdId);
+        SavingsGoal goal = findOwnedOrThrow(currentHouseholdId, goalId);
         if (type == ContributionType.WITHDRAWAL && amount.compareTo(savedAmount(goalId)) > 0) {
             throw new InsufficientBalanceException(
                     "O resgate é maior que o valor guardado na meta");
         }
-        return createRealContribution(currentUserId, goal, type, amount, date, blankToNull(note));
+        return createRealContribution(
+                currentHouseholdId, currentUserId, goal, type, amount, date, blankToNull(note));
     }
 
     /**
@@ -168,13 +176,14 @@ public class SavingsGoalApplicationService {
      * some sozinha (FK {@code ON DELETE CASCADE} em {@code transfer_id}).
      */
     @Transactional
-    public void deleteContribution(Long currentUserId, Long goalId, Long contributionId) {
+    public void deleteContribution(
+            Long currentHouseholdId, Long currentUserId, Long goalId, Long contributionId) {
         log.debug(
                 "Removendo aporte={} da meta={} do usuário={}",
                 contributionId,
                 goalId,
-                currentUserId);
-        findOwnedOrThrow(currentUserId, goalId);
+                currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, goalId);
         GoalContribution contribution =
                 goalContributionRepositoryPort
                         .findById(contributionId)
@@ -187,19 +196,24 @@ public class SavingsGoalApplicationService {
             throw new InsufficientBalanceException(
                     "Excluir este aporte deixaria a meta com valor guardado negativo");
         }
-        transferApplicationService.delete(currentUserId, contribution.transferId());
+        transferApplicationService.delete(
+                currentHouseholdId, currentUserId, contribution.transferId());
     }
 
     /** Lança como aporte o valor sugerido pelo percentual da meta (o "separar com 1 clique"). */
     @Transactional
-    public GoalContribution applySuggestion(Long currentUserId, Long goalId) {
-        log.debug("Aplicando sugestão de aporte na meta={} do usuário={}", goalId, currentUserId);
-        SavingsGoalSummary summary = get(currentUserId, goalId);
+    public GoalContribution applySuggestion(
+            Long currentHouseholdId, Long currentUserId, Long goalId) {
+        log.debug(
+                "Aplicando sugestão de aporte na meta={} do usuário={}",
+                goalId,
+                currentHouseholdId);
+        SavingsGoalSummary summary = get(currentHouseholdId, goalId);
         BigDecimal suggested = summary.suggestedContribution();
         if (suggested == null || suggested.signum() == 0) {
             throw new IllegalArgumentException("Não há valor a separar nesta meta agora");
         }
-        return createSuggestedContribution(currentUserId, summary, false);
+        return createSuggestedContribution(currentHouseholdId, currentUserId, summary, false);
     }
 
     public List<SavingsGoal> findAllAutoContribute() {
@@ -216,19 +230,23 @@ public class SavingsGoalApplicationService {
      */
     @Transactional
     public boolean applyAutomaticContributionIfDue(SavingsGoal goal) {
-        SavingsGoalSummary summary = summarize(goal, monthPaidIncome(goal.userId()));
+        SavingsGoalSummary summary = summarize(goal, monthPaidIncome(goal.householdId()));
         BigDecimal suggested = summary.suggestedContribution();
         FlowLog.detail("goalId", goal.id());
         boolean contributed = suggested != null && suggested.signum() > 0;
         if (contributed) {
-            createSuggestedContribution(goal.userId(), summary, true);
+            // Aporte automático (agendado): sem usuário que age, então sem autor.
+            createSuggestedContribution(goal.householdId(), null, summary, true);
         }
         FlowLog.detail("contributed", contributed);
         return contributed;
     }
 
     private GoalContribution createSuggestedContribution(
-            Long currentUserId, SavingsGoalSummary summary, boolean automatic) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            SavingsGoalSummary summary,
+            boolean automatic) {
         LocalDate today = LocalDate.now(clock);
         String note =
                 "Separação%s de %s%% das receitas recebidas em %s"
@@ -237,6 +255,7 @@ public class SavingsGoalApplicationService {
                                 percent(summary.goal().incomeRate()),
                                 YearMonth.from(today).format(MONTH));
         return createRealContribution(
+                currentHouseholdId,
                 currentUserId,
                 summary.goal(),
                 ContributionType.DEPOSIT,
@@ -251,6 +270,7 @@ public class SavingsGoalApplicationService {
      * duas transações da transferência, e grava o aporte/resgate com o id dela.
      */
     private GoalContribution createRealContribution(
+            Long currentHouseholdId,
             Long currentUserId,
             SavingsGoal goal,
             ContributionType type,
@@ -264,7 +284,14 @@ public class SavingsGoalApplicationService {
                 (isDeposit ? "Aporte na meta \"" : "Resgate da meta \"") + goal.name() + "\"";
         TransferResult transfer =
                 transferApplicationService.create(
-                        currentUserId, fromAccountId, toAccountId, amount, date, description);
+                        currentHouseholdId,
+                        currentUserId,
+                        fromAccountId,
+                        toAccountId,
+                        amount,
+                        date,
+                        description,
+                        null);
         return goalContributionRepositoryPort.save(
                 GoalContribution.create(
                         goal.id(), type, amount, date, note, transfer.transfer().id()));
@@ -275,20 +302,16 @@ public class SavingsGoalApplicationService {
      * ({@link TaxRateEstimator}), sobre a receita média dos 3 meses anteriores — o mês atual ainda
      * está pela metade e puxaria a faixa do autônomo para baixo.
      */
-    public BigDecimal suggestedTaxRate(Long currentUserId) {
-        log.debug("Calculando alíquota sugerida para o usuário={}", currentUserId);
-        TaxRegime regime =
-                userRepositoryPort
-                        .findById(currentUserId)
-                        .map(user -> user.taxRegime())
-                        .orElse(null);
+    public BigDecimal suggestedTaxRate(Long currentHouseholdId) {
+        log.debug("Calculando alíquota sugerida para o usuário={}", currentHouseholdId);
+        TaxRegime regime = householdTaxProfile.regimeOf(currentHouseholdId);
         if (regime == null) {
             return BigDecimal.ZERO;
         }
         YearMonth currentMonth = YearMonth.from(LocalDate.now(clock));
         BigDecimal lastThreeMonths =
                 sumIncome(
-                        currentUserId,
+                        currentHouseholdId,
                         transaction -> {
                             YearMonth month = YearMonth.from(transaction.transactionDate());
                             return month.isBefore(currentMonth)
@@ -330,19 +353,21 @@ public class SavingsGoalApplicationService {
     }
 
     /** Receitas já recebidas (pagas) no mês atual, sem transferências entre contas próprias. */
-    private BigDecimal monthPaidIncome(Long userId) {
+    private BigDecimal monthPaidIncome(Long householdId) {
         YearMonth currentMonth = YearMonth.from(LocalDate.now(clock));
         return sumIncome(
-                userId,
+                householdId,
                 transaction ->
                         transaction.isPaid()
                                 && YearMonth.from(transaction.transactionDate())
                                         .equals(currentMonth));
     }
 
-    private BigDecimal sumIncome(Long userId, Predicate<Transaction> filter) {
+    private BigDecimal sumIncome(Long householdId, Predicate<Transaction> filter) {
         List<Long> accountIds =
-                accountRepositoryPort.findAllByUserId(userId).stream().map(Account::id).toList();
+                accountRepositoryPort.findAllByHouseholdId(householdId).stream()
+                        .map(Account::id)
+                        .toList();
         if (accountIds.isEmpty()) {
             return BigDecimal.ZERO;
         }
@@ -363,13 +388,13 @@ public class SavingsGoalApplicationService {
     }
 
     private void requireValidAccountPair(
-            Long currentUserId, Long accountId, Long fundingAccountId) {
+            Long currentHouseholdId, Long accountId, Long fundingAccountId) {
         if (accountId.equals(fundingAccountId)) {
             throw new SameAccountTransferException(
                     "A conta reserva e a conta de origem não podem ser a mesma.");
         }
-        Account account = findAccountOrThrow(currentUserId, accountId);
-        Account fundingAccount = findAccountOrThrow(currentUserId, fundingAccountId);
+        Account account = findAccountOrThrow(currentHouseholdId, accountId);
+        Account fundingAccount = findAccountOrThrow(currentHouseholdId, fundingAccountId);
         if (account.type() != AccountType.RESERVE) {
             throw new IllegalArgumentException(
                     "A conta reserva precisa ser do tipo Conta reserva.");
@@ -380,19 +405,19 @@ public class SavingsGoalApplicationService {
         }
     }
 
-    private Account findAccountOrThrow(Long currentUserId, Long accountId) {
+    private Account findAccountOrThrow(Long currentHouseholdId, Long accountId) {
         return accountRepositoryPort
                 .findById(accountId)
-                .filter(account -> account.belongsTo(currentUserId))
+                .filter(account -> account.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
     /** Acesso a meta de outro usuário é tratado como inexistente (404), não como 403. */
-    private SavingsGoal findOwnedOrThrow(Long currentUserId, Long goalId) {
+    private SavingsGoal findOwnedOrThrow(Long currentHouseholdId, Long goalId) {
         return savingsGoalRepositoryPort
                 .findById(goalId)
-                .filter(goal -> goal.belongsTo(currentUserId))
+                .filter(goal -> goal.belongsTo(currentHouseholdId))
                 .orElseThrow(() -> new ResourceNotFoundException("Meta não encontrada: " + goalId));
     }
 

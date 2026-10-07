@@ -12,7 +12,10 @@ public class AccountWebMapper {
             Account account,
             BigDecimal currentBalance,
             BigDecimal currentBalanceInBrl,
-            boolean hasEntries) {
+            boolean hasEntries,
+            Long ownerUserId,
+            String ownerName,
+            boolean canUnshare) {
         return new AccountResponse(
                 account.id(),
                 account.name(),
@@ -23,6 +26,9 @@ public class AccountWebMapper {
                 account.scope(),
                 account.currency(),
                 currentBalanceInBrl,
-                hasEntries);
+                hasEntries,
+                ownerUserId,
+                ownerName,
+                canUnshare);
     }
 }

@@ -27,8 +27,8 @@ public class ImportBatchRepositoryAdapter implements ImportBatchRepositoryPort {
     }
 
     @Override
-    public List<ImportBatch> findAllByUserId(Long userId) {
-        return importBatchJpaRepository.findByUserIdOrderByImportedAtDesc(userId).stream()
+    public List<ImportBatch> findAllByHouseholdId(Long householdId) {
+        return importBatchJpaRepository.findByHouseholdIdOrderByImportedAtDesc(householdId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }

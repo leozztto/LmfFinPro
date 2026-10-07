@@ -4,21 +4,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.household.HouseholdApplicationService;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.model.BrazilianState;
 import com.lmf.finpro.domain.model.DocumentType;
+import com.lmf.finpro.domain.model.Household;
+import com.lmf.finpro.domain.model.HouseholdMembership;
+import com.lmf.finpro.domain.model.HouseholdRole;
+import com.lmf.finpro.domain.model.HouseholdType;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.User;
+import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
 import com.lmf.finpro.domain.port.out.PasswordHasherPort;
 import com.lmf.finpro.domain.port.out.TokenPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,11 +38,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AuthApplicationServiceTest {
 
     @Mock private UserRepositoryPort userRepositoryPort;
+    @Mock private HouseholdRepositoryPort householdRepositoryPort;
+    @Mock private HouseholdApplicationService householdApplicationService;
     @Mock private PasswordHasherPort passwordHasherPort;
     @Mock private TokenPort tokenPort;
     @Mock private RefreshTokenApplicationService refreshTokenApplicationService;
 
     @InjectMocks private AuthApplicationService service;
+
+    @BeforeEach
+    void setUp() {
+        lenient()
+                .when(householdRepositoryPort.save(any()))
+                .thenReturn(
+                        new Household(
+                                5L, "Ana Freelancer", HouseholdType.PERSONAL, LocalDateTime.now()));
+    }
 
     private static AddressCommand sampleAddress() {
         return new AddressCommand(
@@ -56,6 +76,35 @@ class AuthApplicationServiceTest {
                 "(11) 98765-4321",
                 TaxRegime.AUTONOMO,
                 sampleAddress());
+    }
+
+    private static User persisted(User toSave) {
+        return new User(
+                1L,
+                toSave.name(),
+                toSave.email(),
+                toSave.passwordHash(),
+                toSave.documentType(),
+                toSave.documentNumber(),
+                toSave.phone(),
+                toSave.taxRegime(),
+                toSave.address(),
+                LocalDateTime.now(),
+                0);
+    }
+
+    private static RegisterCommand sampleCommandWithInvite(String inviteToken) {
+        RegisterCommand base = sampleCommand();
+        return new RegisterCommand(
+                base.name(),
+                base.email(),
+                base.rawPassword(),
+                base.documentType(),
+                base.documentNumber(),
+                base.phone(),
+                base.taxRegime(),
+                base.address(),
+                inviteToken);
     }
 
     @Test
@@ -88,6 +137,65 @@ class AuthApplicationServiceTest {
         assertThat(result.userId()).isEqualTo(1L);
         verify(passwordHasherPort).hash("senha12345");
         verify(userRepositoryPort).existsByDocumentNumber("52998224725");
+    }
+
+    @Test
+    void registerCreatesAHouseholdOwnedByTheNewUser() {
+        when(userRepositoryPort.existsByEmail(any())).thenReturn(false);
+        when(userRepositoryPort.existsByDocumentNumber(any())).thenReturn(false);
+        when(passwordHasherPort.hash(any())).thenReturn("hashed-password");
+        when(userRepositoryPort.save(any()))
+                .thenAnswer(
+                        invocation -> {
+                            User toSave = invocation.getArgument(0);
+                            return new User(
+                                    1L,
+                                    toSave.name(),
+                                    toSave.email(),
+                                    toSave.passwordHash(),
+                                    toSave.documentType(),
+                                    toSave.documentNumber(),
+                                    toSave.phone(),
+                                    toSave.taxRegime(),
+                                    toSave.address(),
+                                    LocalDateTime.now(),
+                                    0);
+                        });
+        when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
+
+        service.register(sampleCommand());
+
+        verify(householdRepositoryPort)
+                .saveMembership(new HouseholdMembership(5L, 1L, HouseholdRole.OWNER));
+    }
+
+    @Test
+    void registerWithAnInviteTokenAcceptsTheInviteForTheNewUser() {
+        when(userRepositoryPort.existsByEmail(any())).thenReturn(false);
+        when(userRepositoryPort.existsByDocumentNumber(any())).thenReturn(false);
+        when(passwordHasherPort.hash(any())).thenReturn("hashed-password");
+        when(userRepositoryPort.save(any()))
+                .thenAnswer(invocation -> persisted(invocation.getArgument(0)));
+        when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
+        RegisterCommand command = sampleCommandWithInvite("convite-123");
+
+        service.register(command);
+
+        verify(householdApplicationService).acceptInvite(1L, "convite-123");
+    }
+
+    @Test
+    void registerWithoutAnInviteTokenDoesNotTouchInvites() {
+        when(userRepositoryPort.existsByEmail(any())).thenReturn(false);
+        when(userRepositoryPort.existsByDocumentNumber(any())).thenReturn(false);
+        when(passwordHasherPort.hash(any())).thenReturn("hashed-password");
+        when(userRepositoryPort.save(any()))
+                .thenAnswer(invocation -> persisted(invocation.getArgument(0)));
+        when(tokenPort.generate(1L, "ana@finpro.test", 0)).thenReturn("jwt-token");
+
+        service.register(sampleCommand());
+
+        verifyNoInteractions(householdApplicationService);
     }
 
     @Test

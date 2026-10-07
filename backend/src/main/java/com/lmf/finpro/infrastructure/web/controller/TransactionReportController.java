@@ -56,7 +56,7 @@ public class TransactionReportController {
         ReportFormat format = request.formatOrDefault();
         byte[] body =
                 tagTotalsReportApplicationService.generate(
-                        currentUser.userId(), request.toFilters(), format);
+                        currentUser.householdId(), request.toFilters(), format);
         return respond(body, "totais-por-tag", format);
     }
 
@@ -67,7 +67,8 @@ public class TransactionReportController {
             @RequestParam(defaultValue = "12") int months,
             @RequestParam(defaultValue = "PDF") ReportFormat format) {
         byte[] body =
-                netWorthReportApplicationService.generate(currentUser.userId(), months, format);
+                netWorthReportApplicationService.generate(
+                        currentUser.householdId(), currentUser.userId(), months, format);
         return respond(body, "evolucao-patrimonial", format);
     }
 
@@ -79,7 +80,7 @@ public class TransactionReportController {
         ReportFormat format = request.formatOrDefault();
         byte[] body =
                 transactionReportApplicationService.generate(
-                        currentUser.userId(), type, request.toFilters(), format);
+                        currentUser.householdId(), type, request.toFilters(), format);
         return respond(body, filePrefix, format);
     }
 

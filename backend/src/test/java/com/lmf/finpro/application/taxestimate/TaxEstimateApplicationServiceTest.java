@@ -50,7 +50,7 @@ class TaxEstimateApplicationServiceTest {
 
     @Test
     void suggestGrossRevenueSumsTheReferenceMonthsIncome() {
-        when(transactionRepositoryPort.sumBaseAmountByUserIdAndTypeBetween(
+        when(transactionRepositoryPort.sumBaseAmountByHouseholdIdAndTypeBetween(
                         10L,
                         CategoryType.INCOME,
                         LocalDate.of(2026, 12, 1),
@@ -70,7 +70,7 @@ class TaxEstimateApplicationServiceTest {
                         TaxRegime.MEI,
                         BigDecimal.valueOf(2000),
                         new BigDecimal("0.06"));
-        when(taxEstimateRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(estimate));
+        when(taxEstimateRepositoryPort.findAllByHouseholdId(10L)).thenReturn(List.of(estimate));
 
         assertThat(service.list(10L)).containsExactly(estimate);
     }

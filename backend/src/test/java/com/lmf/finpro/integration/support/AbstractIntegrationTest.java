@@ -57,7 +57,11 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+    // Vários contextos Spring ficam vivos no cache e cada um tem o seu pool: o limite padrão do
+    // Postgres (100) estoura com a suíte inteira ("too many clients already").
+    static final PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>("postgres:16-alpine")
+                    .withCommand("postgres", "-c", "max_connections=500");
 
     static {
         postgres.start();
@@ -68,6 +72,7 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> "5");
         registry.add("finpro.jwt.secret", () -> "integration-test-secret-with-at-least-32-bytes");
         // Anexos gravados numa pasta temporária, não dentro do projeto.
         registry.add("finpro.attachments.storage-dir", () -> ATTACHMENTS_DIR.toString());

@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, endRemoteSession, httpClient, refreshSession } from './httpClient'
+import {
+  HOUSEHOLD_FORBIDDEN_EVENT,
+  HOUSEHOLD_HEADER,
+  clearActiveHousehold,
+  householdEvents,
+  setActiveHouseholdId,
+} from '@/shared/household/householdStorage'
 
 const { getAccessToken, setAccessToken, clearSession, markSessionExpiredOnce, authEvents } = vi.hoisted(() => ({
   getAccessToken: vi.fn(),
@@ -392,5 +399,109 @@ describe('httpClient', () => {
     expect(clearSession).toHaveBeenCalledTimes(2)
     expect(listener).not.toHaveBeenCalled()
     authEvents.removeEventListener('finpro:session-expired', listener)
+  })
+})
+
+describe('httpClient — grupo (household) ativo', () => {
+  beforeEach(() => {
+    getAccessToken.mockReturnValue('jwt-token')
+    vi.stubGlobal('fetch', vi.fn())
+    clearActiveHousehold()
+  })
+
+  afterEach(() => {
+    clearActiveHousehold()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  function sentHeaders(): Headers {
+    return vi.mocked(fetch).mock.calls[0][1]?.headers as Headers
+  }
+
+  it('sends no household header in the personal space (nothing chosen)', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse([]))
+
+    await httpClient.get('/accounts')
+
+    expect(sentHeaders().get(HOUSEHOLD_HEADER)).toBeNull()
+  })
+
+  it('sends the chosen group in the X-Household-Id header', async () => {
+    setActiveHouseholdId(7)
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(jsonResponse([])))
+
+    await httpClient.get('/accounts')
+    await httpClient.post('/transactions', { description: 'x' })
+
+    const calls = vi.mocked(fetch).mock.calls
+    expect((calls[0][1]?.headers as Headers).get(HOUSEHOLD_HEADER)).toBe('7')
+    expect((calls[1][1]?.headers as Headers).get(HOUSEHOLD_HEADER)).toBe('7')
+  })
+
+  it('does not send the header to /households and /auth, which must work even with a stale group', async () => {
+    setActiveHouseholdId(7)
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(jsonResponse([])))
+
+    await httpClient.get('/households')
+    await httpClient.post('/households/10/accounts/share', { accountIds: [1] })
+    await httpClient.post('/auth/login', {})
+
+    for (const [, options] of vi.mocked(fetch).mock.calls) {
+      expect((options?.headers as Headers).get(HOUSEHOLD_HEADER)).toBeNull()
+    }
+  })
+
+  it('an explicit scope overrides the active group, even on /households-agnostic reads', async () => {
+    setActiveHouseholdId(7)
+    vi.mocked(fetch).mockResolvedValue(jsonResponse([]))
+
+    await httpClient.get('/accounts', { householdId: 3 })
+
+    expect(sentHeaders().get(HOUSEHOLD_HEADER)).toBe('3')
+  })
+
+  it('keeps the explicit scope when the request is retried after a token refresh', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({}, 401))
+      .mockResolvedValueOnce(jsonResponse({ token: 'novo', userId: 1, name: 'A', email: 'a@a.com' }))
+      .mockResolvedValueOnce(jsonResponse([]))
+
+    await httpClient.get('/accounts', { householdId: 3 })
+
+    const retry = vi.mocked(fetch).mock.calls[2][1]?.headers as Headers
+    expect(retry.get(HOUSEHOLD_HEADER)).toBe('3')
+  })
+
+  it('also sends the group on file downloads', async () => {
+    setActiveHouseholdId(7)
+    vi.mocked(fetch).mockResolvedValue(new Response(new Blob(['pdf']), { status: 200 }))
+
+    await httpClient.getBlob('/reports/transactions')
+
+    expect(sentHeaders().get(HOUSEHOLD_HEADER)).toBe('7')
+  })
+
+  it('announces a 403 received with a chosen group, so the UI can check the membership', async () => {
+    setActiveHouseholdId(7)
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ message: 'Você não participa deste grupo' }, 403))
+    const listener = vi.fn()
+    householdEvents.addEventListener(HOUSEHOLD_FORBIDDEN_EVENT, listener)
+
+    await expect(httpClient.get('/accounts')).rejects.toBeInstanceOf(ApiError)
+
+    householdEvents.removeEventListener(HOUSEHOLD_FORBIDDEN_EVENT, listener)
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not announce a 403 when no group was chosen', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ message: 'Proibido' }, 403))
+    const listener = vi.fn()
+    householdEvents.addEventListener(HOUSEHOLD_FORBIDDEN_EVENT, listener)
+
+    await expect(httpClient.get('/accounts')).rejects.toBeInstanceOf(ApiError)
+
+    householdEvents.removeEventListener(HOUSEHOLD_FORBIDDEN_EVENT, listener)
+    expect(listener).not.toHaveBeenCalled()
   })
 })

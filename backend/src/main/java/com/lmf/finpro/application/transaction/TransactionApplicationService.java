@@ -4,6 +4,7 @@ import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationSer
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
+import com.lmf.finpro.domain.exception.HouseholdPermissionException;
 import com.lmf.finpro.domain.exception.InvalidTagException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
@@ -14,6 +15,7 @@ import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.PageQuery;
 import com.lmf.finpro.domain.model.PageResult;
+import com.lmf.finpro.domain.model.RecordAuthorship;
 import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.TransactionSearchCriteria;
@@ -22,11 +24,13 @@ import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecordAuthorshipPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,10 +55,11 @@ public class TransactionApplicationService {
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
     private final TagApplicationService tagApplicationService;
     private final ExchangeRateApplicationService exchangeRateApplicationService;
+    private final RecordAuthorshipPort recordAuthorshipPort;
 
     /** Sem tags. */
     public Transaction create(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long accountId,
             Long categoryId,
             Long clientId,
@@ -64,7 +69,7 @@ public class TransactionApplicationService {
             CategoryType type,
             TransactionStatus status) {
         return create(
-                currentUserId,
+                currentHouseholdId,
                 accountId,
                 categoryId,
                 clientId,
@@ -82,7 +87,7 @@ public class TransactionApplicationService {
      * inválida desfaz o lançamento inteiro.
      */
     public Transaction create(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long accountId,
             Long categoryId,
             Long clientId,
@@ -93,7 +98,7 @@ public class TransactionApplicationService {
             TransactionStatus status,
             List<String> tagNames) {
         return create(
-                currentUserId,
+                currentHouseholdId,
                 accountId,
                 categoryId,
                 clientId,
@@ -107,13 +112,45 @@ public class TransactionApplicationService {
                 null);
     }
 
+    /** Sem autor conhecido (uso do sistema): qualquer membro do grupo pode excluir depois. */
+    public Transaction create(
+            Long currentHouseholdId,
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionStatus status,
+            List<String> tagNames,
+            Currency originalCurrency,
+            BigDecimal originalAmount) {
+        return create(
+                currentHouseholdId,
+                null,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                status,
+                tagNames,
+                originalCurrency,
+                originalAmount);
+    }
+
     /**
      * {@code amount} é o valor na moeda da conta. Operação feita em outra moeda (ex.: compra em
      * dólar no cartão em reais) informa também {@code originalCurrency} e {@code originalAmount};
-     * se a moeda for a própria da conta, os dois são ignorados.
+     * se a moeda for a própria da conta, os dois são ignorados. {@code currentUserId} fica gravado
+     * como autor: numa conta compartilhada, só ele poderá excluir o lançamento.
      */
     @Transactional
     public Transaction create(
+            Long currentHouseholdId,
             Long currentUserId,
             Long accountId,
             Long categoryId,
@@ -130,10 +167,10 @@ public class TransactionApplicationService {
                 "Criando transação do tipo={} na conta={} para o usuário={}",
                 type,
                 accountId,
-                currentUserId);
-        Account account = requireOwnedAccount(currentUserId, accountId);
-        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
-        requireOwnedClientIfPresent(currentUserId, clientId);
+                currentHouseholdId);
+        Account account = requireOwnedAccount(currentHouseholdId, accountId);
+        requireMatchingCategoryTypeIfPresent(currentHouseholdId, categoryId, type);
+        requireOwnedClientIfPresent(currentHouseholdId, clientId);
         TransactionStatus resolvedStatus =
                 status != null
                         ? status
@@ -153,12 +190,15 @@ public class TransactionApplicationService {
                                 account,
                                 originalCurrency,
                                 originalAmount));
-        tagApplicationService.replaceTransactionTags(currentUserId, saved.id(), tagNames);
+        tagApplicationService.replaceTransactionTags(currentHouseholdId, saved.id(), tagNames);
+        if (currentUserId != null) {
+            recordAuthorshipPort.recordTransactionAuthors(List.of(saved.id()), currentUserId);
+        }
         log.debug(
                 "Transação={} criada na conta={} para o usuário={}",
                 saved.id(),
                 accountId,
-                currentUserId);
+                currentHouseholdId);
         return saved;
     }
 
@@ -169,10 +209,24 @@ public class TransactionApplicationService {
      * vazia.
      */
     public PageResult<Transaction> list(
-            Long currentUserId, TransactionListFilters filters, Integer page, Integer size) {
+            Long currentHouseholdId, TransactionListFilters filters, Integer page, Integer size) {
+        return list(currentHouseholdId, null, filters, page, size);
+    }
+
+    /**
+     * Com {@code currentUserId}, a listagem inclui também as pernas das transferências feitas com
+     * contas deste espaço que estão em outro espaço do qual o usuário participa: quem transfere da
+     * conta pessoal para a conjunta vê a saída e a entrada.
+     */
+    public PageResult<Transaction> list(
+            Long currentHouseholdId,
+            Long currentUserId,
+            TransactionListFilters filters,
+            Integer page,
+            Integer size) {
         log.debug(
                 "Listando transações do usuário={} página={} tamanho={}",
-                currentUserId,
+                currentHouseholdId,
                 page,
                 size);
         PageQuery pageQuery =
@@ -190,7 +244,7 @@ public class TransactionApplicationService {
                             .filter(Objects::nonNull)
                             .collect(Collectors.toSet());
             tagIds =
-                    tagApplicationService.tagsById(currentUserId).values().stream()
+                    tagApplicationService.tagsById(currentHouseholdId).values().stream()
                             .filter(tag -> wanted.contains(tag.name()))
                             .map(Tag::id)
                             .toList();
@@ -201,7 +255,7 @@ public class TransactionApplicationService {
 
         return transactionRepositoryPort.searchPage(
                 new TransactionSearchCriteria(
-                        currentUserId,
+                        currentHouseholdId,
                         filters.type(),
                         filters.startDate(),
                         filters.endDate(),
@@ -215,9 +269,27 @@ public class TransactionApplicationService {
                         null,
                         false,
                         tagIds,
-                        filters.hasAttachment()),
+                        filters.hasAttachment(),
+                        filters.accountId() == null ? currentUserId : null),
                 pageQuery,
                 TransactionSortOrder.NEWEST_FIRST);
+    }
+
+    /**
+     * Contas das transações que estão em outro espaço (pernas de transferência trazidas pela
+     * listagem), por id: só o nome, nada além.
+     */
+    public Map<Long, String> namesOfAccountsOutside(
+            Long currentHouseholdId, List<Transaction> transactions) {
+        Map<Long, String> names = new java.util.HashMap<>();
+        for (Long accountId :
+                transactions.stream().map(Transaction::accountId).distinct().toList()) {
+            accountRepositoryPort
+                    .findById(accountId)
+                    .filter(account -> !currentHouseholdId.equals(account.householdId()))
+                    .ifPresent(account -> names.put(accountId, account.name()));
+        }
+        return names;
     }
 
     /** Nome de tag inválido num filtro só não casa com nada, em vez de virar erro. */
@@ -229,13 +301,13 @@ public class TransactionApplicationService {
         }
     }
 
-    public Transaction getById(Long currentUserId, Long transactionId) {
-        log.debug("Buscando transação={} do usuário={}", transactionId, currentUserId);
-        return findOwnedOrThrow(currentUserId, transactionId);
+    public Transaction getById(Long currentHouseholdId, Long transactionId) {
+        log.debug("Buscando transação={} do usuário={}", transactionId, currentHouseholdId);
+        return findOwnedOrThrow(currentHouseholdId, transactionId);
     }
 
     public Transaction update(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long transactionId,
             Long categoryId,
             Long clientId,
@@ -246,7 +318,7 @@ public class TransactionApplicationService {
             TransactionStatus status,
             List<String> tagNames) {
         return update(
-                currentUserId,
+                currentHouseholdId,
                 transactionId,
                 categoryId,
                 clientId,
@@ -266,7 +338,7 @@ public class TransactionApplicationService {
      */
     @Transactional
     public Transaction update(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long transactionId,
             Long categoryId,
             Long clientId,
@@ -278,11 +350,11 @@ public class TransactionApplicationService {
             List<String> tagNames,
             Currency originalCurrency,
             BigDecimal originalAmount) {
-        log.debug("Atualizando transação={} do usuário={}", transactionId, currentUserId);
-        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
-        Account account = requireOwnedAccount(currentUserId, existing.accountId());
-        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
-        requireOwnedClientIfPresent(currentUserId, clientId);
+        log.debug("Atualizando transação={} do usuário={}", transactionId, currentHouseholdId);
+        Transaction existing = findOwnedOrThrow(currentHouseholdId, transactionId);
+        Account account = requireOwnedAccount(currentHouseholdId, existing.accountId());
+        requireMatchingCategoryTypeIfPresent(currentHouseholdId, categoryId, type);
+        requireOwnedClientIfPresent(currentHouseholdId, clientId);
         Transaction updated =
                 withCurrencies(
                         existing.withDetails(
@@ -303,7 +375,8 @@ public class TransactionApplicationService {
         }
         Transaction saved = transactionRepositoryPort.save(updated);
         if (tagNames != null) {
-            tagApplicationService.replaceTransactionTags(currentUserId, transactionId, tagNames);
+            tagApplicationService.replaceTransactionTags(
+                    currentHouseholdId, transactionId, tagNames);
         }
         return saved;
     }
@@ -312,22 +385,26 @@ public class TransactionApplicationService {
      * Troca só as tags. Vale para qualquer transação — paga, pendente, importada ou de
      * transferência —, porque tag é classificação e não mexe em valor nem em saldo.
      */
-    public Transaction updateTags(Long currentUserId, Long transactionId, List<String> tagNames) {
-        log.debug("Atualizando tags da transação={} do usuário={}", transactionId, currentUserId);
-        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
-        tagApplicationService.replaceTransactionTags(currentUserId, transactionId, tagNames);
+    public Transaction updateTags(
+            Long currentHouseholdId, Long transactionId, List<String> tagNames) {
+        log.debug(
+                "Atualizando tags da transação={} do usuário={}",
+                transactionId,
+                currentHouseholdId);
+        Transaction existing = findOwnedOrThrow(currentHouseholdId, transactionId);
+        tagApplicationService.replaceTransactionTags(currentHouseholdId, transactionId, tagNames);
         return existing;
     }
 
     /** Marca como paga — a ação rápida da lista de transações. Paga não volta a pendente. */
     public Transaction updateStatus(
-            Long currentUserId, Long transactionId, TransactionStatus status) {
+            Long currentHouseholdId, Long transactionId, TransactionStatus status) {
         log.debug(
                 "Atualizando situação da transação={} para={} do usuário={}",
                 transactionId,
                 status,
-                currentUserId);
-        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
+                currentHouseholdId);
+        Transaction existing = findOwnedOrThrow(currentHouseholdId, transactionId);
         requireStatusChangeAllowed(existing, status);
         return transactionRepositoryPort.save(existing.withStatus(status));
     }
@@ -357,12 +434,14 @@ public class TransactionApplicationService {
         }
     }
 
-    public void delete(Long currentUserId, Long transactionId) {
-        log.debug("Removendo transação={} do usuário={}", transactionId, currentUserId);
-        Transaction existing = findOwnedOrThrow(currentUserId, transactionId);
+    public void delete(Long currentHouseholdId, Long currentUserId, Long transactionId) {
+        log.debug("Removendo transação={} do usuário={}", transactionId, currentHouseholdId);
+        Transaction existing = findOwnedOrThrow(currentHouseholdId, transactionId);
+        requireAuthor(transactionId, currentUserId);
         if (existing.transferId() != null) {
             throw new TransactionLinkedToTransferException(
-                    "Esta transação faz parte de uma transferência. Exclua a transferência inteira na tela de Transferências.");
+                    "Esta transação faz parte de uma transferência. Exclua a transferência inteira"
+                            + " na tela de Transferências.");
         }
         // Os registros dos anexos saem em cascata no banco; os arquivos, só apagando do disco.
         List<String> attachmentKeys =
@@ -371,7 +450,15 @@ public class TransactionApplicationService {
         transactionAttachmentApplicationService.deleteStoredFiles(attachmentKeys);
     }
 
-    private Transaction findOwnedOrThrow(Long currentUserId, Long transactionId) {
+    /** Numa conta compartilhada só quem criou o lançamento pode excluí-lo. */
+    private void requireAuthor(Long transactionId, Long currentUserId) {
+        Long author = recordAuthorshipPort.findTransactionAuthor(transactionId).orElse(null);
+        if (!RecordAuthorship.canDelete(author, currentUserId)) {
+            throw new HouseholdPermissionException("Só quem criou este lançamento pode excluí-lo.");
+        }
+    }
+
+    private Transaction findOwnedOrThrow(Long currentHouseholdId, Long transactionId) {
         Transaction transaction =
                 transactionRepositoryPort
                         .findById(transactionId)
@@ -379,7 +466,7 @@ public class TransactionApplicationService {
                                 () ->
                                         new ResourceNotFoundException(
                                                 "Transação não encontrada: " + transactionId));
-        requireOwnedAccount(currentUserId, transaction.accountId());
+        requireOwnedAccount(currentHouseholdId, transaction.accountId());
         return transaction;
     }
 
@@ -408,23 +495,23 @@ public class TransactionApplicationService {
                                         transaction.transactionDate()));
     }
 
-    private Account requireOwnedAccount(Long currentUserId, Long accountId) {
+    private Account requireOwnedAccount(Long currentHouseholdId, Long accountId) {
         return accountRepositoryPort
                 .findById(accountId)
-                .filter(account -> account.belongsTo(currentUserId))
+                .filter(account -> account.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
     private void requireMatchingCategoryTypeIfPresent(
-            Long currentUserId, Long categoryId, CategoryType type) {
+            Long currentHouseholdId, Long categoryId, CategoryType type) {
         if (categoryId == null) {
             return;
         }
         Category category =
                 categoryRepositoryPort
                         .findById(categoryId)
-                        .filter(candidate -> candidate.isVisibleTo(currentUserId))
+                        .filter(candidate -> candidate.isVisibleTo(currentHouseholdId))
                         .orElseThrow(
                                 () ->
                                         new ResourceNotFoundException(
@@ -441,13 +528,13 @@ public class TransactionApplicationService {
         }
     }
 
-    private void requireOwnedClientIfPresent(Long currentUserId, Long clientId) {
+    private void requireOwnedClientIfPresent(Long currentHouseholdId, Long clientId) {
         if (clientId == null) {
             return;
         }
         clientRepositoryPort
                 .findById(clientId)
-                .filter(client -> client.belongsTo(currentUserId))
+                .filter(client -> client.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }

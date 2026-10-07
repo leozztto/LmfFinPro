@@ -1,6 +1,6 @@
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Checkbox, FormField, Input } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { onlyDigits } from '@/shared/format/mask'
@@ -13,6 +13,7 @@ import { AccountDataFields, formSectionTitleClassName } from './AccountDataField
 export function RegisterPage() {
   const navigate = useNavigate()
   const registerUser = useRegister()
+  const inviteToken = useSearchParams()[0].get('convite') || undefined
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
@@ -57,6 +58,7 @@ export function RegisterPage() {
         zipCode: onlyDigits(values.address.zipCode),
         complement: values.address.complement || undefined,
       },
+      inviteToken,
     })
     navigate('/')
   }
@@ -72,6 +74,13 @@ export function RegisterPage() {
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Leva menos de um minuto — sem cartão, sem enrolação.
           </p>
+
+          {inviteToken && (
+            <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              Você foi convidado para um grupo. Ao criar a conta, você já entra nele; seus dados pessoais continuam só
+              seus.
+            </p>
+          )}
 
           <FormProvider {...form}>
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-8">

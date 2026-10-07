@@ -24,7 +24,7 @@ public class BudgetController {
 
     @GetMapping
     public List<BudgetResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return budgetApplicationService.list(currentUser.userId()).stream()
+        return budgetApplicationService.list(currentUser.householdId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -35,7 +35,7 @@ public class BudgetController {
             @Valid @RequestBody BudgetRequest request) {
         Budget created =
                 budgetApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.categoryId(),
                         request.referenceMonth(),
                         request.limitValue(),
@@ -46,7 +46,7 @@ public class BudgetController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        budgetApplicationService.delete(currentUser.userId(), id);
+        budgetApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 

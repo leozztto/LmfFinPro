@@ -30,7 +30,7 @@ public class TaxEstimateController {
 
     @GetMapping
     public List<TaxEstimateResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return taxEstimateApplicationService.list(currentUser.userId()).stream()
+        return taxEstimateApplicationService.list(currentUser.householdId()).stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -48,7 +48,7 @@ public class TaxEstimateController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth referenceMonth) {
         return new SuggestedRevenueResponse(
                 taxEstimateApplicationService.suggestGrossRevenue(
-                        currentUser.userId(), referenceMonth));
+                        currentUser.householdId(), referenceMonth));
     }
 
     @PostMapping
@@ -57,7 +57,7 @@ public class TaxEstimateController {
             @Valid @RequestBody TaxEstimateRequest request) {
         TaxEstimate created =
                 taxEstimateApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.referenceMonth(),
                         request.regime(),
                         request.grossRevenue(),
@@ -68,7 +68,7 @@ public class TaxEstimateController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        taxEstimateApplicationService.delete(currentUser.userId(), id);
+        taxEstimateApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 }

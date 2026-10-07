@@ -27,19 +27,20 @@ public class NetWorthReportApplicationService {
     private final ReceiptGeneratorPort receiptGeneratorPort;
     private final ReportCsvExporterPort reportCsvExporterPort;
 
-    public byte[] generate(Long currentUserId, int months, ReportFormat format) {
+    public byte[] generate(
+            Long currentHouseholdId, Long currentUserId, int months, ReportFormat format) {
         log.debug(
                 "Gerando relatório de patrimônio meses={} formato={} para o usuário={}",
                 months,
                 format,
-                currentUserId);
-        NetWorthReportData data = buildData(currentUserId, months);
+                currentHouseholdId);
+        NetWorthReportData data = buildData(currentHouseholdId, currentUserId, months);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportNetWorthReport(data)
                 : receiptGeneratorPort.generateNetWorthReport(data);
     }
 
-    NetWorthReportData buildData(Long currentUserId, int months) {
+    NetWorthReportData buildData(Long currentHouseholdId, Long currentUserId, int months) {
         User issuer =
                 userRepositoryPort
                         .findById(currentUserId)
@@ -48,6 +49,6 @@ public class NetWorthReportApplicationService {
                                         new ResourceNotFoundException(
                                                 "Usuário não encontrado: " + currentUserId));
         return new NetWorthReportData(
-                issuer, months, netWorthApplicationService.summary(currentUserId, months));
+                issuer, months, netWorthApplicationService.summary(currentHouseholdId, months));
     }
 }

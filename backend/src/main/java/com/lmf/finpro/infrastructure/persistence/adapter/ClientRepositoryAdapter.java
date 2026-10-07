@@ -27,8 +27,10 @@ public class ClientRepositoryAdapter implements ClientRepositoryPort {
     }
 
     @Override
-    public List<Client> findAllByUserId(Long userId) {
-        return clientJpaRepository.findByUserId(userId).stream().map(mapper::toDomain).toList();
+    public List<Client> findAllByHouseholdId(Long householdId) {
+        return clientJpaRepository.findByHouseholdId(householdId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

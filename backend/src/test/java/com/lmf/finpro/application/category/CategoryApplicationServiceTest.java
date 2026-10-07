@@ -40,7 +40,7 @@ class CategoryApplicationServiceTest {
 
         Category created = service.create(10L, "Consultoria", CategoryType.INCOME, "#fff", "icon");
 
-        assertThat(created.userId()).isEqualTo(10L);
+        assertThat(created.householdId()).isEqualTo(10L);
         assertThat(created.name()).isEqualTo("Consultoria");
         assertThat(created.type()).isEqualTo(CategoryType.INCOME);
     }

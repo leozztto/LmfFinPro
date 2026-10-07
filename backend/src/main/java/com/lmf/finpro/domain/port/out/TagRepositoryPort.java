@@ -11,10 +11,10 @@ public interface TagRepositoryPort {
 
     Optional<Tag> findById(Long id);
 
-    List<Tag> findAllByUserId(Long userId);
+    List<Tag> findAllByHouseholdId(Long householdId);
 
     /** Tags do usuário com esses nomes (já normalizados). */
-    List<Tag> findAllByUserIdAndNames(Long userId, Collection<String> names);
+    List<Tag> findAllByHouseholdIdAndNames(Long householdId, Collection<String> names);
 
     void deleteById(Long id);
 

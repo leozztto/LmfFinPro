@@ -24,7 +24,7 @@ public class CategoryRuleController {
 
     @GetMapping
     public List<CategoryRuleResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return categoryRuleApplicationService.list(currentUser.userId()).stream()
+        return categoryRuleApplicationService.list(currentUser.householdId()).stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -35,14 +35,14 @@ public class CategoryRuleController {
             @Valid @RequestBody CategoryRuleRequest request) {
         CategoryRule created =
                 categoryRuleApplicationService.create(
-                        currentUser.userId(), request.pattern(), request.categoryId());
+                        currentUser.householdId(), request.pattern(), request.categoryId());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        categoryRuleApplicationService.delete(currentUser.userId(), id);
+        categoryRuleApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 }

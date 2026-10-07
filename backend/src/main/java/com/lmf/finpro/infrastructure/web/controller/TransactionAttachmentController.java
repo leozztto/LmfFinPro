@@ -33,7 +33,7 @@ public class TransactionAttachmentController {
     public List<TransactionAttachmentResponse> list(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long transactionId) {
-        return attachmentApplicationService.list(currentUser.userId(), transactionId).stream()
+        return attachmentApplicationService.list(currentUser.householdId(), transactionId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -53,7 +53,7 @@ public class TransactionAttachmentController {
         }
         TransactionAttachment created =
                 attachmentApplicationService.upload(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         transactionId,
                         documentType,
                         file.getOriginalFilename(),
@@ -74,7 +74,7 @@ public class TransactionAttachmentController {
             @RequestParam(defaultValue = "false") boolean download) {
         AttachmentContent result =
                 attachmentApplicationService.download(
-                        currentUser.userId(), transactionId, attachmentId);
+                        currentUser.householdId(), transactionId, attachmentId);
         TransactionAttachment attachment = result.attachment();
         ContentDisposition disposition =
                 (download ? ContentDisposition.attachment() : ContentDisposition.inline())
@@ -93,7 +93,7 @@ public class TransactionAttachmentController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long transactionId,
             @PathVariable Long attachmentId) {
-        attachmentApplicationService.delete(currentUser.userId(), transactionId, attachmentId);
+        attachmentApplicationService.delete(currentUser.householdId(), transactionId, attachmentId);
         return ResponseEntity.noContent().build();
     }
 

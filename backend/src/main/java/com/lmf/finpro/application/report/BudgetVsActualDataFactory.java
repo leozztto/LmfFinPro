@@ -38,20 +38,21 @@ class BudgetVsActualDataFactory {
      * para não acoplar um application service a outro), ordenado do maior percentual de uso para o
      * menor — assim os orçamentos estourados ou perto do limite aparecem primeiro.
      */
-    BudgetVsActualReportData build(Long currentUserId, YearMonth referenceMonth) {
+    BudgetVsActualReportData build(
+            Long currentHouseholdId, Long currentUserId, YearMonth referenceMonth) {
         User issuer = lookups.findUserOrThrow(currentUserId);
 
         List<Budget> budgets =
-                budgetRepositoryPort.findAllByUserId(currentUserId).stream()
+                budgetRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .filter(budget -> budget.referenceMonth().equals(referenceMonth))
                         .toList();
 
         Map<Long, String> categoryNameById =
-                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
 
         Map<Long, String> clientNameById =
-                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                clientRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name));
 
         List<BudgetVsActualReportData.BudgetComparison> comparisons =
@@ -79,15 +80,16 @@ class BudgetVsActualDataFactory {
         LocalDate end = budget.referenceMonth().plusMonths(1).atDay(1);
         BigDecimal spent =
                 budget.clientId() == null
-                        ? transactionRepositoryPort.sumAmountByUserIdAndCategoryIdAndTypeBetween(
-                                budget.userId(),
-                                budget.categoryId(),
-                                CategoryType.EXPENSE,
-                                start,
-                                end)
+                        ? transactionRepositoryPort
+                                .sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
+                                        budget.householdId(),
+                                        budget.categoryId(),
+                                        CategoryType.EXPENSE,
+                                        start,
+                                        end)
                         : transactionRepositoryPort
-                                .sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
-                                        budget.userId(),
+                                .sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
+                                        budget.householdId(),
                                         budget.categoryId(),
                                         budget.clientId(),
                                         CategoryType.EXPENSE,

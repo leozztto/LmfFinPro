@@ -30,7 +30,9 @@ public class AccountValuationController {
     @GetMapping
     public List<AccountValuationResponse> list(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long accountId) {
-        return accountValuationApplicationService.list(currentUser.userId(), accountId).stream()
+        return accountValuationApplicationService
+                .list(currentUser.householdId(), accountId)
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -43,7 +45,10 @@ public class AccountValuationController {
             @Valid @RequestBody AccountValuationRequest request) {
         AccountValuation saved =
                 accountValuationApplicationService.save(
-                        currentUser.userId(), accountId, request.valuationDate(), request.value());
+                        currentUser.householdId(),
+                        accountId,
+                        request.valuationDate(),
+                        request.value());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved));
     }
 
@@ -52,7 +57,8 @@ public class AccountValuationController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long accountId,
             @PathVariable Long valuationId) {
-        accountValuationApplicationService.delete(currentUser.userId(), accountId, valuationId);
+        accountValuationApplicationService.delete(
+                currentUser.householdId(), accountId, valuationId);
         return ResponseEntity.noContent().build();
     }
 

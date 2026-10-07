@@ -1,5 +1,6 @@
 package com.lmf.finpro.application.report;
 
+import com.lmf.finpro.application.support.TransferFlow;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryExpenseReportData;
@@ -29,6 +30,7 @@ class CategoryExpenseDataFactory {
     private final AccountRepositoryPort accountRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final TransactionRepositoryPort transactionRepositoryPort;
+    private final TransferFlow transferFlow;
 
     /**
      * Soma as despesas do usuário (em todas as contas) por categoria dentro do mês, ordenadas da
@@ -36,19 +38,22 @@ class CategoryExpenseDataFactory {
      * sem categoria entram como "Sem categoria"; uma categoria excluída depois de usada entra como
      * "Categoria removida", já que o histórico da transação não pode sumir.
      */
-    CategoryExpenseReportData build(Long currentUserId, YearMonth referenceMonth) {
+    CategoryExpenseReportData build(
+            Long currentHouseholdId, Long currentUserId, YearMonth referenceMonth) {
         User issuer = lookups.findUserOrThrow(currentUserId);
 
         LocalDate start = referenceMonth.atDay(1);
         LocalDate end = referenceMonth.plusMonths(1).atDay(1);
 
         List<Long> accountIds =
-                accountRepositoryPort.findAllByUserId(currentUserId).stream()
+                accountRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .map(Account::id)
                         .toList();
         List<Transaction> expensesInPeriod =
-                transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
-                        .filter(transaction -> transaction.transferId() == null)
+                transferFlow
+                        .withoutInternalTransfers(
+                                transactionRepositoryPort.findAllByAccountIds(accountIds))
+                        .stream()
                         .filter(transaction -> transaction.type() == CategoryType.EXPENSE)
                         .filter(
                                 transaction ->
@@ -57,7 +62,7 @@ class CategoryExpenseDataFactory {
                         .toList();
 
         Map<Long, String> categoryNameById =
-                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
 
         Map<String, BigDecimal> totalsByCategoryName = new LinkedHashMap<>();

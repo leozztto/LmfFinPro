@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
+import com.lmf.finpro.application.support.TransferFlow;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountType;
+import com.lmf.finpro.domain.model.BalancePoint;
 import com.lmf.finpro.domain.model.BreakdownPoint;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.DashboardOverview;
@@ -17,6 +19,7 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
+import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -39,6 +42,7 @@ class DashboardApplicationServiceTest {
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
     @Mock private RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     @Mock private AccountValuationRepositoryPort accountValuationRepositoryPort;
+    @Mock private TransferRepositoryPort transferRepositoryPort;
 
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
     private static final Clock CLOCK = Clock.system(ZONE);
@@ -55,7 +59,18 @@ class DashboardApplicationServiceTest {
                         recurringTransactionRepositoryPort,
                         accountValuationRepositoryPort,
                         CLOCK,
-                        exchangeRateApplicationService);
+                        exchangeRateApplicationService,
+                        new TransferFlow(transferRepositoryPort));
+    }
+
+    private static Account accountCreatedMonthsAgo(BigDecimal initialBalance, int months) {
+        return new Account(
+                1L,
+                10L,
+                "Conta",
+                AccountType.CHECKING,
+                initialBalance,
+                LocalDateTime.now().minusMonths(months));
     }
 
     private static Account account(BigDecimal initialBalance) {
@@ -82,9 +97,9 @@ class DashboardApplicationServiceTest {
     }
 
     @Test
-    void getOverviewExcludesTransfersFromCurrentBalance() {
+    void getOverviewCountsATransferLegInTheBalanceButNotInTheMonthIncome() {
         YearMonth currentMonth = CURRENT_MONTH;
-        when(accountRepositoryPort.findAllByUserId(10L))
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
                 .thenReturn(
@@ -94,7 +109,9 @@ class DashboardApplicationServiceTest {
                                         currentMonth.atDay(1),
                                         CategoryType.INCOME,
                                         null),
-                                // transferência: não deve entrar no saldo nem na receita do mês
+                                // Perna de uma transferência interna do espaço (as duas contas
+                                // daqui):
+                                // entra no saldo da conta, mas não é receita do mês.
                                 transaction(
                                         BigDecimal.valueOf(9999),
                                         currentMonth.atDay(1),
@@ -103,14 +120,95 @@ class DashboardApplicationServiceTest {
 
         DashboardOverview overview = service.getOverview(10L, null);
 
-        assertThat(overview.currentBalance()).isEqualByComparingTo("1500");
+        assertThat(overview.currentBalance()).isEqualByComparingTo("11499");
         assertThat(overview.currentMonthIncome()).isEqualByComparingTo("500");
+    }
+
+    @Test
+    void getOverviewTransferBetweenAccountsOfTheSameSpaceAddsUpToZero() {
+        YearMonth currentMonth = CURRENT_MONTH;
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
+                .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                transaction(
+                                        BigDecimal.valueOf(300),
+                                        currentMonth.atDay(1),
+                                        CategoryType.EXPENSE,
+                                        77L),
+                                transaction(
+                                        BigDecimal.valueOf(300),
+                                        currentMonth.atDay(1),
+                                        CategoryType.INCOME,
+                                        77L)));
+
+        DashboardOverview overview = service.getOverview(10L, null);
+
+        assertThat(overview.currentBalance()).isEqualByComparingTo("1000");
+        assertThat(overview.currentMonthIncome()).isEqualByComparingTo("0");
+        assertThat(overview.currentMonthExpense()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void getOverviewCountsATransferLegFromAnotherSpaceAsIncomeAndExpense() {
+        YearMonth currentMonth = CURRENT_MONTH;
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
+                .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                transaction(
+                                        BigDecimal.valueOf(300),
+                                        currentMonth.atDay(1),
+                                        CategoryType.INCOME,
+                                        77L),
+                                transaction(
+                                        BigDecimal.valueOf(40),
+                                        currentMonth.atDay(1),
+                                        CategoryType.EXPENSE,
+                                        77L),
+                                // transferência entre contas do mesmo espaço: não conta
+                                transaction(
+                                        BigDecimal.valueOf(999),
+                                        currentMonth.atDay(1),
+                                        CategoryType.INCOME,
+                                        88L)));
+        when(transferRepositoryPort.findCrossSpaceIds(java.util.Set.of(77L, 88L)))
+                .thenReturn(java.util.Set.of(77L));
+
+        DashboardOverview overview = service.getOverview(10L, null);
+
+        assertThat(overview.currentMonthIncome()).isEqualByComparingTo("300");
+        assertThat(overview.currentMonthExpense()).isEqualByComparingTo("40");
+    }
+
+    @Test
+    void getBalanceEvolutionShowsATransferLegOnlyFromItsMonthOn() {
+        YearMonth currentMonth = CURRENT_MONTH;
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
+                .thenReturn(List.of(accountCreatedMonthsAgo(BigDecimal.valueOf(1000), 6)));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                transaction(
+                                        BigDecimal.valueOf(300),
+                                        currentMonth.atDay(1),
+                                        CategoryType.INCOME,
+                                        77L)));
+
+        List<BalancePoint> evolution = service.getBalanceEvolution(10L, 3, null);
+
+        assertThat(evolution).hasSize(3);
+        assertThat(evolution.get(0).balance()).isEqualByComparingTo("1000");
+        assertThat(evolution.get(1).balance()).isEqualByComparingTo("1000");
+        assertThat(evolution.get(2).balance()).isEqualByComparingTo("1300");
     }
 
     @Test
     void getOverviewLeavesPendingOutOfCurrentBalanceButInProjectedBalance() {
         YearMonth currentMonth = CURRENT_MONTH;
-        when(accountRepositoryPort.findAllByUserId(10L))
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
                 .thenReturn(
@@ -156,7 +254,7 @@ class DashboardApplicationServiceTest {
     @Test
     void getCategoryBreakdownDelegatesToAggregatorWithOwnedTransactionsOnly() {
         YearMonth month = CURRENT_MONTH;
-        when(accountRepositoryPort.findAllByUserId(10L))
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         Transaction ownTransaction =
                 Transaction.create(
@@ -180,7 +278,7 @@ class DashboardApplicationServiceTest {
 
     @Test
     void getMonthlyFlowReturnsRequestedNumberOfMonths() {
-        when(accountRepositoryPort.findAllByUserId(10L))
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
 
@@ -199,8 +297,9 @@ class DashboardApplicationServiceTest {
                         recurringTransactionRepositoryPort,
                         accountValuationRepositoryPort,
                         lateNightClock,
-                        exchangeRateApplicationService);
-        when(accountRepositoryPort.findAllByUserId(10L))
+                        exchangeRateApplicationService,
+                        new TransferFlow(transferRepositoryPort));
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.ZERO)));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
 
@@ -211,7 +310,7 @@ class DashboardApplicationServiceTest {
     @Test
     void getCashFlowProjectionAnchorsOnBalanceExcludingFutureTransactions() {
         YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
-        when(accountRepositoryPort.findAllByUserId(10L))
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
                 .thenReturn(
@@ -231,10 +330,10 @@ class DashboardApplicationServiceTest {
     @Test
     void getCashFlowProjectionIncludesTheUsersRecurringTransactions() {
         YearMonth nextMonth = CURRENT_MONTH.plusMonths(1);
-        when(accountRepositoryPort.findAllByUserId(10L))
+        when(accountRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(account(BigDecimal.valueOf(1000))));
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L))).thenReturn(List.of());
-        when(recurringTransactionRepositoryPort.findAllByUserId(10L))
+        when(recurringTransactionRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(
                         List.of(
                                 new RecurringTransaction(

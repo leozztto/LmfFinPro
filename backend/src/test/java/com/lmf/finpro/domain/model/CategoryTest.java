@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 class CategoryTest {
 
     @Test
-    void categoryWithNullUserIdIsGlobal() {
+    void categoryWithNullHouseholdIdIsGlobal() {
         Category category = Category.create(null, "Alimentação", CategoryType.EXPENSE, null, null);
 
         assertThat(category.isGlobal()).isTrue();
@@ -15,7 +15,7 @@ class CategoryTest {
     }
 
     @Test
-    void categoryWithUserIdIsOwnedByThatUserOnly() {
+    void categoryWithHouseholdIdIsOwnedByThatUserOnly() {
         Category category = Category.create(1L, "Consultoria", CategoryType.INCOME, null, null);
 
         assertThat(category.isGlobal()).isFalse();
@@ -40,14 +40,14 @@ class CategoryTest {
     }
 
     @Test
-    void withDetailsReplacesFieldsButKeepsIdAndUserId() {
+    void withDetailsReplacesFieldsButKeepsIdAndHouseholdId() {
         Category category =
                 new Category(5L, 1L, "Antigo", CategoryType.EXPENSE, "#000", "old-icon");
 
         Category updated = category.withDetails("Novo", CategoryType.EXPENSE, "#fff", "new-icon");
 
         assertThat(updated.id()).isEqualTo(5L);
-        assertThat(updated.userId()).isEqualTo(1L);
+        assertThat(updated.householdId()).isEqualTo(1L);
         assertThat(updated.name()).isEqualTo("Novo");
         assertThat(updated.color()).isEqualTo("#fff");
         assertThat(updated.icon()).isEqualTo("new-icon");

@@ -40,9 +40,10 @@ public class TransactionAttachmentApplicationService {
 
     public record AttachmentContent(TransactionAttachment attachment, byte[] content) {}
 
-    public List<TransactionAttachment> list(Long currentUserId, Long transactionId) {
-        log.debug("Listando anexos da transação={} do usuário={}", transactionId, currentUserId);
-        requireOwnedTransaction(currentUserId, transactionId);
+    public List<TransactionAttachment> list(Long currentHouseholdId, Long transactionId) {
+        log.debug(
+                "Listando anexos da transação={} do usuário={}", transactionId, currentHouseholdId);
+        requireOwnedTransaction(currentHouseholdId, transactionId);
         return attachmentRepositoryPort.findAllByTransactionId(transactionId);
     }
 
@@ -52,13 +53,16 @@ public class TransactionAttachmentApplicationService {
      * arquivo para não deixar lixo no disco.
      */
     public TransactionAttachment upload(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long transactionId,
             AttachmentDocumentType documentType,
             String originalFileName,
             byte[] content) {
-        log.debug("Enviando anexo para a transação={} do usuário={}", transactionId, currentUserId);
-        requireOwnedTransaction(currentUserId, transactionId);
+        log.debug(
+                "Enviando anexo para a transação={} do usuário={}",
+                transactionId,
+                currentHouseholdId);
+        requireOwnedTransaction(currentHouseholdId, transactionId);
         if (content == null || content.length == 0) {
             throw new AttachmentInvalidException("O arquivo enviado está vazio.");
         }
@@ -88,7 +92,7 @@ public class TransactionAttachmentApplicationService {
                     attachmentRepositoryPort.save(
                             TransactionAttachment.create(
                                     transactionId,
-                                    currentUserId,
+                                    currentHouseholdId,
                                     documentType == null
                                             ? AttachmentDocumentType.OTHER
                                             : documentType,
@@ -105,7 +109,8 @@ public class TransactionAttachmentApplicationService {
             return saved;
         } catch (RuntimeException e) {
             log.error(
-                    "Falha ao salvar o anexo da transação={}; arquivo removido do armazenamento (erro={})",
+                    "Falha ao salvar o anexo da transação={}; arquivo removido do armazenamento"
+                            + " (erro={})",
                     transactionId,
                     e.getClass().getSimpleName());
             fileStoragePort.delete(storageKey);
@@ -113,25 +118,26 @@ public class TransactionAttachmentApplicationService {
         }
     }
 
-    public AttachmentContent download(Long currentUserId, Long transactionId, Long attachmentId) {
+    public AttachmentContent download(
+            Long currentHouseholdId, Long transactionId, Long attachmentId) {
         log.debug(
                 "Baixando anexo={} da transação={} do usuário={}",
                 attachmentId,
                 transactionId,
-                currentUserId);
+                currentHouseholdId);
         TransactionAttachment attachment =
-                findOwnedOrThrow(currentUserId, transactionId, attachmentId);
+                findOwnedOrThrow(currentHouseholdId, transactionId, attachmentId);
         return new AttachmentContent(attachment, fileStoragePort.load(attachment.storageKey()));
     }
 
-    public void delete(Long currentUserId, Long transactionId, Long attachmentId) {
+    public void delete(Long currentHouseholdId, Long transactionId, Long attachmentId) {
         log.debug(
                 "Removendo anexo={} da transação={} do usuário={}",
                 attachmentId,
                 transactionId,
-                currentUserId);
+                currentHouseholdId);
         TransactionAttachment attachment =
-                findOwnedOrThrow(currentUserId, transactionId, attachmentId);
+                findOwnedOrThrow(currentHouseholdId, transactionId, attachmentId);
         attachmentRepositoryPort.deleteById(attachment.id());
         fileStoragePort.delete(attachment.storageKey());
     }
@@ -177,12 +183,12 @@ public class TransactionAttachmentApplicationService {
     }
 
     private TransactionAttachment findOwnedOrThrow(
-            Long currentUserId, Long transactionId, Long attachmentId) {
-        requireOwnedTransaction(currentUserId, transactionId);
+            Long currentHouseholdId, Long transactionId, Long attachmentId) {
+        requireOwnedTransaction(currentHouseholdId, transactionId);
         return attachmentRepositoryPort
                 .findById(attachmentId)
                 .filter(attachment -> attachment.transactionId().equals(transactionId))
-                .filter(attachment -> attachment.belongsTo(currentUserId))
+                .filter(attachment -> attachment.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(
@@ -190,7 +196,7 @@ public class TransactionAttachmentApplicationService {
     }
 
     /** Transação de outro usuário é tratada como inexistente (404), como no resto do app. */
-    private void requireOwnedTransaction(Long currentUserId, Long transactionId) {
+    private void requireOwnedTransaction(Long currentHouseholdId, Long transactionId) {
         Transaction transaction =
                 transactionRepositoryPort
                         .findById(transactionId)
@@ -200,7 +206,7 @@ public class TransactionAttachmentApplicationService {
                                                 "Transação não encontrada: " + transactionId));
         accountRepositoryPort
                 .findById(transaction.accountId())
-                .filter(account -> account.belongsTo(currentUserId))
+                .filter(account -> account.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(

@@ -3,11 +3,13 @@ package com.lmf.finpro.application.transfer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.domain.exception.HouseholdPermissionException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -19,6 +21,7 @@ import com.lmf.finpro.domain.model.Currency;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecordAuthorshipPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
@@ -41,6 +44,8 @@ class TransferApplicationServiceTest {
     @Mock private AccountApplicationService accountApplicationService;
 
     @Mock private TransactionAttachmentApplicationService transactionAttachmentApplicationService;
+    @Mock private RecordAuthorshipPort recordAuthorshipPort;
+    @Mock private com.lmf.finpro.domain.port.out.HouseholdRepositoryPort householdRepositoryPort;
 
     @InjectMocks private TransferApplicationService service;
 
@@ -90,7 +95,7 @@ class TransferApplicationServiceTest {
                             Transfer transfer = invocation.getArgument(0);
                             return new Transfer(
                                     99L,
-                                    transfer.userId(),
+                                    transfer.householdId(),
                                     transfer.fromAccountId(),
                                     transfer.toAccountId(),
                                     transfer.amount(),
@@ -260,7 +265,7 @@ class TransferApplicationServiceTest {
                         LocalDateTime.now());
         when(transferRepositoryPort.findById(1L)).thenReturn(Optional.of(transfer));
 
-        assertThatThrownBy(() -> service.delete(999L, 1L))
+        assertThatThrownBy(() -> service.delete(999L, 20L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -278,7 +283,47 @@ class TransferApplicationServiceTest {
                         LocalDateTime.now());
         when(transferRepositoryPort.findById(1L)).thenReturn(Optional.of(transfer));
 
-        service.delete(10L, 1L);
+        service.delete(10L, 20L, 1L);
+
+        verify(transferRepositoryPort).deleteById(1L);
+    }
+
+    @Test
+    void deleteIsRejectedWhenAnotherUserCreatedTheTransfer() {
+        Transfer transfer =
+                new Transfer(
+                        1L,
+                        10L,
+                        1L,
+                        2L,
+                        BigDecimal.TEN,
+                        LocalDate.now(),
+                        null,
+                        LocalDateTime.now());
+        when(transferRepositoryPort.findById(1L)).thenReturn(Optional.of(transfer));
+        when(recordAuthorshipPort.findTransferAuthor(1L)).thenReturn(Optional.of(30L));
+
+        assertThatThrownBy(() -> service.delete(10L, 20L, 1L))
+                .isInstanceOf(HouseholdPermissionException.class);
+        verify(transferRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteIsAllowedForTheUserWhoCreatedTheTransfer() {
+        Transfer transfer =
+                new Transfer(
+                        1L,
+                        10L,
+                        1L,
+                        2L,
+                        BigDecimal.TEN,
+                        LocalDate.now(),
+                        null,
+                        LocalDateTime.now());
+        when(transferRepositoryPort.findById(1L)).thenReturn(Optional.of(transfer));
+        when(recordAuthorshipPort.findTransferAuthor(1L)).thenReturn(Optional.of(20L));
+
+        service.delete(10L, 20L, 1L);
 
         verify(transferRepositoryPort).deleteById(1L);
     }

@@ -14,7 +14,7 @@ import java.util.List;
  */
 public record RecurringBudget(
         Long id,
-        Long userId,
+        Long householdId,
         Long categoryId,
         BigDecimal limitValue,
         YearMonth startMonth,
@@ -24,14 +24,14 @@ public record RecurringBudget(
         LocalDateTime createdAt) {
 
     public static RecurringBudget create(
-            Long userId,
+            Long householdId,
             Long categoryId,
             BigDecimal limitValue,
             YearMonth startMonth,
             YearMonth endMonth) {
         return new RecurringBudget(
                 null,
-                userId,
+                householdId,
                 categoryId,
                 limitValue,
                 startMonth,
@@ -41,8 +41,8 @@ public record RecurringBudget(
                 LocalDateTime.now());
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 
     /** Próximo mês ainda não lançado, ou {@code null} se a recorrência já terminou. */
@@ -70,7 +70,7 @@ public record RecurringBudget(
     public RecurringBudget withGeneratedMonths(int newGeneratedMonths) {
         return new RecurringBudget(
                 id,
-                userId,
+                householdId,
                 categoryId,
                 limitValue,
                 startMonth,
@@ -98,7 +98,7 @@ public record RecurringBudget(
         }
         return new RecurringBudget(
                 id,
-                userId,
+                householdId,
                 categoryId,
                 newLimitValue,
                 startMonth,

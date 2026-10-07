@@ -48,7 +48,7 @@ public class RecurringTransactionApplicationService {
      */
     @Transactional
     public RecurringTransaction create(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long accountId,
             Long categoryId,
             Long clientId,
@@ -63,15 +63,15 @@ public class RecurringTransactionApplicationService {
                 "Criando lançamento recorrente do tipo={} na conta={} para o usuário={}",
                 type,
                 accountId,
-                currentUserId);
-        requireOwnedAccount(currentUserId, accountId);
-        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, type);
-        requireOwnedClientIfPresent(currentUserId, clientId);
+                currentHouseholdId);
+        requireOwnedAccount(currentHouseholdId, accountId);
+        requireMatchingCategoryTypeIfPresent(currentHouseholdId, categoryId, type);
+        requireOwnedClientIfPresent(currentHouseholdId, clientId);
         requireValidPeriod(startDate, endDate);
         RecurringTransaction saved =
                 recurringTransactionRepositoryPort.save(
                         RecurringTransaction.create(
-                                currentUserId,
+                                currentHouseholdId,
                                 accountId,
                                 categoryId,
                                 clientId,
@@ -82,13 +82,14 @@ public class RecurringTransactionApplicationService {
                                 startDate,
                                 endDate));
         // Antes de gerar as ocorrências, para as transações já nascerem com as tags.
-        tagApplicationService.replaceRecurringTransactionTags(currentUserId, saved.id(), tagNames);
+        tagApplicationService.replaceRecurringTransactionTags(
+                currentHouseholdId, saved.id(), tagNames);
         return generateDueOccurrences(saved);
     }
 
-    public List<RecurringTransaction> list(Long currentUserId) {
-        log.debug("Listando lançamentos recorrentes do usuário={}", currentUserId);
-        return recurringTransactionRepositoryPort.findAllByUserId(currentUserId);
+    public List<RecurringTransaction> list(Long currentHouseholdId) {
+        log.debug("Listando lançamentos recorrentes do usuário={}", currentHouseholdId);
+        return recurringTransactionRepositoryPort.findAllByHouseholdId(currentHouseholdId);
     }
 
     /**
@@ -97,7 +98,7 @@ public class RecurringTransactionApplicationService {
      */
     @Transactional
     public RecurringTransaction update(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long recurringTransactionId,
             Long categoryId,
             Long clientId,
@@ -109,10 +110,11 @@ public class RecurringTransactionApplicationService {
         log.debug(
                 "Atualizando lançamento recorrente={} do usuário={}",
                 recurringTransactionId,
-                currentUserId);
-        RecurringTransaction existing = findOwnedOrThrow(currentUserId, recurringTransactionId);
-        requireMatchingCategoryTypeIfPresent(currentUserId, categoryId, existing.type());
-        requireOwnedClientIfPresent(currentUserId, clientId);
+                currentHouseholdId);
+        RecurringTransaction existing =
+                findOwnedOrThrow(currentHouseholdId, recurringTransactionId);
+        requireMatchingCategoryTypeIfPresent(currentHouseholdId, categoryId, existing.type());
+        requireOwnedClientIfPresent(currentHouseholdId, clientId);
         requireValidPeriod(existing.startDate(), endDate);
         RecurringTransaction updated =
                 recurringTransactionRepositoryPort.save(
@@ -126,18 +128,18 @@ public class RecurringTransactionApplicationService {
                                 LocalDate.now(clock)));
         if (tagNames != null) {
             tagApplicationService.replaceRecurringTransactionTags(
-                    currentUserId, recurringTransactionId, tagNames);
+                    currentHouseholdId, recurringTransactionId, tagNames);
         }
         return generateDueOccurrences(updated);
     }
 
     /** Exclui só o modelo: as transações já lançadas continuam, apenas sem o vínculo. */
-    public void delete(Long currentUserId, Long recurringTransactionId) {
+    public void delete(Long currentHouseholdId, Long recurringTransactionId) {
         log.debug(
                 "Removendo lançamento recorrente={} do usuário={}",
                 recurringTransactionId,
-                currentUserId);
-        findOwnedOrThrow(currentUserId, recurringTransactionId);
+                currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, recurringTransactionId);
         recurringTransactionRepositoryPort.deleteById(recurringTransactionId);
     }
 
@@ -191,10 +193,11 @@ public class RecurringTransactionApplicationService {
     }
 
     /** Acesso a recorrência de outro usuário é tratado como inexistente (404), não como 403. */
-    private RecurringTransaction findOwnedOrThrow(Long currentUserId, Long recurringTransactionId) {
+    private RecurringTransaction findOwnedOrThrow(
+            Long currentHouseholdId, Long recurringTransactionId) {
         return recurringTransactionRepositoryPort
                 .findById(recurringTransactionId)
-                .filter(recurrence -> recurrence.belongsTo(currentUserId))
+                .filter(recurrence -> recurrence.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(
@@ -202,23 +205,23 @@ public class RecurringTransactionApplicationService {
                                                 + recurringTransactionId));
     }
 
-    private void requireOwnedAccount(Long currentUserId, Long accountId) {
+    private void requireOwnedAccount(Long currentHouseholdId, Long accountId) {
         accountRepositoryPort
                 .findById(accountId)
-                .filter(account -> account.belongsTo(currentUserId))
+                .filter(account -> account.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
     private void requireMatchingCategoryTypeIfPresent(
-            Long currentUserId, Long categoryId, CategoryType type) {
+            Long currentHouseholdId, Long categoryId, CategoryType type) {
         if (categoryId == null) {
             return;
         }
         Category category =
                 categoryRepositoryPort
                         .findById(categoryId)
-                        .filter(candidate -> candidate.isVisibleTo(currentUserId))
+                        .filter(candidate -> candidate.isVisibleTo(currentHouseholdId))
                         .orElseThrow(
                                 () ->
                                         new ResourceNotFoundException(
@@ -235,13 +238,13 @@ public class RecurringTransactionApplicationService {
         }
     }
 
-    private void requireOwnedClientIfPresent(Long currentUserId, Long clientId) {
+    private void requireOwnedClientIfPresent(Long currentHouseholdId, Long clientId) {
         if (clientId == null) {
             return;
         }
         clientRepositoryPort
                 .findById(clientId)
-                .filter(client -> client.belongsTo(currentUserId))
+                .filter(client -> client.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }

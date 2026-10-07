@@ -24,7 +24,7 @@ public class ClientController {
 
     @GetMapping
     public List<ClientResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return clientApplicationService.list(currentUser.userId()).stream()
+        return clientApplicationService.list(currentUser.householdId()).stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -32,7 +32,7 @@ public class ClientController {
     @GetMapping("/{id}")
     public ClientResponse getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return mapper.toResponse(clientApplicationService.getById(currentUser.userId(), id));
+        return mapper.toResponse(clientApplicationService.getById(currentUser.householdId(), id));
     }
 
     @PostMapping
@@ -41,7 +41,7 @@ public class ClientController {
             @Valid @RequestBody ClientRequest request) {
         Client created =
                 clientApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.name(),
                         request.email(),
                         request.phone(),
@@ -61,7 +61,7 @@ public class ClientController {
             @Valid @RequestBody ClientRequest request) {
         Client updated =
                 clientApplicationService.update(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         id,
                         request.name(),
                         request.email(),
@@ -78,7 +78,7 @@ public class ClientController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        clientApplicationService.delete(currentUser.userId(), id);
+        clientApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 }

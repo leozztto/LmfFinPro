@@ -35,15 +35,15 @@ public interface TransactionRepositoryPort {
      * Soma de transações (sem transferências) do usuário numa categoria, dentro de um intervalo de
      * datas [start, end).
      */
-    BigDecimal sumAmountByUserIdAndCategoryIdAndTypeBetween(
-            Long userId, Long categoryId, CategoryType type, LocalDate start, LocalDate end);
+    BigDecimal sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
+            Long householdId, Long categoryId, CategoryType type, LocalDate start, LocalDate end);
 
     /**
-     * Igual a {@link #sumAmountByUserIdAndCategoryIdAndTypeBetween}, restrito às transações
+     * Igual a {@link #sumAmountByHouseholdIdAndCategoryIdAndTypeBetween}, restrito às transações
      * vinculadas ao cliente informado.
      */
-    BigDecimal sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
-            Long userId,
+    BigDecimal sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
+            Long householdId,
             Long categoryId,
             Long clientId,
             CategoryType type,
@@ -70,8 +70,8 @@ public interface TransactionRepositoryPort {
      * Soma do valor em reais das transações do usuário de um tipo dentro de [start, end), sem as
      * transferências entre contas próprias, de qualquer situação.
      */
-    BigDecimal sumBaseAmountByUserIdAndTypeBetween(
-            Long userId, CategoryType type, LocalDate start, LocalDate end);
+    BigDecimal sumBaseAmountByHouseholdIdAndTypeBetween(
+            Long householdId, CategoryType type, LocalDate start, LocalDate end);
 
     void deleteById(Long id);
 }

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * @param name nome normalizado por {@link #normalizeName}, sem o "#" (que é só de exibição)
  * @param color cor em hexadecimal ({@code #RRGGBB}) ou {@code null} para a cor neutra
  */
-public record Tag(Long id, Long userId, String name, String color, LocalDateTime createdAt) {
+public record Tag(Long id, Long householdId, String name, String color, LocalDateTime createdAt) {
 
     public static final int MAX_NAME_LENGTH = 40;
 
@@ -30,16 +30,16 @@ public record Tag(Long id, Long userId, String name, String color, LocalDateTime
         color = normalizeColor(color);
     }
 
-    public static Tag create(Long userId, String name, String color) {
-        return new Tag(null, userId, name, color, LocalDateTime.now());
+    public static Tag create(Long householdId, String name, String color) {
+        return new Tag(null, householdId, name, color, LocalDateTime.now());
     }
 
     public Tag withDetails(String newName, String newColor) {
-        return new Tag(id, userId, newName, newColor, createdAt);
+        return new Tag(id, householdId, newName, newColor, createdAt);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 
     /** Como a tag aparece para o usuário: {@code #nome}. */

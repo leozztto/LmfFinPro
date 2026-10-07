@@ -231,7 +231,7 @@ class RecurringTransactionApplicationServiceTest {
     @Test
     void listReturnsRecurrencesOfUser() {
         RecurringTransaction recurrence = existing(0, true);
-        when(recurringTransactionRepositoryPort.findAllByUserId(10L))
+        when(recurringTransactionRepositoryPort.findAllByHouseholdId(10L))
                 .thenReturn(List.of(recurrence));
 
         assertThat(service.list(10L)).containsExactly(recurrence);

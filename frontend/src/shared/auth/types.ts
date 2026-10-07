@@ -26,6 +26,8 @@ export interface RegisterPayload {
   phone?: string
   taxRegime?: string
   address: AddressPayload
+  /** Token de um convite para grupo (link do e-mail): ao criar a conta a pessoa já entra no grupo. */
+  inviteToken?: string
 }
 
 export interface LoginPayload {

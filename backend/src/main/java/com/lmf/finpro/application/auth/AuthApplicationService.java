@@ -1,17 +1,23 @@
 package com.lmf.finpro.application.auth;
 
 import com.lmf.finpro.application.FlowLog;
+import com.lmf.finpro.application.household.HouseholdApplicationService;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
 import com.lmf.finpro.domain.model.Address;
+import com.lmf.finpro.domain.model.Household;
+import com.lmf.finpro.domain.model.HouseholdMembership;
+import com.lmf.finpro.domain.model.HouseholdRole;
 import com.lmf.finpro.domain.model.User;
+import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
 import com.lmf.finpro.domain.port.out.PasswordHasherPort;
 import com.lmf.finpro.domain.port.out.TokenPort;
 import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -19,10 +25,13 @@ import org.springframework.stereotype.Service;
 public class AuthApplicationService {
 
     private final UserRepositoryPort userRepositoryPort;
+    private final HouseholdRepositoryPort householdRepositoryPort;
+    private final HouseholdApplicationService householdApplicationService;
     private final PasswordHasherPort passwordHasherPort;
     private final TokenPort tokenPort;
     private final RefreshTokenApplicationService refreshTokenApplicationService;
 
+    @Transactional
     public AuthResult register(RegisterCommand command) {
         log.debug("Iniciando registro de conta");
         if (userRepositoryPort.existsByEmail(command.email())) {
@@ -49,6 +58,17 @@ public class AuthApplicationService {
                                 onlyDigits(command.phone()),
                                 command.taxRegime(),
                                 toAddress(command.address())));
+
+        // Todo usuário novo começa com o seu espaço pessoal, do qual é o dono.
+        Household household = householdRepositoryPort.save(Household.personal(saved.name()));
+        householdRepositoryPort.saveMembership(
+                new HouseholdMembership(household.id(), saved.id(), HouseholdRole.OWNER));
+
+        // Cadastro a partir de um convite: entra também no grupo compartilhado. Se o convite for
+        // inválido a transação inteira é desfeita, inclusive o usuário.
+        if (command.inviteToken() != null && !command.inviteToken().isBlank()) {
+            householdApplicationService.acceptInvite(saved.id(), command.inviteToken());
+        }
 
         return toAuthResult(saved);
     }

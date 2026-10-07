@@ -19,6 +19,7 @@ Contas (`Account`) são a base de tudo: toda transação e toda transferência p
 - Cabeçalho com título e botão "+" que abre um modal com `AccountForm` vazio (criação).
 - `AccountList` abaixo, com filtros colapsáveis (nome, tipo) via `CollapsibleFilters`.
 - Cada conta aparece num card com: nome, tipo (rótulo em português — "Conta corrente", "Poupança", "Carteira", "Investimento", "Conta reserva"), uma etiqueta de uso ("Pessoal (PF)" / "Empresa (PJ)", destacada em roxo quando é PJ) e, se a moeda não for BRL, uma etiqueta com o código da moeda; saldo inicial e **saldo atual** (e o equivalente em reais, quando a moeda não é BRL); e ícones de ação — "Valor de mercado" (só para contas de investimento), editar e remover.
+- **Grupos**: com o espaço pessoal em exibição e a pessoa participando de algum grupo, o card ganha **Compartilhar com um grupo** (`ShareAccountDialog`: escolhe o grupo, avisa que a conta e o histórico vão juntos). Com um grupo em exibição, aparece "Trazida por {nome}" (`ownerName`) e, quando `canUnshare` é verdadeiro, **Descompartilhar** (com confirmação), que devolve a conta e o histórico ao espaço pessoal. Depois de compartilhar ou descompartilhar, as consultas dos espaços são atualizadas na hora. Regras e endpoints em [`fluxo-grupos.md`](fluxo-grupos.md).
 - Editar abre o mesmo `AccountForm`, agora em modo edição, num modal separado. "Valor de mercado" abre `AccountValuationsPanel` (ver [`fluxo-patrimonio.md`](./fluxo-patrimonio.md)).
 
 **Estados:**

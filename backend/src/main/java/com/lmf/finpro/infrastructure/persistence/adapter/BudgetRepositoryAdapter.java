@@ -28,15 +28,17 @@ public class BudgetRepositoryAdapter implements BudgetRepositoryPort {
     }
 
     @Override
-    public List<Budget> findAllByUserId(Long userId) {
-        return budgetJpaRepository.findByUserId(userId).stream().map(mapper::toDomain).toList();
+    public List<Budget> findAllByHouseholdId(Long householdId) {
+        return budgetJpaRepository.findByHouseholdId(householdId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
-    public boolean existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
-            Long userId, Long categoryId, YearMonth referenceMonth, Long clientId) {
-        return budgetJpaRepository.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
-                userId, categoryId, referenceMonth.atDay(1), clientId);
+    public boolean existsByHouseholdIdAndCategoryIdAndReferenceMonthAndClientId(
+            Long householdId, Long categoryId, YearMonth referenceMonth, Long clientId) {
+        return budgetJpaRepository.existsByHouseholdIdAndCategoryIdAndReferenceMonthAndClientId(
+                householdId, categoryId, referenceMonth.atDay(1), clientId);
     }
 
     @Override

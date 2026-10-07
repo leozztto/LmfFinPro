@@ -24,24 +24,24 @@ public class CategoryApplicationService {
     private final RecurringBudgetRepositoryPort recurringBudgetRepositoryPort;
 
     public Category create(
-            Long currentUserId, String name, CategoryType type, String color, String icon) {
-        log.debug("Criando categoria do tipo={} para o usuário={}", type, currentUserId);
+            Long currentHouseholdId, String name, CategoryType type, String color, String icon) {
+        log.debug("Criando categoria do tipo={} para o usuário={}", type, currentHouseholdId);
         Category saved =
                 categoryRepositoryPort.save(
-                        Category.create(currentUserId, name, type, color, icon));
-        log.debug("Categoria={} criada para o usuário={}", saved.id(), currentUserId);
+                        Category.create(currentHouseholdId, name, type, color, icon));
+        log.debug("Categoria={} criada para o usuário={}", saved.id(), currentHouseholdId);
         return saved;
     }
 
     /** Categorias do usuário + categorias globais do sistema. */
-    public List<Category> list(Long currentUserId) {
-        log.debug("Listando categorias do usuário={}", currentUserId);
-        return categoryRepositoryPort.findAllVisibleToUser(currentUserId);
+    public List<Category> list(Long currentHouseholdId) {
+        log.debug("Listando categorias do usuário={}", currentHouseholdId);
+        return categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId);
     }
 
-    public Category getById(Long currentUserId, Long categoryId) {
-        log.debug("Buscando categoria={} do usuário={}", categoryId, currentUserId);
-        return findVisibleOrThrow(currentUserId, categoryId);
+    public Category getById(Long currentHouseholdId, Long categoryId) {
+        log.debug("Buscando categoria={} do usuário={}", categoryId, currentHouseholdId);
+        return findVisibleOrThrow(currentHouseholdId, categoryId);
     }
 
     /**
@@ -51,47 +51,50 @@ public class CategoryApplicationService {
      * inconsistentes.
      */
     public Category update(
-            Long currentUserId, Long categoryId, String name, String color, String icon) {
-        Category existing = findOwnedOrThrow(currentUserId, categoryId);
-        log.debug("Atualizando categoria={} do usuário={}", categoryId, currentUserId);
+            Long currentHouseholdId, Long categoryId, String name, String color, String icon) {
+        Category existing = findOwnedOrThrow(currentHouseholdId, categoryId);
+        log.debug("Atualizando categoria={} do usuário={}", categoryId, currentHouseholdId);
         return categoryRepositoryPort.save(
                 existing.withDetails(name, existing.type(), color, icon));
     }
 
-    public void delete(Long currentUserId, Long categoryId) {
-        log.debug("Removendo categoria={} do usuário={}", categoryId, currentUserId);
-        findOwnedOrThrow(currentUserId, categoryId);
+    public void delete(Long currentHouseholdId, Long categoryId) {
+        log.debug("Removendo categoria={} do usuário={}", categoryId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, categoryId);
         if (transactionRepositoryPort.existsByCategoryId(categoryId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta categoria possui transações vinculadas. Exclua-as ou troque a categoria delas antes de remover.");
+                    "Esta categoria possui transações vinculadas. Exclua-as ou troque a categoria"
+                            + " delas antes de remover.");
         }
         if (recurringBudgetRepositoryPort.existsByCategoryId(categoryId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta categoria possui um orçamento recorrente vinculado. Exclua-o antes de remover a categoria.");
+                    "Esta categoria possui um orçamento recorrente vinculado. Exclua-o antes de"
+                            + " remover a categoria.");
         }
         // budgets.category_id é ON DELETE CASCADE: sem essa checagem, excluir a categoria apagaria
         // orçamentos existentes em silêncio, sem o usuário perceber.
         if (budgetRepositoryPort.existsByCategoryId(categoryId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta categoria possui orçamentos vinculados. Exclua-os antes de remover a categoria.");
+                    "Esta categoria possui orçamentos vinculados. Exclua-os antes de remover a"
+                            + " categoria.");
         }
         categoryRepositoryPort.deleteById(categoryId);
     }
 
-    private Category findVisibleOrThrow(Long currentUserId, Long categoryId) {
+    private Category findVisibleOrThrow(Long currentHouseholdId, Long categoryId) {
         return categoryRepositoryPort
                 .findById(categoryId)
-                .filter(category -> category.isVisibleTo(currentUserId))
+                .filter(category -> category.isVisibleTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(
                                         "Categoria não encontrada: " + categoryId));
     }
 
-    private Category findOwnedOrThrow(Long currentUserId, Long categoryId) {
+    private Category findOwnedOrThrow(Long currentHouseholdId, Long categoryId) {
         return categoryRepositoryPort
                 .findById(categoryId)
-                .filter(category -> category.isOwnedBy(currentUserId))
+                .filter(category -> category.isOwnedBy(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(

@@ -78,10 +78,10 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
-    public BigDecimal sumBaseAmountByUserIdAndTypeBetween(
-            Long userId, CategoryType type, LocalDate start, LocalDate end) {
-        return transactionJpaRepository.sumBaseAmountByUserIdAndTypeBetween(
-                userId, type, start, end);
+    public BigDecimal sumBaseAmountByHouseholdIdAndTypeBetween(
+            Long householdId, CategoryType type, LocalDate start, LocalDate end) {
+        return transactionJpaRepository.sumBaseAmountByHouseholdIdAndTypeBetween(
+                householdId, type, start, end);
     }
 
     @Override
@@ -118,22 +118,23 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     }
 
     @Override
-    public BigDecimal sumAmountByUserIdAndCategoryIdAndTypeBetween(
-            Long userId, Long categoryId, CategoryType type, LocalDate start, LocalDate end) {
-        return transactionJpaRepository.sumAmountByUserIdAndCategoryIdAndTypeBetween(
-                userId, categoryId, type, start, end);
+    public BigDecimal sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
+            Long householdId, Long categoryId, CategoryType type, LocalDate start, LocalDate end) {
+        return transactionJpaRepository.sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
+                householdId, categoryId, type, start, end);
     }
 
     @Override
-    public BigDecimal sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
-            Long userId,
+    public BigDecimal sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
+            Long householdId,
             Long categoryId,
             Long clientId,
             CategoryType type,
             LocalDate start,
             LocalDate end) {
-        return transactionJpaRepository.sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
-                userId, categoryId, clientId, type, start, end);
+        return transactionJpaRepository
+                .sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
+                        householdId, categoryId, clientId, type, start, end);
     }
 
     @Override

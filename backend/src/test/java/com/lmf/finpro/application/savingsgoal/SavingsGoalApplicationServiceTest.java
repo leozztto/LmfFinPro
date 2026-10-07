@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lmf.finpro.application.support.HouseholdTaxProfile;
 import com.lmf.finpro.application.transfer.TransferApplicationService;
 import com.lmf.finpro.application.transfer.TransferResult;
 import com.lmf.finpro.domain.exception.EntityHasLinkedRecordsException;
@@ -34,7 +36,6 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.GoalContributionRepositoryPort;
 import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
-import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -54,6 +55,8 @@ class SavingsGoalApplicationServiceTest {
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 26);
     private static final Long USER_ID = 10L;
+    // Quem está logado: distinto do grupo (USER_ID), como na vida real.
+    private static final Long ACTOR_ID = 99L;
     private static final Long GOAL_ID = 1L;
     private static final Long ACCOUNT_ID = 5L;
     private static final Long FUNDING_ACCOUNT_ID = 6L;
@@ -63,7 +66,7 @@ class SavingsGoalApplicationServiceTest {
     @Mock private GoalContributionRepositoryPort goalContributionRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
     @Mock private TransactionRepositoryPort transactionRepositoryPort;
-    @Mock private UserRepositoryPort userRepositoryPort;
+    @Mock private HouseholdTaxProfile householdTaxProfile;
     @Mock private TransferApplicationService transferApplicationService;
 
     private SavingsGoalApplicationService service;
@@ -76,11 +79,11 @@ class SavingsGoalApplicationServiceTest {
                         goalContributionRepositoryPort,
                         accountRepositoryPort,
                         transactionRepositoryPort,
-                        userRepositoryPort,
+                        householdTaxProfile,
                         transferApplicationService,
                         Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE));
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
@@ -97,18 +100,20 @@ class SavingsGoalApplicationServiceTest {
         // Transferência real por trás de cada aporte/resgate: por padrão, devolve um id fixo com as
         // contas/valor/data recebidos, pra testes que só precisam de um GoalContribution válido.
         lenient()
-                .when(transferApplicationService.create(any(), any(), any(), any(), any(), any()))
+                .when(
+                        transferApplicationService.create(
+                                any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenAnswer(
                         invocation ->
                                 new TransferResult(
                                         new Transfer(
                                                 TRANSFER_ID,
                                                 USER_ID,
-                                                invocation.getArgument(1),
                                                 invocation.getArgument(2),
                                                 invocation.getArgument(3),
                                                 invocation.getArgument(4),
                                                 invocation.getArgument(5),
+                                                invocation.getArgument(6),
                                                 null),
                                         100L,
                                         101L));
@@ -150,6 +155,7 @@ class SavingsGoalApplicationServiceTest {
                         () ->
                                 service.addContribution(
                                         USER_ID,
+                                        ACTOR_ID,
                                         GOAL_ID,
                                         ContributionType.WITHDRAWAL,
                                         new BigDecimal("150"),
@@ -158,7 +164,7 @@ class SavingsGoalApplicationServiceTest {
                 .isInstanceOf(InsufficientBalanceException.class);
         verify(goalContributionRepositoryPort, never()).save(any());
         verify(transferApplicationService, never())
-                .create(any(), any(), any(), any(), any(), any());
+                .create(any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -170,6 +176,7 @@ class SavingsGoalApplicationServiceTest {
         GoalContribution saved =
                 service.addContribution(
                         USER_ID,
+                        ACTOR_ID,
                         GOAL_ID,
                         ContributionType.DEPOSIT,
                         new BigDecimal("50"),
@@ -188,16 +195,24 @@ class SavingsGoalApplicationServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         service.addContribution(
-                USER_ID, GOAL_ID, ContributionType.DEPOSIT, new BigDecimal("50"), TODAY, null);
+                USER_ID,
+                ACTOR_ID,
+                GOAL_ID,
+                ContributionType.DEPOSIT,
+                new BigDecimal("50"),
+                TODAY,
+                null);
 
         verify(transferApplicationService)
                 .create(
                         eq(USER_ID),
+                        eq(ACTOR_ID),
                         eq(FUNDING_ACCOUNT_ID),
                         eq(ACCOUNT_ID),
                         eq(new BigDecimal("50")),
                         eq(TODAY),
-                        eq("Aporte na meta \"Caixinha do imposto\""));
+                        eq("Aporte na meta \"Caixinha do imposto\""),
+                        isNull());
     }
 
     @Test
@@ -209,16 +224,24 @@ class SavingsGoalApplicationServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         service.addContribution(
-                USER_ID, GOAL_ID, ContributionType.WITHDRAWAL, new BigDecimal("100"), TODAY, null);
+                USER_ID,
+                ACTOR_ID,
+                GOAL_ID,
+                ContributionType.WITHDRAWAL,
+                new BigDecimal("100"),
+                TODAY,
+                null);
 
         verify(transferApplicationService)
                 .create(
                         eq(USER_ID),
+                        eq(ACTOR_ID),
                         eq(ACCOUNT_ID),
                         eq(FUNDING_ACCOUNT_ID),
                         eq(new BigDecimal("100")),
                         eq(TODAY),
-                        eq("Resgate da meta \"Caixinha do imposto\""));
+                        eq("Resgate da meta \"Caixinha do imposto\""),
+                        isNull());
     }
 
     @Test
@@ -230,9 +253,9 @@ class SavingsGoalApplicationServiceTest {
                 .thenReturn(
                         List.of(deposit, contribution(ContributionType.WITHDRAWAL, "200", TODAY)));
 
-        assertThatThrownBy(() -> service.deleteContribution(USER_ID, GOAL_ID, 7L))
+        assertThatThrownBy(() -> service.deleteContribution(USER_ID, ACTOR_ID, GOAL_ID, 7L))
                 .isInstanceOf(InsufficientBalanceException.class);
-        verify(transferApplicationService, never()).delete(any(), any());
+        verify(transferApplicationService, never()).delete(any(), any(), any());
     }
 
     @Test
@@ -242,9 +265,9 @@ class SavingsGoalApplicationServiceTest {
         when(goalContributionRepositoryPort.findById(7L)).thenReturn(Optional.of(deposit));
         when(goalContributionRepositoryPort.findAllByGoalId(GOAL_ID)).thenReturn(List.of(deposit));
 
-        service.deleteContribution(USER_ID, GOAL_ID, 7L);
+        service.deleteContribution(USER_ID, ACTOR_ID, GOAL_ID, 7L);
 
-        verify(transferApplicationService).delete(USER_ID, TRANSFER_ID);
+        verify(transferApplicationService).delete(USER_ID, ACTOR_ID, TRANSFER_ID);
     }
 
     @Test
@@ -255,7 +278,7 @@ class SavingsGoalApplicationServiceTest {
         when(goalContributionRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.applySuggestion(USER_ID, GOAL_ID);
+        service.applySuggestion(USER_ID, ACTOR_ID, GOAL_ID);
 
         ArgumentCaptor<GoalContribution> captor = ArgumentCaptor.forClass(GoalContribution.class);
         verify(goalContributionRepositoryPort).save(captor.capture());
@@ -270,7 +293,7 @@ class SavingsGoalApplicationServiceTest {
     void applySuggestionWithNothingToSeparateIsRejected() {
         givenGoal(goal("10000", "0.06"));
 
-        assertThatThrownBy(() -> service.applySuggestion(USER_ID, GOAL_ID))
+        assertThatThrownBy(() -> service.applySuggestion(USER_ID, ACTOR_ID, GOAL_ID))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -414,8 +437,7 @@ class SavingsGoalApplicationServiceTest {
 
     @Test
     void suggestedTaxRateUsesRegimeAndAverageIncomeOfPreviousThreeMonths() {
-        when(userRepositoryPort.findById(USER_ID))
-                .thenReturn(Optional.of(user(TaxRegime.AUTONOMO)));
+        when(householdTaxProfile.regimeOf(USER_ID)).thenReturn(TaxRegime.AUTONOMO);
         // Média de 3000/mês nos 3 meses anteriores → faixa de 15%; a receita do mês atual não
         // conta.
         when(transactionRepositoryPort.findAllByAccountIds(List.of(ACCOUNT_ID)))
@@ -436,7 +458,7 @@ class SavingsGoalApplicationServiceTest {
 
     @Test
     void suggestedTaxRateForMeiIsTheFixedReferenceRate() {
-        when(userRepositoryPort.findById(USER_ID)).thenReturn(Optional.of(user(TaxRegime.MEI)));
+        when(householdTaxProfile.regimeOf(USER_ID)).thenReturn(TaxRegime.MEI);
 
         assertThat(service.suggestedTaxRate(USER_ID)).isEqualByComparingTo("0.06");
     }
@@ -444,7 +466,7 @@ class SavingsGoalApplicationServiceTest {
     private void givenGoal(SavingsGoal goal) {
         lenient().when(savingsGoalRepositoryPort.findById(GOAL_ID)).thenReturn(Optional.of(goal));
         lenient()
-                .when(savingsGoalRepositoryPort.findAllByUserId(USER_ID))
+                .when(savingsGoalRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(List.of(goal));
     }
 

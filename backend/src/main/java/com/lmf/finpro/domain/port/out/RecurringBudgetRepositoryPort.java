@@ -9,7 +9,7 @@ public interface RecurringBudgetRepositoryPort {
 
     Optional<RecurringBudget> findById(Long id);
 
-    List<RecurringBudget> findAllByUserId(Long userId);
+    List<RecurringBudget> findAllByHouseholdId(Long householdId);
 
     List<RecurringBudget> findAllActive();
 

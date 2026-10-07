@@ -13,7 +13,7 @@ import java.util.List;
  */
 public record RecurringTransaction(
         Long id,
-        Long userId,
+        Long householdId,
         Long accountId,
         Long categoryId,
         Long clientId,
@@ -28,7 +28,7 @@ public record RecurringTransaction(
         LocalDateTime createdAt) {
 
     public static RecurringTransaction create(
-            Long userId,
+            Long householdId,
             Long accountId,
             Long categoryId,
             Long clientId,
@@ -40,7 +40,7 @@ public record RecurringTransaction(
             LocalDate endDate) {
         return new RecurringTransaction(
                 null,
-                userId,
+                householdId,
                 accountId,
                 categoryId,
                 clientId,
@@ -55,8 +55,8 @@ public record RecurringTransaction(
                 LocalDateTime.now());
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 
     /** Próxima ocorrência ainda não lançada, ou {@code null} se a recorrência já terminou. */
@@ -85,7 +85,7 @@ public record RecurringTransaction(
     public RecurringTransaction withAmount(BigDecimal newAmount) {
         return new RecurringTransaction(
                 id,
-                userId,
+                householdId,
                 accountId,
                 categoryId,
                 clientId,
@@ -103,7 +103,7 @@ public record RecurringTransaction(
     public RecurringTransaction withGeneratedOccurrences(int newGeneratedOccurrences) {
         return new RecurringTransaction(
                 id,
-                userId,
+                householdId,
                 accountId,
                 categoryId,
                 clientId,
@@ -139,7 +139,7 @@ public record RecurringTransaction(
         }
         return new RecurringTransaction(
                 id,
-                userId,
+                householdId,
                 accountId,
                 newCategoryId,
                 newClientId,

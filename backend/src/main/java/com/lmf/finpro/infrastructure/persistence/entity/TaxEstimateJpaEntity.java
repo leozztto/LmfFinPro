@@ -19,9 +19,8 @@ public class TaxEstimateJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserJpaEntity user;
+    @Column(name = "household_id", nullable = false)
+    private Long householdId;
 
     @Column(name = "reference_month", nullable = false)
     private LocalDate referenceMonth;

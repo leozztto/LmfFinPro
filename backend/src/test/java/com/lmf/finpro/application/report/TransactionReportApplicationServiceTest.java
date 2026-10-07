@@ -56,7 +56,7 @@ class TransactionReportApplicationServiceTest {
     @BeforeEach
     void setUp() {
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
@@ -75,7 +75,7 @@ class TransactionReportApplicationServiceTest {
                                         5L, USER_ID, "Aluguel", CategoryType.EXPENSE, null, null),
                                 new Category(
                                         6L, null, "Internet", CategoryType.EXPENSE, null, null)));
-        lenient().when(clientRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        lenient().when(clientRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of());
         lenient().when(transactionRepositoryPort.search(any())).thenReturn(List.of());
     }
 
@@ -87,7 +87,7 @@ class TransactionReportApplicationServiceTest {
                 ArgumentCaptor.forClass(TransactionSearchCriteria.class);
         verify(transactionRepositoryPort).search(captor.capture());
         TransactionSearchCriteria criteria = captor.getValue();
-        assertThat(criteria.userId()).isEqualTo(USER_ID);
+        assertThat(criteria.householdId()).isEqualTo(USER_ID);
         assertThat(criteria.type()).isEqualTo(CategoryType.EXPENSE);
         assertThat(criteria.excludeTransfers()).isTrue();
         assertThat(criteria.startDate()).isNull();

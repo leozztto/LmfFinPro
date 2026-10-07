@@ -60,7 +60,7 @@ public class TransactionReportApplicationService {
     private final TagApplicationService tagApplicationService;
 
     public byte[] generate(
-            Long currentUserId,
+            Long currentHouseholdId,
             CategoryType type,
             TransactionReportFilters filters,
             ReportFormat format) {
@@ -68,25 +68,25 @@ public class TransactionReportApplicationService {
                 "Gerando relatório de transações tipo={} formato={} para o usuário={}",
                 type,
                 format,
-                currentUserId);
-        TransactionReportData data = buildData(currentUserId, type, filters);
+                currentHouseholdId);
+        TransactionReportData data = buildData(currentHouseholdId, type, filters);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportTransactionReport(data)
                 : receiptGeneratorPort.generateTransactionReport(data);
     }
 
     TransactionReportData buildData(
-            Long currentUserId, CategoryType type, TransactionReportFilters filters) {
+            Long currentHouseholdId, CategoryType type, TransactionReportFilters filters) {
         validate(filters);
 
         Map<Long, Account> accountById =
-                accountRepositoryPort.findAllByUserId(currentUserId).stream()
+                accountRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Account::id, account -> account));
         Map<Long, String> categoryNameById =
-                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
         Map<Long, String> clientNameById =
-                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                clientRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name));
 
         // Id de conta/categoria/cliente que não é do usuário: 404, em vez de um relatório vazio.
@@ -100,7 +100,7 @@ public class TransactionReportApplicationService {
         if (filters.clientId() != null && !clientNameById.containsKey(filters.clientId())) {
             throw new ResourceNotFoundException("Cliente não encontrado: " + filters.clientId());
         }
-        Map<Long, Tag> tagById = tagApplicationService.tagsById(currentUserId);
+        Map<Long, Tag> tagById = tagApplicationService.tagsById(currentHouseholdId);
         for (Long tagId : filters.tagIds()) {
             if (!tagById.containsKey(tagId)) {
                 throw new ResourceNotFoundException("Tag não encontrada: " + tagId);
@@ -110,7 +110,7 @@ public class TransactionReportApplicationService {
         List<Transaction> transactions =
                 transactionRepositoryPort.search(
                         new TransactionSearchCriteria(
-                                currentUserId,
+                                currentHouseholdId,
                                 type,
                                 filters.startDate(),
                                 filters.endDate(),
@@ -126,7 +126,7 @@ public class TransactionReportApplicationService {
                                 filters.tagIds()));
         Map<Long, List<Tag>> tagsByTransaction =
                 tagApplicationService.tagsByTransactionIds(
-                        currentUserId, transactions.stream().map(Transaction::id).toList());
+                        currentHouseholdId, transactions.stream().map(Transaction::id).toList());
 
         List<Row> rows =
                 transactions.stream()

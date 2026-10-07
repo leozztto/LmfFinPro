@@ -37,7 +37,7 @@ public class DashboardController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(required = false) AccountScope scope) {
         return mapper.toResponse(
-                dashboardApplicationService.getOverview(currentUser.userId(), scope));
+                dashboardApplicationService.getOverview(currentUser.householdId(), scope));
     }
 
     @GetMapping("/monthly-flow")
@@ -46,7 +46,7 @@ public class DashboardController {
             @RequestParam(defaultValue = "6") int months,
             @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getMonthlyFlow(currentUser.userId(), months, scope)
+                .getMonthlyFlow(currentUser.householdId(), months, scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -58,7 +58,7 @@ public class DashboardController {
             @RequestParam(defaultValue = "6") int months,
             @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getBalanceEvolution(currentUser.userId(), months, scope)
+                .getBalanceEvolution(currentUser.householdId(), months, scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -70,7 +70,7 @@ public class DashboardController {
             @RequestParam(defaultValue = "3") int months,
             @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getCashFlowProjection(currentUser.userId(), months, scope)
+                .getCashFlowProjection(currentUser.householdId(), months, scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -83,7 +83,7 @@ public class DashboardController {
             @RequestParam String month,
             @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getCategoryBreakdown(currentUser.userId(), type, parseMonth(month), scope)
+                .getCategoryBreakdown(currentUser.householdId(), type, parseMonth(month), scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -95,7 +95,7 @@ public class DashboardController {
             @RequestParam String month,
             @RequestParam(required = false) AccountScope scope) {
         return dashboardApplicationService
-                .getClientBreakdown(currentUser.userId(), parseMonth(month), scope)
+                .getClientBreakdown(currentUser.householdId(), parseMonth(month), scope)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();

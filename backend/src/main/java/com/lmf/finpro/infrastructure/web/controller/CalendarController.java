@@ -30,7 +30,7 @@ public class CalendarController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month,
             @RequestParam(defaultValue = "false") boolean includePaid) {
         CalendarApplicationService.Result result =
-                calendarApplicationService.build(currentUser.userId(), month, includePaid);
+                calendarApplicationService.build(currentUser.householdId(), month, includePaid);
         FinancialCalendar.Report report = result.report();
         return new CalendarResponse(
                 report.month(),

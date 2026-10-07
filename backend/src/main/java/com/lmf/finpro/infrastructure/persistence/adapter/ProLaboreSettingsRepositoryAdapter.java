@@ -19,7 +19,7 @@ public class ProLaboreSettingsRepositoryAdapter implements ProLaboreSettingsRepo
         return toDomain(
                 repository.save(
                         ProLaboreSettingsJpaEntity.builder()
-                                .userId(settings.userId())
+                                .householdId(settings.householdId())
                                 .calculationBase(settings.calculationBase())
                                 .cashCushionMonths(settings.cashCushionMonths())
                                 .reserveRate(settings.reserveRate())
@@ -32,13 +32,13 @@ public class ProLaboreSettingsRepositoryAdapter implements ProLaboreSettingsRepo
     }
 
     @Override
-    public Optional<ProLaboreSettings> findByUserId(Long userId) {
-        return repository.findById(userId).map(this::toDomain);
+    public Optional<ProLaboreSettings> findByHouseholdId(Long householdId) {
+        return repository.findById(householdId).map(this::toDomain);
     }
 
     private ProLaboreSettings toDomain(ProLaboreSettingsJpaEntity entity) {
         return new ProLaboreSettings(
-                entity.getUserId(),
+                entity.getHouseholdId(),
                 entity.getCalculationBase(),
                 entity.getCashCushionMonths(),
                 entity.getReserveRate(),

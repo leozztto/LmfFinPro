@@ -1,6 +1,8 @@
 package com.lmf.finpro.infrastructure.web.controller;
 
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
+import com.lmf.finpro.application.support.RecordAuthor;
+import com.lmf.finpro.application.support.RecordAuthorshipApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.application.transaction.TransactionApplicationService;
 import com.lmf.finpro.domain.model.PageResult;
@@ -32,6 +34,7 @@ public class TransactionController {
     private final TransactionWebMapper mapper;
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
     private final TagApplicationService tagApplicationService;
+    private final RecordAuthorshipApplicationService recordAuthorshipApplicationService;
 
     /**
      * Cada transação vem com a quantidade de anexos e as tags — uma consulta agrupada de cada, para
@@ -43,15 +46,26 @@ public class TransactionController {
             TransactionListRequest request) {
         PageResult<Transaction> page =
                 transactionApplicationService.list(
-                        currentUser.userId(), request.toFilters(), request.page(), request.size());
-        return PageResponse.of(toResponses(currentUser.userId(), page.content()), page);
+                        currentUser.householdId(),
+                        currentUser.userId(),
+                        request.toFilters(),
+                        request.page(),
+                        request.size());
+        return PageResponse.of(
+                toResponses(
+                        currentUser.householdId(),
+                        page.content(),
+                        transactionApplicationService.namesOfAccountsOutside(
+                                currentUser.householdId(), page.content())),
+                page);
     }
 
     @GetMapping("/{id}")
     public TransactionResponse getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        Transaction transaction = transactionApplicationService.getById(currentUser.userId(), id);
-        return toResponses(currentUser.userId(), List.of(transaction)).get(0);
+        Transaction transaction =
+                transactionApplicationService.getById(currentUser.householdId(), id);
+        return toResponses(currentUser.householdId(), List.of(transaction)).get(0);
     }
 
     @PostMapping
@@ -60,6 +74,7 @@ public class TransactionController {
             @Valid @RequestBody TransactionRequest request) {
         Transaction created =
                 transactionApplicationService.create(
+                        currentUser.householdId(),
                         currentUser.userId(),
                         request.accountId(),
                         request.categoryId(),
@@ -73,7 +88,7 @@ public class TransactionController {
                         request.originalCurrency(),
                         request.originalAmount());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toResponses(currentUser.userId(), List.of(created)).get(0));
+                .body(toResponses(currentUser.householdId(), List.of(created)).get(0));
     }
 
     @PutMapping("/{id}")
@@ -83,7 +98,7 @@ public class TransactionController {
             @Valid @RequestBody TransactionRequest request) {
         Transaction updated =
                 transactionApplicationService.update(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         id,
                         request.categoryId(),
                         request.clientId(),
@@ -95,7 +110,7 @@ public class TransactionController {
                         request.tagNames(),
                         request.originalCurrency(),
                         request.originalAmount());
-        return toResponses(currentUser.userId(), List.of(updated)).get(0);
+        return toResponses(currentUser.householdId(), List.of(updated)).get(0);
     }
 
     @PatchMapping("/{id}/status")
@@ -105,8 +120,8 @@ public class TransactionController {
             @Valid @RequestBody TransactionStatusRequest request) {
         Transaction updated =
                 transactionApplicationService.updateStatus(
-                        currentUser.userId(), id, request.status());
-        return toResponses(currentUser.userId(), List.of(updated)).get(0);
+                        currentUser.householdId(), id, request.status());
+        return toResponses(currentUser.householdId(), List.of(updated)).get(0);
     }
 
     /** Troca só as tags (inclusive de transação paga, importada ou de transferência). */
@@ -117,29 +132,38 @@ public class TransactionController {
             @Valid @RequestBody TagNamesRequest request) {
         Transaction transaction =
                 transactionApplicationService.updateTags(
-                        currentUser.userId(), id, request.tagNames());
-        return toResponses(currentUser.userId(), List.of(transaction)).get(0);
+                        currentUser.householdId(), id, request.tagNames());
+        return toResponses(currentUser.householdId(), List.of(transaction)).get(0);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        transactionApplicationService.delete(currentUser.userId(), id);
+        transactionApplicationService.delete(currentUser.householdId(), currentUser.userId(), id);
         return ResponseEntity.noContent().build();
     }
 
     private List<TransactionResponse> toResponses(Long userId, List<Transaction> transactions) {
+        return toResponses(userId, transactions, Map.of());
+    }
+
+    private List<TransactionResponse> toResponses(
+            Long userId, List<Transaction> transactions, Map<Long, String> linkedAccountNames) {
         List<Long> ids = transactions.stream().map(Transaction::id).toList();
         Map<Long, Long> attachmentCounts =
                 transactionAttachmentApplicationService.countByTransactionIds(ids);
         Map<Long, List<Tag>> tags = tagApplicationService.tagsByTransactionIds(userId, ids);
+        Map<Long, RecordAuthor> authors =
+                recordAuthorshipApplicationService.authorsOfTransactions(ids);
         return transactions.stream()
                 .map(
                         transaction ->
                                 mapper.toResponse(
                                         transaction,
                                         attachmentCounts.getOrDefault(transaction.id(), 0L),
-                                        tags.getOrDefault(transaction.id(), List.of())))
+                                        tags.getOrDefault(transaction.id(), List.of()),
+                                        authors.get(transaction.id()),
+                                        linkedAccountNames.get(transaction.accountId())))
                 .toList();
     }
 }

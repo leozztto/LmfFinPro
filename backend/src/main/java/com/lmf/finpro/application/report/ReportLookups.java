@@ -19,22 +19,25 @@ class ReportLookups {
     private final AccountRepositoryPort accountRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
 
-    Client findOwnedClientOrThrow(Long currentUserId, Long clientId) {
+    Client findOwnedClientOrThrow(Long currentHouseholdId, Long clientId) {
         return clientRepositoryPort
                 .findById(clientId)
-                .filter(candidate -> candidate.belongsTo(currentUserId))
+                .filter(candidate -> candidate.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }
 
-    Account findOwnedAccountOrThrow(Long currentUserId, Long accountId) {
+    Account findOwnedAccountOrThrow(Long currentHouseholdId, Long accountId) {
         return accountRepositoryPort
                 .findById(accountId)
-                .filter(candidate -> candidate.belongsTo(currentUserId))
+                .filter(candidate -> candidate.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
+    /**
+     * O usuário que está gerando o relatório: é o emitente que aparece no cabeçalho do documento.
+     */
     User findUserOrThrow(Long currentUserId) {
         return userRepositoryPort
                 .findById(currentUserId)

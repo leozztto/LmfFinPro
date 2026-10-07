@@ -26,7 +26,7 @@ public class TagController {
 
     @GetMapping
     public List<TagResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return tagApplicationService.list(currentUser.userId()).stream()
+        return tagApplicationService.list(currentUser.householdId()).stream()
                 .map(usage -> toResponse(usage.tag(), usage.transactionCount()))
                 .toList();
     }
@@ -36,7 +36,8 @@ public class TagController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody TagRequest request) {
         Tag created =
-                tagApplicationService.create(currentUser.userId(), request.name(), request.color());
+                tagApplicationService.create(
+                        currentUser.householdId(), request.name(), request.color());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created, 0));
     }
 
@@ -47,9 +48,9 @@ public class TagController {
             @Valid @RequestBody TagRequest request) {
         Tag updated =
                 tagApplicationService.update(
-                        currentUser.userId(), id, request.name(), request.color());
+                        currentUser.householdId(), id, request.name(), request.color());
         long count =
-                tagApplicationService.list(currentUser.userId()).stream()
+                tagApplicationService.list(currentUser.householdId()).stream()
                         .filter(usage -> usage.tag().id().equals(id))
                         .mapToLong(TagApplicationService.TagUsage::transactionCount)
                         .findFirst()
@@ -60,7 +61,7 @@ public class TagController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        tagApplicationService.delete(currentUser.userId(), id);
+        tagApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 

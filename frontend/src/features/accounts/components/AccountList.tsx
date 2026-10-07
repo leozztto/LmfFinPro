@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, CollapsibleFilters, FormField, IconButton, Input, Modal, Select } from '@/shared/ui'
-import { PencilIcon, TrashIcon, TrendingUpIcon } from '@/shared/ui/icons'
+import { LogOutIcon, PencilIcon, TrashIcon, TrendingUpIcon, UsersIcon } from '@/shared/ui/icons'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
+import { useHousehold } from '@/shared/household/HouseholdContext'
+import { ShareAccountDialog } from '@/features/households/components/ShareAccountDialog'
+import { useUnshareAccounts } from '@/features/households/hooks/useShareAccounts'
 import { useAccounts } from '../hooks/useAccounts'
 import { useDeleteAccount } from '../hooks/useDeleteAccount'
 import { ACCOUNT_SCOPE_LABELS, ACCOUNT_TYPE_LABELS, type Account, type AccountType } from '../types'
@@ -26,6 +29,9 @@ export function AccountList() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [valuingAccount, setValuingAccount] = useState<Account | null>(null)
+  const [sharingAccount, setSharingAccount] = useState<Account | null>(null)
+  const { isShared, active } = useHousehold()
+  const unshareAccounts = useUnshareAccounts()
 
   async function handleDelete(accountId: number, accountName: string) {
     const confirmed = await confirm({
@@ -41,6 +47,27 @@ export function AccountList() {
         showToast(error instanceof ApiError ? error.message : 'Não foi possível remover a conta.')
       },
     })
+  }
+
+  async function handleUnshare(account: Account) {
+    if (!active) return
+    const confirmed = await confirm({
+      title: 'Descompartilhar conta',
+      message: `Descompartilhar "${account.name}"? A conta e todo o histórico dela, inclusive os lançamentos feitos por outros membros, voltam para os seus dados pessoais e deixam de aparecer para o grupo "${active.name}".`,
+      confirmLabel: 'Descompartilhar',
+    })
+    if (!confirmed) return
+    unshareAccounts.mutate(
+      { householdId: active.id, accountIds: [account.id] },
+      {
+        onSuccess: (result) => {
+          const transactions = `${result.transactions} ${result.transactions === 1 ? 'transação' : 'transações'}`
+          showToast(`"${account.name}" e ${transactions} voltaram para os seus dados pessoais.`, 'success')
+        },
+        onError: (error) =>
+          showToast(error instanceof ApiError ? error.message : 'Não foi possível descompartilhar a conta.'),
+      },
+    )
   }
 
   const filtered = useMemo(() => {
@@ -130,6 +157,9 @@ export function AccountList() {
                     </span>
                   )}
                 </p>
+                {isShared && account.ownerName && (
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Trazida por {account.ownerName}</p>
+                )}
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
                   Saldo inicial: {formatCurrency(account.initialBalance, account.currency)}
                 </p>
@@ -150,6 +180,21 @@ export function AccountList() {
                     onClick={() => setValuingAccount(account)}
                   />
                 )}
+                {!isShared && (
+                  <IconButton
+                    icon={UsersIcon}
+                    label="Compartilhar com um grupo"
+                    onClick={() => setSharingAccount(account)}
+                  />
+                )}
+                {isShared && account.canUnshare && (
+                  <IconButton
+                    icon={LogOutIcon}
+                    label="Descompartilhar (voltar para os meus dados)"
+                    onClick={() => handleUnshare(account)}
+                    disabled={unshareAccounts.isPending}
+                  />
+                )}
                 <IconButton icon={PencilIcon} label="Editar" onClick={() => setEditingAccount(account)} />
                 <IconButton
                   icon={TrashIcon}
@@ -168,6 +213,14 @@ export function AccountList() {
           <AccountForm key={editingAccount.id} account={editingAccount} onSuccess={() => setEditingAccount(null)} />
         )}
       </Modal>
+
+      {sharingAccount && (
+        <ShareAccountDialog
+          accountId={sharingAccount.id}
+          accountName={sharingAccount.name}
+          onClose={() => setSharingAccount(null)}
+        />
+      )}
 
       <Modal
         open={valuingAccount != null}

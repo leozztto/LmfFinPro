@@ -56,7 +56,11 @@ public class UseCaseLoggingAspect {
     public static final String MDC_FLOW = "flow";
 
     private static final String SERVICE_SUFFIX = "ApplicationService";
-    private static final String CURRENT_USER_PARAM = "currentUserId";
+
+    /**
+     * Quem está logado e de qual grupo: já vão no MDC (userId, householdId), não repetem no fluxo.
+     */
+    private static final Set<String> CONTEXT_PARAMS = Set.of("currentUserId", "currentHouseholdId");
 
     /** Serviços inteiros que só existem para apoiar outros fluxos. */
     private static final Set<String> HELPER_SERVICES = Set.of("ExchangeRate");
@@ -143,7 +147,7 @@ public class UseCaseLoggingAspect {
         for (int i = 0; i < names.length && i < values.length; i++) {
             if (values[i] instanceof Long
                     && names[i].endsWith("Id")
-                    && !CURRENT_USER_PARAM.equals(names[i])) {
+                    && !CONTEXT_PARAMS.contains(names[i])) {
                 context.put(names[i], values[i]);
             }
         }

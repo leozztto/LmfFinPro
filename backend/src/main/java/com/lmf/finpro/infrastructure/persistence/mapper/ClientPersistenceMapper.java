@@ -2,7 +2,6 @@ package com.lmf.finpro.infrastructure.persistence.mapper;
 
 import com.lmf.finpro.domain.model.Client;
 import com.lmf.finpro.infrastructure.persistence.entity.ClientJpaEntity;
-import com.lmf.finpro.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,7 +10,7 @@ public class ClientPersistenceMapper {
     public ClientJpaEntity toEntity(Client client) {
         return ClientJpaEntity.builder()
                 .id(client.id())
-                .user(UserJpaEntity.builder().id(client.userId()).build())
+                .householdId(client.householdId())
                 .name(client.name())
                 .email(client.email())
                 .phone(client.phone())
@@ -27,7 +26,7 @@ public class ClientPersistenceMapper {
     public Client toDomain(ClientJpaEntity entity) {
         return new Client(
                 entity.getId(),
-                entity.getUser().getId(),
+                entity.getHouseholdId(),
                 entity.getName(),
                 entity.getEmail(),
                 entity.getPhone(),

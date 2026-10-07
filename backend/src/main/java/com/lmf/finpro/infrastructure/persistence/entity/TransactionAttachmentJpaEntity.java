@@ -21,8 +21,8 @@ public class TransactionAttachmentJpaEntity {
     @Column(name = "transaction_id", nullable = false)
     private Long transactionId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "household_id", nullable = false)
+    private Long householdId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "document_type", nullable = false, length = 20)

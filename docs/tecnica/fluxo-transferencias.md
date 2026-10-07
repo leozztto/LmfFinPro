@@ -153,6 +153,10 @@ flowchart LR
 
 Do lado da tela de **Transações**, uma perna individual de transferência (`transaction.transferId != null`) não pode ser editada nem excluída isoladamente — a UI/API bloqueia essa ação e direciona o usuário a excluir a transferência inteira aqui (ver [`fluxo-transacoes.md`](fluxo-transacoes.md)).
 
+## 5.1 Transferência entre espaços (grupos)
+
+Uma transferência pertence a um espaço só. Ao compartilhar uma conta que tem transferência com uma conta que fica, a transferência é dividida em duas (uma por espaço) e volta a ser uma só quando as duas contas estão no mesmo espaço de novo (ver [`fluxo-grupos.md`](fluxo-grupos.md), seção 5). Depois da divisão, **não é possível criar** novas transferências entre uma conta pessoal e uma do grupo pela API: a origem e o destino têm de ser do espaço em exibição. Na tela de Transações as duas pernas aparecem para quem participa das duas contas (ver [`fluxo-transacoes.md`](fluxo-transacoes.md)).
+
 ## 6. Por que transferências não contam como receita/despesa
 
 Sem esse filtro, mover R$ 1.000 da Conta Corrente pra Poupança apareceria simultaneamente como R$ 1.000 de despesa (na origem) e R$ 1.000 de receita (no destino) nos gráficos do Dashboard — inflando artificialmente tanto a receita quanto a despesa do mês, mesmo sem nenhum dinheiro novo entrando ou saindo do usuário.

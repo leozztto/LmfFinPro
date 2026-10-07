@@ -6,6 +6,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.account.AccountApplicationService;
+import com.lmf.finpro.application.support.HouseholdTaxProfile;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountScope;
 import com.lmf.finpro.domain.model.AccountType;
@@ -32,7 +33,6 @@ import com.lmf.finpro.domain.port.out.ProLaboreSettingsRepositoryPort;
 import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
-import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -76,7 +76,7 @@ class ProLaboreApplicationServiceTest {
     @Mock private TransferRepositoryPort transferRepositoryPort;
     @Mock private SavingsGoalRepositoryPort savingsGoalRepositoryPort;
     @Mock private GoalContributionRepositoryPort goalContributionRepositoryPort;
-    @Mock private UserRepositoryPort userRepositoryPort;
+    @Mock private HouseholdTaxProfile householdTaxProfile;
     @Mock private ProLaboreSettingsRepositoryPort proLaboreSettingsRepositoryPort;
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
 
@@ -92,24 +92,24 @@ class ProLaboreApplicationServiceTest {
                         transferRepositoryPort,
                         savingsGoalRepositoryPort,
                         goalContributionRepositoryPort,
-                        userRepositoryPort,
+                        householdTaxProfile,
                         proLaboreSettingsRepositoryPort,
                         categoryRepositoryPort,
                         Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE));
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(List.of(BUSINESS, PERSONAL));
         lenient()
                 .when(accountApplicationService.calculateCurrentBalance(BUSINESS))
                 .thenReturn(new BigDecimal("20000"));
         lenient().when(transactionRepositoryPort.findAllByAccountIds(any())).thenReturn(List.of());
-        lenient().when(transferRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
-        lenient().when(savingsGoalRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        lenient().when(transferRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of());
         lenient()
-                .when(userRepositoryPort.findById(USER_ID))
-                .thenReturn(Optional.of(user(TaxRegime.MEI)));
+                .when(savingsGoalRepositoryPort.findAllByHouseholdId(USER_ID))
+                .thenReturn(List.of());
+        lenient().when(householdTaxProfile.regimeOf(USER_ID)).thenReturn(TaxRegime.MEI);
         lenient()
-                .when(proLaboreSettingsRepositoryPort.findByUserId(USER_ID))
+                .when(proLaboreSettingsRepositoryPort.findByHouseholdId(USER_ID))
                 .thenReturn(Optional.empty());
     }
 
@@ -304,8 +304,7 @@ class ProLaboreApplicationServiceTest {
 
     @Test
     void automaticWithholdingAppliesToLucroPresumidoWithEmployerInss() {
-        when(userRepositoryPort.findById(USER_ID))
-                .thenReturn(Optional.of(user(TaxRegime.LUCRO_PRESUMIDO)));
+        when(householdTaxProfile.regimeOf(USER_ID)).thenReturn(TaxRegime.LUCRO_PRESUMIDO);
         when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
                 .thenReturn(List.of(tx(CategoryType.INCOME, "10000", TODAY, true, null)));
 
@@ -337,7 +336,7 @@ class ProLaboreApplicationServiceTest {
                         false,
                         20L,
                         21L);
-        when(savingsGoalRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of(taxBox));
+        when(savingsGoalRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of(taxBox));
         when(goalContributionRepositoryPort.findAllByGoalId(5L))
                 .thenReturn(
                         List.of(
@@ -361,7 +360,7 @@ class ProLaboreApplicationServiceTest {
 
     @Test
     void withdrawalsAreTransfersFromBusinessToPersonalInTheMonth() {
-        when(transferRepositoryPort.findAllByUserId(USER_ID))
+        when(transferRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 transfer(1L, 1L, 2L, "2000", TODAY.minusDays(1)),
@@ -381,7 +380,7 @@ class ProLaboreApplicationServiceTest {
 
     @Test
     void withoutBusinessAccountsThereIsNothingToWithdraw() {
-        when(accountRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of(PERSONAL));
+        when(accountRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of(PERSONAL));
 
         ProLaboreSummary summary = service.summary(USER_ID);
 
@@ -391,7 +390,7 @@ class ProLaboreApplicationServiceTest {
     }
 
     private void givenSettings(ProLaboreSettings settings) {
-        when(proLaboreSettingsRepositoryPort.findByUserId(USER_ID))
+        when(proLaboreSettingsRepositoryPort.findByHouseholdId(USER_ID))
                 .thenReturn(Optional.of(settings));
     }
 

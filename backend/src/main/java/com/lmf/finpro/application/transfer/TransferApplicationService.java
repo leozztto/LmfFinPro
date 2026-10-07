@@ -3,14 +3,18 @@ package com.lmf.finpro.application.transfer;
 import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationService;
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
+import com.lmf.finpro.domain.exception.HouseholdPermissionException;
 import com.lmf.finpro.domain.exception.InsufficientBalanceException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.RecordAuthorship;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.Transfer;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
+import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecordAuthorshipPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
 import java.math.BigDecimal;
@@ -35,25 +39,60 @@ public class TransferApplicationService {
     private final AccountApplicationService accountApplicationService;
     private final TransactionAttachmentApplicationService transactionAttachmentApplicationService;
     private final ExchangeRateApplicationService exchangeRateApplicationService;
+    private final RecordAuthorshipPort recordAuthorshipPort;
+    private final HouseholdRepositoryPort householdRepositoryPort;
 
     public TransferResult create(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long fromAccountId,
             Long toAccountId,
             BigDecimal amount,
             LocalDate transferDate,
             String description) {
         return create(
-                currentUserId, fromAccountId, toAccountId, amount, transferDate, description, null);
+                currentHouseholdId,
+                fromAccountId,
+                toAccountId,
+                amount,
+                transferDate,
+                description,
+                null);
     }
 
     /**
      * Entre contas de moedas diferentes, {@code receivedAmount} é o valor que entra no destino, na
      * moeda dele (o câmbio efetivo, com spread e taxas); entre contas da mesma moeda é ignorado. As
      * duas pernas recebem o mesmo valor em reais, para continuarem se anulando no consolidado.
+     *
+     * <p>Sem autor conhecido (uso do sistema, como o aporte automático de uma meta): qualquer
+     * membro do grupo pode excluir depois.
+     */
+    public TransferResult create(
+            Long currentHouseholdId,
+            Long fromAccountId,
+            Long toAccountId,
+            BigDecimal amount,
+            LocalDate transferDate,
+            String description,
+            BigDecimal receivedAmount) {
+        return create(
+                currentHouseholdId,
+                null,
+                fromAccountId,
+                toAccountId,
+                amount,
+                transferDate,
+                description,
+                receivedAmount);
+    }
+
+    /**
+     * {@code currentUserId} fica gravado como autor: numa conta compartilhada, só ele poderá
+     * excluir.
      */
     @Transactional
     public TransferResult create(
+            Long currentHouseholdId,
             Long currentUserId,
             Long fromAccountId,
             Long toAccountId,
@@ -65,14 +104,20 @@ public class TransferApplicationService {
                 "Criando transferência da conta={} para a conta={} do usuário={}",
                 fromAccountId,
                 toAccountId,
-                currentUserId);
+                currentHouseholdId);
         if (fromAccountId.equals(toAccountId)) {
             throw new SameAccountTransferException(
                     "A conta de origem e destino não podem ser a mesma.");
         }
 
-        Account fromAccount = findOwnedOrThrow(currentUserId, fromAccountId);
-        Account toAccount = findOwnedOrThrow(currentUserId, toAccountId);
+        Account fromAccount =
+                findReachableOrThrow(currentHouseholdId, currentUserId, fromAccountId);
+        Account toAccount = findReachableOrThrow(currentHouseholdId, currentUserId, toAccountId);
+        if (!fromAccount.belongsTo(currentHouseholdId)
+                && !toAccount.belongsTo(currentHouseholdId)) {
+            // Ao menos uma ponta é do espaço de quem transfere; duas contas de fora não valem.
+            throw new ResourceNotFoundException("Conta não encontrada: " + fromAccountId);
+        }
         boolean crossCurrency = fromAccount.currency() != toAccount.currency();
         if (crossCurrency && (receivedAmount == null || receivedAmount.signum() <= 0)) {
             throw new IllegalArgumentException(
@@ -95,13 +140,42 @@ public class TransferApplicationService {
         Transfer saved =
                 transferRepositoryPort.save(
                         Transfer.create(
-                                currentUserId,
+                                currentHouseholdId,
                                 fromAccountId,
                                 toAccountId,
                                 amount,
                                 crossCurrency ? receivedAmount : null,
                                 transferDate,
                                 description));
+
+        // Transferência entre espaços (pessoal x grupo): cada espaço fica com a sua perna, ligada a
+        // uma transferência própria — o mesmo modelo que o compartilhamento de conta produz.
+        boolean crossSpace = !fromAccount.householdId().equals(toAccount.householdId());
+        Transfer mirror = null;
+        if (crossSpace) {
+            Long otherHouseholdId =
+                    fromAccount.belongsTo(currentHouseholdId)
+                            ? toAccount.householdId()
+                            : fromAccount.householdId();
+            mirror =
+                    transferRepositoryPort.save(
+                            Transfer.create(
+                                    otherHouseholdId,
+                                    fromAccountId,
+                                    toAccountId,
+                                    amount,
+                                    crossCurrency ? receivedAmount : null,
+                                    transferDate,
+                                    description));
+        }
+        Long fromTransferId =
+                mirror == null || fromAccount.belongsTo(currentHouseholdId)
+                        ? saved.id()
+                        : mirror.id();
+        Long toTransferId =
+                mirror == null || toAccount.belongsTo(currentHouseholdId)
+                        ? saved.id()
+                        : mirror.id();
 
         boolean hasCustomDescription = description != null && !description.isBlank();
         String outDescription =
@@ -117,7 +191,7 @@ public class TransferApplicationService {
                                         amount,
                                         transferDate,
                                         CategoryType.EXPENSE,
-                                        saved.id())
+                                        fromTransferId)
                                 .withBaseAmount(baseAmount));
         Transaction toTransaction =
                 transactionRepositoryPort.save(
@@ -127,40 +201,61 @@ public class TransferApplicationService {
                                         creditedAmount,
                                         transferDate,
                                         CategoryType.INCOME,
-                                        saved.id())
+                                        toTransferId)
                                 .withBaseAmount(baseAmount));
 
-        log.debug("Transferência={} criada para o usuário={}", saved.id(), currentUserId);
-        return new TransferResult(saved, fromTransaction.id(), toTransaction.id());
+        if (currentUserId != null) {
+            recordAuthorshipPort.recordTransferAuthor(saved.id(), currentUserId);
+            if (mirror != null) {
+                recordAuthorshipPort.recordTransferAuthor(mirror.id(), currentUserId);
+            }
+            recordAuthorshipPort.recordTransactionAuthors(
+                    List.of(fromTransaction.id(), toTransaction.id()), currentUserId);
+        }
+        log.debug("Transferência={} criada para o usuário={}", saved.id(), currentHouseholdId);
+        return new TransferResult(
+                saved,
+                fromTransaction.id(),
+                toTransaction.id(),
+                fromAccount.name(),
+                toAccount.name());
     }
 
-    public List<TransferResult> list(Long currentUserId) {
-        log.debug("Listando transferências do usuário={}", currentUserId);
-        List<Transfer> transfers = transferRepositoryPort.findAllByUserId(currentUserId);
+    public List<TransferResult> list(Long currentHouseholdId) {
+        log.debug("Listando transferências do usuário={}", currentHouseholdId);
+        List<Transfer> transfers = transferRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         List<Long> transferIds = transfers.stream().map(Transfer::id).toList();
         Map<Long, List<Transaction>> legsByTransferId =
                 transactionRepositoryPort.findAllByTransferIds(transferIds).stream()
                         .collect(Collectors.groupingBy(Transaction::transferId));
 
+        Map<Long, String> accountNames = accountNames(transfers);
         return transfers.stream()
                 .map(
                         transfer ->
                                 toResult(
                                         transfer,
-                                        legsByTransferId.getOrDefault(transfer.id(), List.of())))
+                                        legsByTransferId.getOrDefault(transfer.id(), List.of()),
+                                        accountNames))
                 .toList();
     }
 
-    public void delete(Long currentUserId, Long transferId) {
-        log.debug("Removendo transferência={} do usuário={}", transferId, currentUserId);
+    public void delete(Long currentHouseholdId, Long currentUserId, Long transferId) {
+        log.debug("Removendo transferência={} do usuário={}", transferId, currentHouseholdId);
         Transfer transfer =
                 transferRepositoryPort
                         .findById(transferId)
-                        .filter(t -> t.belongsTo(currentUserId))
+                        .filter(t -> t.belongsTo(currentHouseholdId))
                         .orElseThrow(
                                 () ->
                                         new ResourceNotFoundException(
                                                 "Transferência não encontrada: " + transferId));
+        // Numa conta compartilhada só quem criou a transferência pode excluí-la.
+        Long author = recordAuthorshipPort.findTransferAuthor(transferId).orElse(null);
+        if (!RecordAuthorship.canDelete(author, currentUserId)) {
+            throw new HouseholdPermissionException(
+                    "Só quem criou esta transferência pode excluí-la.");
+        }
         // As duas transações da transferência saem em cascata no banco, com os registros dos
         // anexos; os arquivos dos anexos precisam ser apagados do disco à parte.
         List<Long> legIds =
@@ -191,7 +286,25 @@ public class TransferApplicationService {
         return exchangeRateApplicationService.toBrl(fromAccount.currency(), amount, transferDate);
     }
 
-    private TransferResult toResult(Transfer transfer, List<Transaction> legs) {
+    /**
+     * Nome das contas de cada ponta, inclusive a que está em outro espaço (pessoal x grupo): uma
+     * transferência que cruza a fronteira só tem uma conta no espaço de quem consulta, e a tela
+     * precisa dizer de onde o dinheiro veio. Só o nome sai daqui, nenhum outro dado da conta.
+     */
+    private Map<Long, String> accountNames(List<Transfer> transfers) {
+        return transfers.stream()
+                .flatMap(
+                        transfer ->
+                                java.util.stream.Stream.of(
+                                        transfer.fromAccountId(), transfer.toAccountId()))
+                .distinct()
+                .map(accountRepositoryPort::findById)
+                .flatMap(java.util.Optional::stream)
+                .collect(Collectors.toMap(Account::id, Account::name));
+    }
+
+    private TransferResult toResult(
+            Transfer transfer, List<Transaction> legs, Map<Long, String> accountNames) {
         Long fromTransactionId =
                 legs.stream()
                         .filter(
@@ -210,18 +323,58 @@ public class TransferApplicationService {
                         .map(Transaction::id)
                         .findFirst()
                         .orElse(null);
-        return new TransferResult(transfer, fromTransactionId, toTransactionId);
+        return new TransferResult(
+                transfer,
+                fromTransactionId,
+                toTransactionId,
+                accountNames.get(transfer.fromAccountId()),
+                accountNames.get(transfer.toAccountId()));
     }
 
     /**
-     * Acesso a conta de outro usuário é tratado como inexistente (404), não como 403 — mesmo padrão
-     * de AccountApplicationService/TransactionApplicationService.
+     * Contas dos outros espaços dos quais a pessoa participa (o pessoal e os grupos), com as quais
+     * ela pode transferir a partir do espaço atual. Só id, nome, tipo e moeda saem daqui.
      */
-    private Account findOwnedOrThrow(Long currentUserId, Long accountId) {
-        return accountRepositoryPort
-                .findById(accountId)
-                .filter(account -> account.belongsTo(currentUserId))
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
+    public List<LinkableAccount> linkableAccounts(Long currentHouseholdId, Long currentUserId) {
+        return householdRepositoryPort.findMembershipsByUserId(currentUserId).stream()
+                .filter(membership -> !membership.householdId().equals(currentHouseholdId))
+                .flatMap(
+                        membership -> {
+                            String householdName =
+                                    householdRepositoryPort
+                                            .findById(membership.householdId())
+                                            .map(household -> household.name())
+                                            .orElse("");
+                            return accountRepositoryPort
+                                    .findAllByHouseholdId(membership.householdId())
+                                    .stream()
+                                    .map(account -> new LinkableAccount(account, householdName));
+                        })
+                .toList();
+    }
+
+    /**
+     * Conta do espaço atual ou de outro espaço do qual a pessoa participa. Qualquer outra é tratada
+     * como inexistente (404).
+     */
+    private Account findReachableOrThrow(
+            Long currentHouseholdId, Long currentUserId, Long accountId) {
+        Account account =
+                accountRepositoryPort
+                        .findById(accountId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Conta não encontrada: " + accountId));
+        boolean reachable =
+                account.belongsTo(currentHouseholdId)
+                        || (currentUserId != null
+                                && householdRepositoryPort
+                                        .findMembership(account.householdId(), currentUserId)
+                                        .isPresent());
+        if (!reachable) {
+            throw new ResourceNotFoundException("Conta não encontrada: " + accountId);
+        }
+        return account;
     }
 }

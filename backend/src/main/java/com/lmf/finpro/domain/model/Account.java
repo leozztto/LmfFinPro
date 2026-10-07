@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  */
 public record Account(
         Long id,
-        Long userId,
+        Long householdId,
         String name,
         AccountType type,
         BigDecimal initialBalance,
@@ -20,48 +20,55 @@ public record Account(
     /** Conta em reais — o padrão das contas criadas antes do suporte a outras moedas. */
     public Account(
             Long id,
-            Long userId,
+            Long householdId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             LocalDateTime createdAt,
             AccountScope scope) {
-        this(id, userId, name, type, initialBalance, createdAt, scope, Currency.BRL);
+        this(id, householdId, name, type, initialBalance, createdAt, scope, Currency.BRL);
     }
 
     /** Conta pessoal — o padrão das contas criadas antes da separação PF/PJ. */
     public Account(
             Long id,
-            Long userId,
+            Long householdId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             LocalDateTime createdAt) {
-        this(id, userId, name, type, initialBalance, createdAt, AccountScope.PERSONAL);
+        this(id, householdId, name, type, initialBalance, createdAt, AccountScope.PERSONAL);
     }
 
     public static Account create(
-            Long userId,
+            Long householdId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             AccountScope scope) {
-        return create(userId, name, type, initialBalance, scope, Currency.BRL);
+        return create(householdId, name, type, initialBalance, scope, Currency.BRL);
     }
 
     public static Account create(
-            Long userId,
+            Long householdId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             AccountScope scope,
             Currency currency) {
         return new Account(
-                null, userId, name, type, initialBalance, LocalDateTime.now(), scope, currency);
+                null,
+                householdId,
+                name,
+                type,
+                initialBalance,
+                LocalDateTime.now(),
+                scope,
+                currency);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 
     public boolean isBusiness() {
@@ -83,6 +90,13 @@ public record Account(
             AccountScope newScope,
             Currency newCurrency) {
         return new Account(
-                id, userId, newName, newType, newInitialBalance, createdAt, newScope, newCurrency);
+                id,
+                householdId,
+                newName,
+                newType,
+                newInitialBalance,
+                createdAt,
+                newScope,
+                newCurrency);
     }
 }

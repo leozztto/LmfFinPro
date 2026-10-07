@@ -55,7 +55,7 @@ class AttachmentArchiveApplicationServiceTest {
     @BeforeEach
     void setUp() {
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
@@ -83,7 +83,7 @@ class AttachmentArchiveApplicationServiceTest {
                                         CategoryType.EXPENSE,
                                         null,
                                         null)));
-        lenient().when(clientRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        lenient().when(clientRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of());
     }
 
     @Test
