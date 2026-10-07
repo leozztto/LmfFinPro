@@ -52,7 +52,9 @@ public class AuthController {
                                 request.phone(),
                                 request.taxRegime(),
                                 toAddressCommand(request.address()),
-                                request.inviteToken()));
+                                request.inviteToken(),
+                                request.termsVersion(),
+                                request.privacyVersion()));
         return withRefreshCookie(ResponseEntity.status(HttpStatus.CREATED), result);
     }
 

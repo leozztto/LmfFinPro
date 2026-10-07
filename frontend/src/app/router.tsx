@@ -25,6 +25,9 @@ import { SettingsLayout } from '@/features/profile/components/SettingsLayout'
 import { ProfileDataPage } from '@/features/profile/components/ProfileDataPage'
 import { PasswordPage } from '@/features/profile/components/PasswordPage'
 import { NotificationsPage } from '@/features/profile/components/NotificationsPage'
+import { PrivacyDataPage } from '@/features/privacy/components/PrivacyDataPage'
+import { TermsPage } from '@/features/legal/components/TermsPage'
+import { PrivacyPage } from '@/features/legal/components/PrivacyPage'
 import { AppLayout } from '@/shared/layout/AppLayout'
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute'
 
@@ -36,6 +39,8 @@ export function AppRouter() {
       <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
       <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
       <Route path="/convite" element={<InvitePage />} />
+      <Route path="/termos" element={<TermsPage />} />
+      <Route path="/privacidade" element={<PrivacyPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
@@ -61,6 +66,7 @@ export function AppRouter() {
             <Route path="senha" element={<PasswordPage />} />
             <Route path="notificacoes" element={<NotificationsPage />} />
             <Route path="grupos" element={<HouseholdsPage />} />
+            <Route path="privacidade" element={<PrivacyDataPage />} />
           </Route>
           <Route path="/perfil" element={<Navigate to="/configuracoes/dados-cadastrais" replace />} />
         </Route>

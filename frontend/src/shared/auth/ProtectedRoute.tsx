@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
+import { ConsentGate } from '@/features/legal/components/ConsentGate'
 import { useAuth } from './AuthContext'
 
 export function ProtectedRoute() {
@@ -18,5 +19,10 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
-  return <Outlet />
+  // Documentos legais novos ou ainda não aceitos travam o app até o aceite (ver ConsentGate).
+  return (
+    <ConsentGate>
+      <Outlet />
+    </ConsentGate>
+  )
 }

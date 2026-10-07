@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Checkbox, FormField, Input } from '@/shared/ui'
 import { ApiError } from '@/shared/api/httpClient'
 import { onlyDigits } from '@/shared/format/mask'
+import { useLegalVersions } from '@/features/legal/hooks/useLegal'
 import { useRegister } from '../hooks/useRegister'
 import { documentTypeForTaxRegime, registerSchema, type RegisterFormValues } from '../schemas'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
@@ -14,6 +15,7 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const registerUser = useRegister()
   const inviteToken = useSearchParams()[0].get('convite') || undefined
+  const { data: legalVersions, isError: legalVersionsFailed } = useLegalVersions()
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
@@ -45,6 +47,8 @@ export function RegisterPage() {
   } = form
 
   async function onSubmit(values: RegisterFormValues) {
+    // Sem as versões vigentes não há o que aceitar: o botão fica desabilitado até elas chegarem.
+    if (!legalVersions) return
     await registerUser.mutateAsync({
       name: values.name,
       email: values.email,
@@ -59,6 +63,8 @@ export function RegisterPage() {
         complement: values.address.complement || undefined,
       },
       inviteToken,
+      termsVersion: legalVersions.termsVersion,
+      privacyVersion: legalVersions.privacyVersion,
     })
     navigate('/')
   }
@@ -106,7 +112,17 @@ export function RegisterPage() {
               <div>
                 <label htmlFor="acceptedTerms" className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                   <Checkbox id="acceptedTerms" className="mt-0.5" {...register('acceptedTerms')} />
-                  Li e aceito os termos de uso e a política de privacidade do FinPro.
+                  <span>
+                    Li e aceito os{' '}
+                    <Link to="/termos" target="_blank" rel="noopener noreferrer" className={authLinkClassName}>
+                      Termos de Uso
+                    </Link>{' '}
+                    e a{' '}
+                    <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className={authLinkClassName}>
+                      Política de Privacidade
+                    </Link>{' '}
+                    do FinPro.
+                  </span>
                 </label>
                 {errors.acceptedTerms && <p className="mt-1 text-sm text-red-600">{errors.acceptedTerms.message}</p>}
               </div>
@@ -118,8 +134,13 @@ export function RegisterPage() {
                     : 'Não foi possível criar a conta.'}
                 </p>
               )}
+              {legalVersionsFailed && (
+                <p role="alert" className="text-sm text-red-600">
+                  Não foi possível carregar os Termos de Uso. Recarregue a página para tentar de novo.
+                </p>
+              )}
 
-              <Button type="submit" className="w-full" disabled={registerUser.isPending}>
+              <Button type="submit" className="w-full" disabled={registerUser.isPending || !legalVersions}>
                 {registerUser.isPending ? 'Criando conta...' : 'Criar conta'}
               </Button>
             </form>

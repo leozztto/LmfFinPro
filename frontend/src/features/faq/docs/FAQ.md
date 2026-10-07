@@ -7,7 +7,7 @@ ___
 ## Conta e acesso
 
 **Como eu crio uma conta no FinPro?**
-Na tela de login, clique no link **Cadastre-se**. Na tela de cadastro você informa nome e sobrenome, e-mail, regime tributário, CPF ou CNPJ, telefone (opcional), endereço e senha (mínimo 8 caracteres, com confirmação), além de aceitar os termos de uso. O CEP preenche automaticamente rua, bairro, cidade e estado — só confira e complete o número (e o complemento, se houver).
+Na tela de login, clique no link **Cadastre-se**. Na tela de cadastro você informa nome e sobrenome, e-mail, regime tributário, CPF ou CNPJ, telefone (opcional), endereço e senha (mínimo 8 caracteres, com confirmação), além de aceitar os Termos de Uso e a Política de Privacidade (os dois abrem em uma nova aba para leitura). O CEP preenche automaticamente rua, bairro, cidade e estado — só confira e complete o número (e o complemento, se houver).
 
 **Preciso informar CPF ou CNPJ?**
 Depende do regime tributário escolhido: **CNPJ** para MEI, Simples Nacional e Lucro Presumido; **CPF** para Autônomo e Outro. O sistema valida o documento (inclusive os dígitos verificadores) e não deixa cadastrar um CPF com um regime de pessoa jurídica (ou vice-versa). O e-mail e o CPF/CNPJ não podem já estar em uso por outra conta.
@@ -38,6 +38,18 @@ Só para quem você convidar. Toda informação (contas, transações, clientes,
 
 **Dá pra usar o sistema no modo escuro?**
 Sim. Use o botão de tema no topo da tela (também disponível na tela de login). Na primeira visita o sistema segue a preferência do seu sistema operacional, e depois lembra a sua escolha neste navegador.
+
+**O que vem no arquivo de "Baixar meus dados"?**
+Um ZIP com um arquivo `dados.json` (seu cadastro, preferências, aceites dos documentos e, de cada grupo de que você participa, todas as contas, lançamentos, transferências, categorias, clientes, metas etc.), uma pasta `anexos` com os comprovantes, a foto de perfil e um `LEIA-ME.txt`. Os grupos compartilhados vêm completos, mas dos outros membros só constam nome e papel. Senhas, tokens de sessão e chaves de notificação nunca saem do sistema.
+
+**O que acontece com meus dados quando excluo a conta?**
+É definitivo e imediato: seu cadastro, seu espaço pessoal inteiro (com anexos e foto) e os grupos em que só você participa são apagados, e o mesmo e-mail e CPF/CNPJ podem ser usados em um novo cadastro depois. Nos grupos com outras pessoas, você sai e os lançamentos e contas que trouxe continuam com o grupo, sem o seu nome — para levar uma conta embora, devolva-a ao espaço pessoal antes de excluir. Cópias de segurança do servidor expiram no prazo informado na Política de Privacidade.
+
+**Criei um grupo com outra pessoa e não consigo excluir minha conta. Por quê?**
+Quem é dono de um grupo com outros membros não pode excluir a conta, para o grupo não ficar sem responsável. Transfira a posse a outro membro (ou remova os membros) em **Configurações** → **Grupos** e tente de novo.
+
+**Apareceu uma tela pedindo para aceitar os termos de novo. Por quê?**
+Os Termos de Uso ou a Política de Privacidade ganharam uma versão nova, ou a sua conta é anterior a esses documentos. Guardamos a data e a versão de cada aceite. Se preferir não aceitar, você ainda pode baixar seus dados e excluir a conta nessa mesma tela.
 ___
 
 ## Grupos (casal e família)

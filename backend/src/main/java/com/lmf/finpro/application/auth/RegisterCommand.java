@@ -6,6 +6,8 @@ import com.lmf.finpro.domain.model.TaxRegime;
 /**
  * @param inviteToken token de um convite para grupo compartilhado, quando o cadastro vem de um
  *     convite; nulo ou em branco para um cadastro comum
+ * @param termsVersion versão dos Termos de Uso que a pessoa leu e aceitou
+ * @param privacyVersion versão da Política de Privacidade que a pessoa leu e aceitou
  */
 public record RegisterCommand(
         String name,
@@ -16,27 +18,6 @@ public record RegisterCommand(
         String phone,
         TaxRegime taxRegime,
         AddressCommand address,
-        String inviteToken) {
-
-    /** Cadastro comum, sem convite. */
-    public RegisterCommand(
-            String name,
-            String email,
-            String rawPassword,
-            DocumentType documentType,
-            String documentNumber,
-            String phone,
-            TaxRegime taxRegime,
-            AddressCommand address) {
-        this(
-                name,
-                email,
-                rawPassword,
-                documentType,
-                documentNumber,
-                phone,
-                taxRegime,
-                address,
-                null);
-    }
-}
+        String inviteToken,
+        String termsVersion,
+        String privacyVersion) {}
