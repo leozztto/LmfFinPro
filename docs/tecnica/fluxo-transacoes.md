@@ -26,7 +26,7 @@ Rota `/transacoes` (`TransactionsPage`).
   - filtro "Tags (qualquer uma)" na lista.
   - Detalhes em [`fluxo-tags.md`](fluxo-tags.md).
 - **Transação de transferência**: o botão de remover fica desabilitado com uma dica ("Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.") — a exclusão de fato acontece na tela de Transferências, que remove as duas pernas de uma vez.
-- **Perna de outro espaço (grupos)**: quem participa de uma conta pessoal e de uma do grupo, ligadas por uma transferência dividida ao compartilhar (ver [`fluxo-grupos.md`](fluxo-grupos.md)), vê as **duas pernas** na lista, em qualquer um dos dois espaços. A perna que está no outro espaço vem com `linkedAccountName` (só o nome da conta, nada além) e o card a mostra como somente leitura: sem botão de tags nem de comprovantes, e com a exclusão já bloqueada por ser transferência. Quem está só no grupo não vê a perna da conta pessoal de outro membro.
+- **Perna de outro espaço (grupos)**: quem participa de uma conta pessoal e de uma do grupo, ligadas por uma transferência entre espaços, criada na tela de Transferências ou dividida ao compartilhar (ver [`fluxo-grupos.md`](fluxo-grupos.md) e [`fluxo-transferencias.md`](fluxo-transferencias.md)), vê as **duas pernas** na lista, em qualquer um dos dois espaços. A perna que está no outro espaço vem com `linkedAccountName` (só o nome da conta, nada além) e o card a mostra como somente leitura: sem botão de tags nem de comprovantes, e com a exclusão já bloqueada por ser transferência. Quem está só no grupo não vê a perna da conta pessoal de outro membro.
 
 ## 3. Arquitetura (hexagonal)
 

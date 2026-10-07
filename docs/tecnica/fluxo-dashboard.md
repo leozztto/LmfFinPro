@@ -65,7 +65,7 @@ flowchart TD
     DB[("accounts, transactions\n(Postgres)")]
 
     Controller --> Service
-    Service -- "busca contas (filtra por scope,\nse informado) + transações\n(filtra transferências)" --> AccountPort
+    Service -- "busca contas (filtra por scope,\nse informado) + transações\n(filtra as transferências internas)" --> AccountPort
     Service --> TxPort
     Service --> Scope
     Service -- "delega o cálculo" --> Aggregator
@@ -158,7 +158,7 @@ flowchart TD
     Marca --> Loop
 ```
 
-**Regra de negócio importante — transferências não são receita nem despesa, mas movem o saldo:** o fluxo mensal, a projeção e os breakdowns por categoria e cliente consomem `ownedNonTransferTransactions()`, que filtra `transaction.transferId() == null` antes de passar para o `DashboardAggregator` (ver `DashboardApplicationService`). Já o **saldo** (atual, o do mês anterior, a evolução e a âncora da projeção) usa todas as transações, inclusive as pernas de transferência: entre contas do mesmo espaço elas se anulam (mesmo valor em reais), mas uma transferência com uma conta de outro espaço (pessoal x grupo) deixa só uma perna aqui, e é ela que movimenta o saldo — a entrada na conta conjunta soma no saldo do grupo, a saída da conta pessoal subtrai do saldo pessoal. Uma transferência entre duas contas do próprio usuário move dinheiro de um lugar para outro, mas não é receita nem despesa — se não fosse filtrada, contaria duas vezes (uma perna de saída em EXPENSE, uma de entrada em INCOME) e infllaria tanto o gráfico de receita x despesa quanto os breakdowns por categoria/cliente.
+**Regra de negócio importante — transferência interna não é receita nem despesa, mas move o saldo; a que cruza espaços conta:** o fluxo mensal, a projeção e os breakdowns por categoria e cliente consomem `withoutInternalTransfers()` (que delega a `TransferFlow`, em `application/support`) antes de passar para o `DashboardAggregator`. Ele descarta as pernas de transferências entre contas **do mesmo espaço** (mover dinheiro de um lugar para outro não é ganhar nem gastar; se não fosse filtrada, contaria duas vezes — uma perna de saída em EXPENSE, uma de entrada em INCOME — e inflaria o gráfico de receita x despesa e os breakdowns) e **mantém** as pernas das transferências entre o espaço pessoal e um grupo: no grupo, o dinheiro que um membro mandou da conta pessoal é **receita** do mês; no espaço pessoal, é **despesa** (desde 07/10/2026). Já o **saldo** (atual, o do mês anterior, a evolução e a âncora da projeção) usa todas as transações, inclusive todas as pernas de transferência: entre contas do mesmo espaço elas se anulam (mesmo valor em reais), mas uma transferência com uma conta de outro espaço deixa só uma perna aqui, e é ela que movimenta o saldo — a entrada na conta conjunta soma no saldo do grupo, a saída da conta pessoal subtrai do saldo pessoal. Orçamentos, estimativa de imposto e pró-labore continuam ignorando qualquer transferência.
 
 ## 6. Onde cada peça vive no repositório
 
@@ -166,7 +166,7 @@ flowchart TD
 |---|---|
 | Domínio (cálculo puro) | `domain/model/DashboardAggregator.java` |
 | Domínio (records) | `domain/model/{MonthlyFlowPoint,BalancePoint,CashFlowProjectionPoint,BreakdownPoint,DashboardOverview}.java` |
-| Aplicação | `application/dashboard/DashboardApplicationService.java` |
+| Aplicação | `application/dashboard/DashboardApplicationService.java`, `application/support/TransferFlow.java` (filtro de transferências internas) |
 | API | `infrastructure/web/controller/DashboardController.java` (`/api/dashboard/{overview,monthly-flow,balance-evolution,cash-flow-projection,category-breakdown,client-breakdown}`, todos com `scope` opcional) |
 | DTOs/Mapper | `infrastructure/web/dto/dashboard/*.java`, `infrastructure/web/mapper/DashboardWebMapper.java` |
 | Frontend — tela | `../../frontend/src/features/dashboard/components/DashboardPage.tsx` |

@@ -89,7 +89,7 @@ Quem já usa o app e depois entra num grupo traz as contas que quiser, **sem per
 
 **Categoria, cliente e tag são de cada grupo**, então as que as transações movidas usam são recriadas no grupo de destino, reaproveitando as que já existem com o mesmo nome (categoria: nome + tipo; cliente: nome; tag: nome), e as transações passam a apontar para elas. As categorias padrão do sistema não mudam. Ficam no espaço pessoal, sem mudança: orçamentos, impostos, dívidas e as categorias/clientes/tags originais.
 
-**Transferência entre uma conta movida e outra que fica:** não bloqueia. A transferência é **dividida em duas**, uma por espaço: o grupo fica com a perna da conta compartilhada (por exemplo, a entrada na conta conjunta) e o espaço pessoal, com a da conta que ficou. Cada lado enxerga só o que é seu, com uma exceção deliberada: o **nome** da conta do outro lado aparece na lista de transferências (`fromAccountName` e `toAccountName` na resposta; só o nome, nenhum outro dado dela) e na descrição automática ("Transferência de Pagbank"), para dizer de onde veio o dinheiro. Como só uma perna fica em cada espaço, o saldo do dashboard de cada um conta a sua perna (ver `fluxo-dashboard.md`). Se a outra conta for compartilhada depois com o mesmo grupo, as duas metades se juntam de novo numa transferência só.
+**Transferência entre uma conta movida e outra que fica:** não bloqueia. A transferência é **dividida em duas**, uma por espaço: o grupo fica com a perna da conta compartilhada (por exemplo, a entrada na conta conjunta) e o espaço pessoal, com a da conta que ficou. Cada lado enxerga só o que é seu, com uma exceção deliberada: o **nome** da conta do outro lado aparece na lista de transferências (`fromAccountName` e `toAccountName` na resposta; só o nome, nenhum outro dado dela) e na descrição automática ("Transferência de Pagbank"), para dizer de onde veio o dinheiro. Como só uma perna fica em cada espaço, o saldo do dashboard de cada um conta a sua perna, e a entrada de outro espaço conta como **receita** do mês (a saída, como despesa) — ver `fluxo-dashboard.md`. Se a outra conta for compartilhada depois com o mesmo grupo, as duas metades se juntam de novo numa transferência só. Desde 07/10/2026 também dá para **criar** transferências novas entre o espaço pessoal e um grupo, com o mesmo modelo (ver [`fluxo-transferencias.md`](fluxo-transferencias.md), seção 5.1).
 
 **Bloqueio (metas):** uma meta de economia liga duas contas e pertence a um grupo só. Se ela liga uma conta movida a outra que ficaria para trás, o pedido é recusado com `409` e uma mensagem que nomeia as contas ligadas; a pessoa inclui todas na seleção. Conta que não é do próprio espaço pessoal da pessoa responde `404`, sem revelar que existe.
 
@@ -118,8 +118,9 @@ Numa conta compartilhada, **um lançamento ou uma transferência só pode ser ex
 
 ## 9. Frontend
 
-- **Seletor de grupo** no topo (`HouseholdSwitcher`) e `HouseholdProvider`: o grupo ativo fica em `householdStorage` e vai no header `X-Household-Id` (menos em `/auth/` e `/households*`). Trocar de grupo limpa as consultas do espaço anterior e remonta a tela (`<Outlet key>`); uma `403` com o header revalida a participação.
+- **Seletor de grupo** no topo (`HouseholdSwitcher`) e `HouseholdProvider`: o grupo ativo fica em `householdStorage` e vai no header `X-Household-Id` (menos em `/auth/` e `/households*`). Trocar de grupo limpa as consultas do espaço anterior e remonta a tela (`<Outlet key>`); uma `403` com o header revalida a participação. Ao **recarregar a página**, o estado do `HouseholdProvider` acompanha o grupo guardado: a sessão começa nula enquanto o cookie de refresh a restaura, e zerar o grupo nesse instante deixava o seletor no espaço pessoal enquanto as requisições seguiam com o header do grupo (corrigido em 07/10/2026; teste em `HouseholdContext.test.tsx`).
 - **Configurações → Grupos** (`HouseholdsPage`): criar grupo, membros, convites enviados e recebidos, compartilhar contas em lote (`ShareAccountsModal`).
+- **Transferências**: o formulário lista também as contas dos outros espaços (`useLinkableAccounts`), em grupos por nome do espaço, para transferir entre a conta pessoal e a conjunta (ver [`fluxo-transferencias.md`](fluxo-transferencias.md)).
 - **Tela de Contas**: compartilhar uma conta (`ShareAccountDialog`) e descompartilhar, com "Trazida por ...".
 - **Página de convite** (`/convite`), com login ou cadastro pelo link.
 - **Transações**: autor em cada lançamento, exclusão desabilitada para quem não criou e as duas pernas das transferências entre espaços (ver [`fluxo-transacoes.md`](fluxo-transacoes.md)).
@@ -128,5 +129,7 @@ Numa conta compartilhada, **um lançamento ou uma transferência só pode ser ex
 ## 10. Fora do escopo (próximos passos)
 
 - **Encerrar/excluir um grupo** e visão somada (pessoal + grupo).
-- **Transferir entre espaços depois de compartilhar** (hoje só existe a divisão no momento de compartilhar).
+- **Excluir as duas metades** de uma transferência entre espaços de uma vez (hoje a exclusão é por espaço).
+- **Restringir as contas vinculáveis a pessoal ↔ grupo** (hoje um membro de dois grupos também pode transferir entre contas de grupos diferentes).
+- **Lançar transações e recorrências** na conta de outro espaço sem trocar de espaço (hoje só a transferência cruza).
 - **Notificações além do convite pendente** (por exemplo, "fulano compartilhou uma conta").
