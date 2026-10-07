@@ -27,16 +27,16 @@ public class CategoryRuleRepositoryAdapter implements CategoryRuleRepositoryPort
     }
 
     @Override
-    public List<CategoryRule> findVisibleToUserOrderByPriorityDesc(Long userId) {
-        return categoryRuleJpaRepository.findVisibleToUserOrderByPriorityDesc(userId).stream()
+    public List<CategoryRule> findVisibleToUserOrderByPriorityDesc(Long householdId) {
+        return categoryRuleJpaRepository.findVisibleToUserOrderByPriorityDesc(householdId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
-    public Optional<CategoryRule> findByUserIdAndPattern(Long userId, String pattern) {
+    public Optional<CategoryRule> findByHouseholdIdAndPattern(Long householdId, String pattern) {
         return categoryRuleJpaRepository
-                .findByUserIdAndPatternIgnoreCase(userId, pattern)
+                .findByHouseholdIdAndPatternIgnoreCase(householdId, pattern)
                 .map(mapper::toDomain);
     }
 

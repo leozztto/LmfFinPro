@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.infrastructure.persistence.entity.CategoryJpaEntity;
-import com.lmf.finpro.infrastructure.persistence.entity.UserJpaEntity;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -17,55 +16,54 @@ class CategoryPersistenceMapperTest {
     private final CategoryPersistenceMapper mapper = new CategoryPersistenceMapper();
 
     @Test
-    void toEntityLeavesUserNullForAGlobalCategory() {
+    void toEntityLeavesHouseholdNullForAGlobalCategory() {
         Category globalCategory =
                 Category.create(null, "Moradia", CategoryType.EXPENSE, null, null);
 
         CategoryJpaEntity entity = mapper.toEntity(globalCategory);
 
-        assertThat(entity.getUser()).isNull();
+        assertThat(entity.getHouseholdId()).isNull();
     }
 
     @Test
-    void toEntitySetsAUserReferenceForAnOwnedCategory() {
+    void toEntitySetsTheHouseholdForAnOwnedCategory() {
         Category ownedCategory =
                 Category.create(10L, "Consultoria", CategoryType.INCOME, null, null);
 
         CategoryJpaEntity entity = mapper.toEntity(ownedCategory);
 
-        assertThat(entity.getUser()).isNotNull();
-        assertThat(entity.getUser().getId()).isEqualTo(10L);
+        assertThat(entity.getHouseholdId()).isEqualTo(10L);
     }
 
     @Test
-    void toDomainMapsANullUserToANullUserId() {
+    void toDomainMapsANullHouseholdToANullHouseholdId() {
         CategoryJpaEntity entity =
                 CategoryJpaEntity.builder()
                         .id(1L)
-                        .user(null)
+                        .householdId(null)
                         .name("Moradia")
                         .type(CategoryType.EXPENSE)
                         .build();
 
         Category domain = mapper.toDomain(entity);
 
-        assertThat(domain.userId()).isNull();
+        assertThat(domain.householdId()).isNull();
         assertThat(domain.isGlobal()).isTrue();
     }
 
     @Test
-    void toDomainMapsAnExistingUserToItsId() {
+    void toDomainMapsAnExistingHouseholdToItsId() {
         CategoryJpaEntity entity =
                 CategoryJpaEntity.builder()
                         .id(1L)
-                        .user(UserJpaEntity.builder().id(10L).build())
+                        .householdId(10L)
                         .name("Consultoria")
                         .type(CategoryType.INCOME)
                         .build();
 
         Category domain = mapper.toDomain(entity);
 
-        assertThat(domain.userId()).isEqualTo(10L);
+        assertThat(domain.householdId()).isEqualTo(10L);
         assertThat(domain.isGlobal()).isFalse();
     }
 }

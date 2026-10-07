@@ -31,4 +31,7 @@ public record TransactionResponse(
         BigDecimal baseAmount,
         long attachmentCount,
         List<TagSummaryResponse> tags,
-        LocalTime transactionTime) {}
+        LocalTime transactionTime,
+        Long createdByUserId,
+        String createdByName,
+        String linkedAccountName) {}

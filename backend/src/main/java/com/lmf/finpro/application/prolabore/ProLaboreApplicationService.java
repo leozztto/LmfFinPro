@@ -3,6 +3,7 @@ package com.lmf.finpro.application.prolabore;
 import com.lmf.finpro.application.account.AccountApplicationService;
 import com.lmf.finpro.application.prolabore.ProLaboreSummary.BusinessExpense;
 import com.lmf.finpro.application.prolabore.ProLaboreSummary.Withdrawal;
+import com.lmf.finpro.application.support.HouseholdTaxProfile;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
@@ -18,7 +19,6 @@ import com.lmf.finpro.domain.model.TaxRateEstimator;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.domain.model.Transfer;
-import com.lmf.finpro.domain.model.User;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.GoalContributionRepositoryPort;
@@ -26,7 +26,6 @@ import com.lmf.finpro.domain.port.out.ProLaboreSettingsRepositoryPort;
 import com.lmf.finpro.domain.port.out.SavingsGoalRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import com.lmf.finpro.domain.port.out.TransferRepositoryPort;
-import com.lmf.finpro.domain.port.out.UserRepositoryPort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -61,22 +60,21 @@ public class ProLaboreApplicationService {
     private final TransferRepositoryPort transferRepositoryPort;
     private final SavingsGoalRepositoryPort savingsGoalRepositoryPort;
     private final GoalContributionRepositoryPort goalContributionRepositoryPort;
-    private final UserRepositoryPort userRepositoryPort;
+    private final HouseholdTaxProfile householdTaxProfile;
     private final ProLaboreSettingsRepositoryPort proLaboreSettingsRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final Clock clock;
 
-    public ProLaboreSummary summary(Long currentUserId) {
-        log.debug("Calculando pró-labore do usuário={}", currentUserId);
+    public ProLaboreSummary summary(Long currentHouseholdId) {
+        log.debug("Calculando pró-labore do usuário={}", currentHouseholdId);
         LocalDate today = LocalDate.now(clock);
         YearMonth currentMonth = YearMonth.from(today);
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(currentUserId);
+        List<Account> accounts = accountRepositoryPort.findAllByHouseholdId(currentHouseholdId);
         List<Account> businessAccounts = accounts.stream().filter(Account::isBusiness).toList();
         List<Account> personalAccounts =
                 accounts.stream().filter(account -> !account.isBusiness()).toList();
-        ProLaboreSettings settings = getSettings(currentUserId);
-        TaxRegime regime =
-                userRepositoryPort.findById(currentUserId).map(User::taxRegime).orElse(null);
+        ProLaboreSettings settings = getSettings(currentHouseholdId);
+        TaxRegime regime = householdTaxProfile.regimeOf(currentHouseholdId);
 
         Map<Long, BigDecimal> balanceByAccount =
                 businessAccounts.stream()
@@ -124,7 +122,7 @@ public class ProLaboreApplicationService {
                                 .filter(transaction -> inMonth(transaction, currentMonth)));
 
         List<SavingsGoal> taxGoals =
-                savingsGoalRepositoryPort.findAllByUserId(currentUserId).stream()
+                savingsGoalRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .filter(goal -> goal.type() == SavingsGoalType.TAX_RESERVE)
                         .toList();
         BigDecimal taxRate =
@@ -153,7 +151,8 @@ public class ProLaboreApplicationService {
                                 BigDecimal.valueOf(EXPENSE_AVERAGE_MONTHS),
                                 2,
                                 RoundingMode.HALF_UP);
-        List<Withdrawal> withdrawals = withdrawalsOfMonth(currentUserId, accounts, currentMonth);
+        List<Withdrawal> withdrawals =
+                withdrawalsOfMonth(currentHouseholdId, accounts, currentMonth);
         BigDecimal withdrawnThisMonth =
                 withdrawals.stream()
                         .map(Withdrawal::amount)
@@ -188,7 +187,7 @@ public class ProLaboreApplicationService {
                 averageMonthlyExpense,
                 withdrawnThisMonth,
                 withdrawals,
-                businessExpenses(currentUserId, monthExpenseTransactions, accounts, today),
+                businessExpenses(currentHouseholdId, monthExpenseTransactions, accounts, today),
                 businessAccounts.stream()
                         .max(Comparator.comparing(account -> balanceByAccount.get(account.id())))
                         .map(Account::id)
@@ -196,16 +195,16 @@ public class ProLaboreApplicationService {
                 personalAccounts.stream().findFirst().map(Account::id).orElse(null));
     }
 
-    public ProLaboreSettings getSettings(Long currentUserId) {
-        log.debug("Buscando configurações de pró-labore do usuário={}", currentUserId);
+    public ProLaboreSettings getSettings(Long currentHouseholdId) {
+        log.debug("Buscando configurações de pró-labore do usuário={}", currentHouseholdId);
         return proLaboreSettingsRepositoryPort
-                .findByUserId(currentUserId)
-                .orElseGet(() -> ProLaboreSettings.defaults(currentUserId));
+                .findByHouseholdId(currentHouseholdId)
+                .orElseGet(() -> ProLaboreSettings.defaults(currentHouseholdId));
     }
 
     /** A alíquota manual fica guardada mesmo no modo automático, para não se perder ao alternar. */
     public ProLaboreSettings updateSettings(
-            Long currentUserId,
+            Long currentHouseholdId,
             ProLaboreCalculationBase calculationBase,
             int cashCushionMonths,
             BigDecimal reserveRate,
@@ -214,10 +213,10 @@ public class ProLaboreApplicationService {
             BigDecimal fixedAmount,
             ProLaboreWithholdingMode withholdingMode,
             BigDecimal employerInssRate) {
-        log.debug("Atualizando configurações de pró-labore do usuário={}", currentUserId);
+        log.debug("Atualizando configurações de pró-labore do usuário={}", currentHouseholdId);
         return proLaboreSettingsRepositoryPort.save(
                 new ProLaboreSettings(
-                        currentUserId,
+                        currentHouseholdId,
                         calculationBase,
                         cashCushionMonths,
                         reserveRate,
@@ -247,10 +246,10 @@ public class ProLaboreApplicationService {
 
     /** Pró-labore = transferências de uma conta PJ para uma conta PF no mês. */
     private List<Withdrawal> withdrawalsOfMonth(
-            Long userId, List<Account> accounts, YearMonth month) {
+            Long householdId, List<Account> accounts, YearMonth month) {
         Map<Long, Account> accountById =
                 accounts.stream().collect(Collectors.toMap(Account::id, Function.identity()));
-        return transferRepositoryPort.findAllByUserId(userId).stream()
+        return transferRepositoryPort.findAllByHouseholdId(householdId).stream()
                 .filter(transfer -> YearMonth.from(transfer.transferDate()).equals(month))
                 .filter(transfer -> isBusiness(accountById.get(transfer.fromAccountId())))
                 .filter(transfer -> isPersonal(accountById.get(transfer.toAccountId())))
@@ -270,14 +269,17 @@ public class ProLaboreApplicationService {
 
     /** As despesas que entraram no custo do mês, com conta e categoria resolvidas. */
     private List<BusinessExpense> businessExpenses(
-            Long userId, List<Transaction> transactions, List<Account> accounts, LocalDate today) {
+            Long householdId,
+            List<Transaction> transactions,
+            List<Account> accounts,
+            LocalDate today) {
         if (transactions.isEmpty()) {
             return List.of();
         }
         Map<Long, String> accountNames =
                 accounts.stream().collect(Collectors.toMap(Account::id, Account::name));
         Map<Long, String> categoryNames =
-                categoryRepositoryPort.findAllVisibleToUser(userId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(householdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
         return transactions.stream()
                 .sorted(

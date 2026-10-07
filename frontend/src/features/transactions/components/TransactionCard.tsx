@@ -15,6 +15,8 @@ interface TransactionCardProps {
   clientName?: string
   onDelete: () => void
   isDeleting: boolean
+  /** Por que a exclusão está bloqueada para quem está logado (criado por outra pessoa); null se pode. */
+  deleteBlockedReason?: string | null
   onMarkAsPaid: () => void
   isMarkingAsPaid: boolean
   onOpenAttachments: () => void
@@ -34,6 +36,7 @@ export function TransactionCard({
   clientName,
   onDelete,
   isDeleting,
+  deleteBlockedReason = null,
   onMarkAsPaid,
   isMarkingAsPaid,
   onOpenAttachments,
@@ -41,6 +44,8 @@ export function TransactionCard({
 }: TransactionCardProps) {
   const [open, setOpen] = useState(false)
   const isTransfer = transaction.transferId != null
+  // Perna de uma conta de outro espaço: só leitura aqui (tags e comprovantes ficam no espaço dela).
+  const isLinkedLeg = transaction.linkedAccountName != null
   const isPending = transaction.status === 'PENDING'
   const isIncome = transaction.type === 'INCOME'
   const amountClassName = isIncome ? 'font-semibold text-[#5ab482]' : 'font-semibold text-[#f06464]'
@@ -69,7 +74,9 @@ export function TransactionCard({
   )
 
   // Tag é classificação: dá para mudar em qualquer transação, inclusive paga ou de transferência.
-  const tagsButton = <IconButton icon={TagIcon} label="Editar tags" onClick={onEditTags} />
+  const tagsButton = isLinkedLeg ? null : (
+    <IconButton icon={TagIcon} label="Editar tags" onClick={onEditTags} />
+  )
 
   // Só transação pendente tem o botão: marcar como paga é definitivo (não volta a pendente) e
   // transferência já nasce paga.
@@ -86,7 +93,7 @@ export function TransactionCard({
   const attachmentsLabel =
     attachmentCount === 0 ? 'Anexar comprovante' : `Comprovantes (${attachmentCount})`
   // Com anexo, o botão mostra o clipe + a contagem; sem anexo, só o clipe.
-  const attachmentsButton = (
+  const attachmentsButton = isLinkedLeg ? null : (
     <button
       type="button"
       onClick={onOpenAttachments}
@@ -108,11 +115,11 @@ export function TransactionCard({
       icon={TrashIcon}
       label="Remover"
       onClick={onDelete}
-      disabled={isDeleting || isTransfer}
+      disabled={isDeleting || isTransfer || deleteBlockedReason !== null}
       title={
         isTransfer
           ? 'Esta transação faz parte de uma transferência. Exclua-a na tela de Transferências.'
-          : 'Remover'
+          : (deleteBlockedReason ?? 'Remover')
       }
     />
   )

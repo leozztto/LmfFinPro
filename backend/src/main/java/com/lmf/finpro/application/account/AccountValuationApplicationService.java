@@ -26,24 +26,27 @@ public class AccountValuationApplicationService {
     private final AccountValuationRepositoryPort accountValuationRepositoryPort;
     private final Clock clock;
 
-    public List<AccountValuation> list(Long currentUserId, Long accountId) {
+    public List<AccountValuation> list(Long currentHouseholdId, Long accountId) {
         log.debug(
-                "Listando valores de mercado da conta={} do usuário={}", accountId, currentUserId);
-        accountApplicationService.getById(currentUserId, accountId);
+                "Listando valores de mercado da conta={} do usuário={}",
+                accountId,
+                currentHouseholdId);
+        accountApplicationService.getById(currentHouseholdId, accountId);
         return accountValuationRepositoryPort.findAllByAccountId(accountId);
     }
 
     public AccountValuation save(
-            Long currentUserId, Long accountId, LocalDate valuationDate, BigDecimal value) {
+            Long currentHouseholdId, Long accountId, LocalDate valuationDate, BigDecimal value) {
         log.debug(
                 "Salvando valor de mercado da conta={} na data={} do usuário={}",
                 accountId,
                 valuationDate,
-                currentUserId);
-        Account account = accountApplicationService.getById(currentUserId, accountId);
+                currentHouseholdId);
+        Account account = accountApplicationService.getById(currentHouseholdId, accountId);
         if (account.type() != AccountType.INVESTMENT) {
             throw new IllegalArgumentException(
-                    "Só contas de investimento têm valor de mercado. Mude o tipo da conta para Investimento.");
+                    "Só contas de investimento têm valor de mercado. Mude o tipo da conta para"
+                            + " Investimento.");
         }
         if (valuationDate.isAfter(LocalDate.now(clock))) {
             throw new IllegalArgumentException("A data do valor não pode ser futura");
@@ -62,13 +65,13 @@ public class AccountValuationApplicationService {
         return saved;
     }
 
-    public void delete(Long currentUserId, Long accountId, Long valuationId) {
+    public void delete(Long currentHouseholdId, Long accountId, Long valuationId) {
         log.debug(
                 "Removendo valor de mercado={} da conta={} do usuário={}",
                 valuationId,
                 accountId,
-                currentUserId);
-        accountApplicationService.getById(currentUserId, accountId);
+                currentHouseholdId);
+        accountApplicationService.getById(currentHouseholdId, accountId);
         AccountValuation valuation =
                 accountValuationRepositoryPort
                         .findById(valuationId)

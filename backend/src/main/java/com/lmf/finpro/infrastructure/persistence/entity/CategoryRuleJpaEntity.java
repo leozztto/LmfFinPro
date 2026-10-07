@@ -22,9 +22,8 @@ public class CategoryRuleJpaEntity {
     private Long id;
 
     /** Nula = regra padrão do sistema, disponível para todos os usuários. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserJpaEntity user;
+    @Column(name = "household_id")
+    private Long householdId;
 
     @Column(nullable = false)
     private String pattern;

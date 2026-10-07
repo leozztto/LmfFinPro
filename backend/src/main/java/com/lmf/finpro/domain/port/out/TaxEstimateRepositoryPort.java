@@ -9,7 +9,7 @@ public interface TaxEstimateRepositoryPort {
 
     Optional<TaxEstimate> findById(Long id);
 
-    List<TaxEstimate> findAllByUserId(Long userId);
+    List<TaxEstimate> findAllByHouseholdId(Long householdId);
 
     void deleteById(Long id);
 }

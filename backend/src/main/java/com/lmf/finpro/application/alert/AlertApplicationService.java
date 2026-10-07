@@ -15,6 +15,7 @@ import com.lmf.finpro.domain.model.Budget;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.DasSchedule;
+import com.lmf.finpro.domain.model.HouseholdMembership;
 import com.lmf.finpro.domain.model.NotificationPreferences;
 import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.domain.model.SentAlert;
@@ -25,6 +26,7 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
 import com.lmf.finpro.domain.port.out.NotificationPreferencesRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.SentAlertRepositoryPort;
@@ -60,6 +62,7 @@ public class AlertApplicationService {
     static final int MAX_OVERDUE_DAYS = 30;
 
     private final UserRepositoryPort userRepositoryPort;
+    private final HouseholdRepositoryPort householdRepositoryPort;
     private final NotificationPreferencesRepositoryPort notificationPreferencesRepositoryPort;
     private final SentAlertRepositoryPort sentAlertRepositoryPort;
     private final AccountRepositoryPort accountRepositoryPort;
@@ -90,6 +93,21 @@ public class AlertApplicationService {
 
     boolean sendAlertsTo(User user) {
         LocalDate today = LocalDate.now(clock);
+        // Os dados (contas, orçamentos) são dos grupos de que o usuário participa, o pessoal e os
+        // compartilhados; preferências e envio são do usuário. O DAS é da pessoa (regime
+        // tributário), então só olha o espaço pessoal.
+        List<Long> householdIds =
+                householdRepositoryPort.findMembershipsByUserId(user.id()).stream()
+                        .map(HouseholdMembership::householdId)
+                        .toList();
+        if (householdIds.isEmpty()) {
+            return false;
+        }
+        Long personalHouseholdId =
+                householdRepositoryPort
+                        .findPersonalMembership(user.id())
+                        .map(HouseholdMembership::householdId)
+                        .orElse(null);
         NotificationPreferences preferences =
                 notificationPreferencesRepositoryPort
                         .findByUserId(user.id())
@@ -97,22 +115,27 @@ public class AlertApplicationService {
 
         List<SentAlert> toRecord = new ArrayList<>();
         List<Transaction> pending =
-                preferences.billsEnabled() ? pendingExpenses(user.id()) : List.of();
+                preferences.billsEnabled() ? pendingExpenses(householdIds) : List.of();
         List<OverdueBill> overdueBills = collectOverdueBills(user.id(), today, pending, toRecord);
         List<BillDue> bills =
                 collectBills(user.id(), today, preferences.billDaysBefore(), pending, toRecord);
         List<BudgetAlert> budgets =
                 preferences.budgetsEnabled()
-                        ? collectBudgets(user.id(), YearMonth.from(today), toRecord)
+                        ? collectBudgets(user.id(), householdIds, YearMonth.from(today), toRecord)
                         : List.of();
         DasReminder das =
-                preferences.dasEnabled()
-                        ? collectDas(user, today, preferences.billDaysBefore(), toRecord)
+                preferences.dasEnabled() && personalHouseholdId != null
+                        ? collectDas(
+                                user,
+                                personalHouseholdId,
+                                today,
+                                preferences.billDaysBefore(),
+                                toRecord)
                         : null;
         List<RecurringBudgetExpiring> recurringBudgetsExpiring =
                 preferences.recurringBudgetsEnabled()
                         ? collectRecurringBudgetsExpiring(
-                                user.id(), YearMonth.from(today), toRecord)
+                                user.id(), householdIds, YearMonth.from(today), toRecord)
                         : List.of();
 
         AlertDigest digest =
@@ -134,7 +157,8 @@ public class AlertApplicationService {
         // Só quando há o que avisar: o scheduler roda um fluxo por usuário em DEBUG e a maioria
         // não tem nada novo, então esta é a única linha em INFO que diz quem recebeu o resumo.
         log.info(
-                "Resumo de alertas enviado userId={} contas={} atrasadas={} orçamentos={} das={} recorrentes={}",
+                "Resumo de alertas enviado userId={} contas={} atrasadas={} orçamentos={} das={}"
+                        + " recorrentes={}",
                 user.id(),
                 bills.size(),
                 overdueBills.size(),
@@ -147,9 +171,12 @@ public class AlertApplicationService {
     /**
      * Despesas pendentes (sem transferências) do usuário: a base das contas a vencer e atrasadas.
      */
-    private List<Transaction> pendingExpenses(Long userId) {
+    private List<Transaction> pendingExpenses(List<Long> householdIds) {
         List<Long> accountIds =
-                accountRepositoryPort.findAllByUserId(userId).stream().map(Account::id).toList();
+                householdIds.stream()
+                        .flatMap(id -> accountRepositoryPort.findAllByHouseholdId(id).stream())
+                        .map(Account::id)
+                        .toList();
         if (accountIds.isEmpty()) {
             return List.of();
         }
@@ -234,9 +261,16 @@ public class AlertApplicationService {
      * como enviado, para não chegar depois um "passou de 80%" de um orçamento já estourado.
      */
     private List<BudgetAlert> collectBudgets(
-            Long userId, YearMonth currentMonth, List<SentAlert> toRecord) {
+            Long userId,
+            List<Long> householdIds,
+            YearMonth currentMonth,
+            List<SentAlert> toRecord) {
         List<BudgetAlert> alerts = new ArrayList<>();
-        for (Budget budget : budgetRepositoryPort.findAllByUserId(userId)) {
+        List<Budget> budgetsOfAllHouseholds =
+                householdIds.stream()
+                        .flatMap(id -> budgetRepositoryPort.findAllByHouseholdId(id).stream())
+                        .toList();
+        for (Budget budget : budgetsOfAllHouseholds) {
             if (!budget.referenceMonth().equals(currentMonth)
                     || budget.limitValue().signum() <= 0) {
                 continue;
@@ -279,9 +313,20 @@ public class AlertApplicationService {
      * já que a chave inclui o mês final.
      */
     private List<RecurringBudgetExpiring> collectRecurringBudgetsExpiring(
-            Long userId, YearMonth currentMonth, List<SentAlert> toRecord) {
+            Long userId,
+            List<Long> householdIds,
+            YearMonth currentMonth,
+            List<SentAlert> toRecord) {
         List<RecurringBudgetExpiring> alerts = new ArrayList<>();
-        for (RecurringBudget recurrence : recurringBudgetRepositoryPort.findAllByUserId(userId)) {
+        List<RecurringBudget> recurrencesOfAllHouseholds =
+                householdIds.stream()
+                        .flatMap(
+                                id ->
+                                        recurringBudgetRepositoryPort
+                                                .findAllByHouseholdId(id)
+                                                .stream())
+                        .toList();
+        for (RecurringBudget recurrence : recurrencesOfAllHouseholds) {
             YearMonth endMonth = recurrence.endMonth();
             if (!recurrence.active() || endMonth == null) {
                 continue;
@@ -305,7 +350,11 @@ public class AlertApplicationService {
 
     /** Lembrete do DAS (MEI e Simples Nacional) quando o dia 20 entra na janela de antecedência. */
     private DasReminder collectDas(
-            User user, LocalDate today, int daysBefore, List<SentAlert> toRecord) {
+            User user,
+            Long householdId,
+            LocalDate today,
+            int daysBefore,
+            List<SentAlert> toRecord) {
         if (!DasSchedule.appliesTo(user.taxRegime())) {
             return null;
         }
@@ -315,7 +364,7 @@ public class AlertApplicationService {
             return null;
         }
         BigDecimal estimatedValue =
-                taxEstimateRepositoryPort.findAllByUserId(user.id()).stream()
+                taxEstimateRepositoryPort.findAllByHouseholdId(householdId).stream()
                         .filter(estimate -> estimate.referenceMonth().equals(competence))
                         .map(TaxEstimate::estimatedValue)
                         .findFirst()

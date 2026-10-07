@@ -5,5 +5,5 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ClientJpaRepository extends JpaRepository<ClientJpaEntity, Long> {
-    List<ClientJpaEntity> findByUserId(Long userId);
+    List<ClientJpaEntity> findByHouseholdId(Long householdId);
 }

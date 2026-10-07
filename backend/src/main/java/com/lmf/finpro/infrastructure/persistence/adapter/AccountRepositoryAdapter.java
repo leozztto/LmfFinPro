@@ -27,8 +27,10 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
     }
 
     @Override
-    public List<Account> findAllByUserId(Long userId) {
-        return accountJpaRepository.findByUserId(userId).stream().map(mapper::toDomain).toList();
+    public List<Account> findAllByHouseholdId(Long householdId) {
+        return accountJpaRepository.findByHouseholdId(householdId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

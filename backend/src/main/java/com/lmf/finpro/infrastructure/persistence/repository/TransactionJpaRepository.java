@@ -35,18 +35,20 @@ public interface TransactionJpaRepository
     boolean existsByClientId(Long clientId);
 
     @Query(
-            "SELECT COALESCE(SUM(t.amount), 0) FROM TransactionJpaEntity t WHERE t.account.id = :accountId AND t.type = :type AND t.status = com.lmf.finpro.domain.model.TransactionStatus.PAID")
+            "SELECT COALESCE(SUM(t.amount), 0) FROM TransactionJpaEntity t WHERE t.account.id ="
+                    + " :accountId AND t.type = :type AND t.status ="
+                    + " com.lmf.finpro.domain.model.TransactionStatus.PAID")
     BigDecimal sumPaidAmountByAccountIdAndType(
             @Param("accountId") Long accountId, @Param("type") CategoryType type);
 
     @Query(
             """
-        SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
-        WHERE t.account.user.id = :userId AND t.category.id = :categoryId AND t.type = :type
-          AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
-        """)
-    BigDecimal sumAmountByUserIdAndCategoryIdAndTypeBetween(
-            @Param("userId") Long userId,
+SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
+WHERE t.account.householdId = :householdId AND t.category.id = :categoryId AND t.type = :type
+  AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
+""")
+    BigDecimal sumAmountByHouseholdIdAndCategoryIdAndTypeBetween(
+            @Param("householdId") Long householdId,
             @Param("categoryId") Long categoryId,
             @Param("type") CategoryType type,
             @Param("start") LocalDate start,
@@ -54,25 +56,25 @@ public interface TransactionJpaRepository
 
     @Query(
             """
-        SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
-        WHERE t.account.user.id = :userId AND t.type = :type
-          AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
-        """)
-    BigDecimal sumBaseAmountByUserIdAndTypeBetween(
-            @Param("userId") Long userId,
+            SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
+            WHERE t.account.householdId = :householdId AND t.type = :type
+              AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
+            """)
+    BigDecimal sumBaseAmountByHouseholdIdAndTypeBetween(
+            @Param("householdId") Long householdId,
             @Param("type") CategoryType type,
             @Param("start") LocalDate start,
             @Param("end") LocalDate end);
 
     @Query(
             """
-        SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
-        WHERE t.account.user.id = :userId AND t.category.id = :categoryId
-          AND t.client.id = :clientId AND t.type = :type
-          AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
-        """)
-    BigDecimal sumAmountByUserIdAndCategoryIdAndClientIdAndTypeBetween(
-            @Param("userId") Long userId,
+            SELECT COALESCE(SUM(t.baseAmount), 0) FROM TransactionJpaEntity t
+            WHERE t.account.householdId = :householdId AND t.category.id = :categoryId
+              AND t.client.id = :clientId AND t.type = :type
+              AND t.transferId IS NULL AND t.transactionDate >= :start AND t.transactionDate < :end
+            """)
+    BigDecimal sumAmountByHouseholdIdAndCategoryIdAndClientIdAndTypeBetween(
+            @Param("householdId") Long householdId,
             @Param("categoryId") Long categoryId,
             @Param("clientId") Long clientId,
             @Param("type") CategoryType type,

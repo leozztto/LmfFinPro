@@ -29,8 +29,9 @@ class AccountStatementDataFactory {
      * findAllByAccountIds} (já existente) e divide as transações em memória por data, em vez de
      * criar uma query nova só para isso.
      */
-    AccountStatementData build(Long currentUserId, Long accountId, YearMonth referenceMonth) {
-        Account account = lookups.findOwnedAccountOrThrow(currentUserId, accountId);
+    AccountStatementData build(
+            Long currentHouseholdId, Long currentUserId, Long accountId, YearMonth referenceMonth) {
+        Account account = lookups.findOwnedAccountOrThrow(currentHouseholdId, accountId);
         User issuer = lookups.findUserOrThrow(currentUserId);
 
         LocalDate start = referenceMonth.atDay(1);

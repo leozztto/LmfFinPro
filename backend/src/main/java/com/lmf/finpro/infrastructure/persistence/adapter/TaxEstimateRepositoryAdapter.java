@@ -27,8 +27,8 @@ public class TaxEstimateRepositoryAdapter implements TaxEstimateRepositoryPort {
     }
 
     @Override
-    public List<TaxEstimate> findAllByUserId(Long userId) {
-        return taxEstimateJpaRepository.findByUserId(userId).stream()
+    public List<TaxEstimate> findAllByHouseholdId(Long householdId) {
+        return taxEstimateJpaRepository.findByHouseholdId(householdId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }

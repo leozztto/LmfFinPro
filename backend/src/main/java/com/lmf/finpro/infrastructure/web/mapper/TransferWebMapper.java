@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.web.mapper;
 
+import com.lmf.finpro.application.support.RecordAuthor;
 import com.lmf.finpro.application.transfer.TransferResult;
 import com.lmf.finpro.infrastructure.web.dto.transfer.TransferResponse;
 import org.springframework.stereotype.Component;
@@ -8,6 +9,10 @@ import org.springframework.stereotype.Component;
 public class TransferWebMapper {
 
     public TransferResponse toResponse(TransferResult result) {
+        return toResponse(result, null);
+    }
+
+    public TransferResponse toResponse(TransferResult result, RecordAuthor author) {
         return new TransferResponse(
                 result.transfer().id(),
                 result.transfer().fromAccountId(),
@@ -18,6 +23,10 @@ public class TransferWebMapper {
                 result.fromTransactionId(),
                 result.toTransactionId(),
                 result.transfer().createdAt(),
-                result.transfer().creditedAmount());
+                result.transfer().creditedAmount(),
+                result.fromAccountName(),
+                result.toAccountName(),
+                author == null ? null : author.userId(),
+                author == null ? null : author.name());
     }
 }

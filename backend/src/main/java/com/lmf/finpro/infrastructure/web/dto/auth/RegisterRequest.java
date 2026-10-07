@@ -29,5 +29,20 @@ public record RegisterRequest(
         @Pattern(regexp = "\\d{10,11}", message = "telefone deve ter 10 ou 11 dígitos (com DDD)")
                 String phone,
         @NotNull(message = "regime tributário é obrigatório") TaxRegime taxRegime,
-        @NotNull(message = "endereço é obrigatório") @Valid AddressRequest address)
-        implements HasDocument, HasTaxRegimeDocument {}
+        @NotNull(message = "endereço é obrigatório") @Valid AddressRequest address,
+        String inviteToken)
+        implements HasDocument, HasTaxRegimeDocument {
+
+    /** Cadastro comum, sem convite. */
+    public RegisterRequest(
+            String name,
+            String email,
+            String password,
+            DocumentType documentType,
+            String documentNumber,
+            String phone,
+            TaxRegime taxRegime,
+            AddressRequest address) {
+        this(name, email, password, documentType, documentNumber, phone, taxRegime, address, null);
+    }
+}

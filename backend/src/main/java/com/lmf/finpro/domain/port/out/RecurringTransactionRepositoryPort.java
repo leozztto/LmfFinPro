@@ -9,7 +9,7 @@ public interface RecurringTransactionRepositoryPort {
 
     Optional<RecurringTransaction> findById(Long id);
 
-    List<RecurringTransaction> findAllByUserId(Long userId);
+    List<RecurringTransaction> findAllByHouseholdId(Long householdId);
 
     List<RecurringTransaction> findAllActive();
 

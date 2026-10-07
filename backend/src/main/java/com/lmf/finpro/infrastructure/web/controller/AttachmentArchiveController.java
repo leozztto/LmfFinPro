@@ -32,7 +32,7 @@ public class AttachmentArchiveController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam @DateTimeFormat(pattern = "yyyy") Year year) {
         AttachmentArchiveData data =
-                attachmentArchiveApplicationService.prepare(currentUser.userId(), year);
+                attachmentArchiveApplicationService.prepare(currentUser.householdId(), year);
         StreamingResponseBody body =
                 output -> attachmentArchiveApplicationService.write(data, output);
         return ResponseEntity.ok()

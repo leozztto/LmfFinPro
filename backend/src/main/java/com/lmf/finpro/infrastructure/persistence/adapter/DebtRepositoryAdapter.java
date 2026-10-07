@@ -21,7 +21,7 @@ public class DebtRepositoryAdapter implements DebtRepositoryPort {
                 repository.save(
                         DebtJpaEntity.builder()
                                 .id(debt.id())
-                                .userId(debt.userId())
+                                .householdId(debt.householdId())
                                 .name(debt.name())
                                 .type(debt.type())
                                 .creditor(debt.creditor())
@@ -35,8 +35,10 @@ public class DebtRepositoryAdapter implements DebtRepositoryPort {
     }
 
     @Override
-    public List<Debt> findAllByUserId(Long userId) {
-        return repository.findByUserIdOrderByNameAsc(userId).stream().map(this::toDomain).toList();
+    public List<Debt> findAllByHouseholdId(Long householdId) {
+        return repository.findByHouseholdIdOrderByNameAsc(householdId).stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override
@@ -47,7 +49,7 @@ public class DebtRepositoryAdapter implements DebtRepositoryPort {
     private Debt toDomain(DebtJpaEntity entity) {
         return new Debt(
                 entity.getId(),
-                entity.getUserId(),
+                entity.getHouseholdId(),
                 entity.getName(),
                 entity.getType(),
                 entity.getCreditor(),

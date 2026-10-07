@@ -27,8 +27,10 @@ public class RecurringBudgetRepositoryAdapter implements RecurringBudgetReposito
     }
 
     @Override
-    public List<RecurringBudget> findAllByUserId(Long userId) {
-        return recurringBudgetJpaRepository.findByUserIdOrderByStartMonthAsc(userId).stream()
+    public List<RecurringBudget> findAllByHouseholdId(Long householdId) {
+        return recurringBudgetJpaRepository
+                .findByHouseholdIdOrderByStartMonthAsc(householdId)
+                .stream()
                 .map(mapper::toDomain)
                 .toList();
     }

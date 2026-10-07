@@ -34,7 +34,7 @@ public class DebtController {
 
     @GetMapping
     public List<DebtResponse> list(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return debtApplicationService.list(currentUser.userId()).stream()
+        return debtApplicationService.list(currentUser.householdId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -45,7 +45,7 @@ public class DebtController {
             @Valid @RequestBody DebtCreateRequest request) {
         DebtSummary created =
                 debtApplicationService.create(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         request.name(),
                         request.type(),
                         request.creditor(),
@@ -61,7 +61,7 @@ public class DebtController {
             @Valid @RequestBody DebtUpdateRequest request) {
         return toResponse(
                 debtApplicationService.update(
-                        currentUser.userId(),
+                        currentUser.householdId(),
                         id,
                         request.name(),
                         request.type(),
@@ -71,14 +71,14 @@ public class DebtController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        debtApplicationService.delete(currentUser.userId(), id);
+        debtApplicationService.delete(currentUser.householdId(), id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/balances")
     public List<DebtBalanceResponse> listBalances(
             @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
-        return debtApplicationService.listBalances(currentUser.userId(), id).stream()
+        return debtApplicationService.listBalances(currentUser.householdId(), id).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -91,7 +91,7 @@ public class DebtController {
             @Valid @RequestBody DebtBalanceRequest request) {
         DebtBalance saved =
                 debtApplicationService.saveBalance(
-                        currentUser.userId(), id, request.balanceDate(), request.balance());
+                        currentUser.householdId(), id, request.balanceDate(), request.balance());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved));
     }
 
@@ -100,7 +100,7 @@ public class DebtController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long id,
             @PathVariable Long balanceId) {
-        debtApplicationService.deleteBalance(currentUser.userId(), id, balanceId);
+        debtApplicationService.deleteBalance(currentUser.householdId(), id, balanceId);
         return ResponseEntity.noContent().build();
     }
 

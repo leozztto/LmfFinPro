@@ -120,10 +120,10 @@ class RecurringBudgetApplicationServiceTest {
         when(categoryRepositoryPort.findById(5L)).thenReturn(Optional.of(expenseCategory()));
         when(recurringBudgetRepositoryPort.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+        when(budgetRepositoryPort.existsByHouseholdIdAndCategoryIdAndReferenceMonthAndClientId(
                         eq(10L), eq(5L), any(), isNull()))
                 .thenReturn(false);
-        when(budgetRepositoryPort.existsByUserIdAndCategoryIdAndReferenceMonthAndClientId(
+        when(budgetRepositoryPort.existsByHouseholdIdAndCategoryIdAndReferenceMonthAndClientId(
                         10L, 5L, YearMonth.of(2026, 8), null))
                 .thenReturn(true);
 
@@ -234,7 +234,8 @@ class RecurringBudgetApplicationServiceTest {
     @Test
     void listReturnsRecurrencesOfUser() {
         RecurringBudget recurrence = existing(CURRENT_MONTH, 0, true);
-        when(recurringBudgetRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(recurrence));
+        when(recurringBudgetRepositoryPort.findAllByHouseholdId(10L))
+                .thenReturn(List.of(recurrence));
 
         assertThat(service.list(10L)).containsExactly(recurrence);
     }

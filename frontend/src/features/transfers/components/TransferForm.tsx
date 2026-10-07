@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, FormField, Input, Select } from '@/shared/ui'
@@ -7,6 +7,7 @@ import { useToast } from '@/shared/toast/ToastContext'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import type { Account } from '@/features/accounts/types'
 import { useCreateTransfer } from '../hooks/useCreateTransfer'
+import { useLinkableAccounts } from '../hooks/useTransfers'
 import { transferSchema, type TransferFormValues } from '../schemas'
 import { getCurrentIsoDate } from '@/shared/format/date'
 import { formatCurrency } from '@/shared/format/currency'
@@ -25,12 +26,64 @@ interface TransferFormProps {
   initialValues?: TransferFormInitialValues
 }
 
-function accountLabel(account: Account): string {
+interface TransferAccountOption {
+  id: number
+  name: string
+  currency: Account['currency']
+  /** Nome do espaço (grupo ou pessoal) quando a conta é de outro espaço; nulo para as do espaço atual. */
+  space: string | null
+}
+
+function accountLabel(account: Pick<TransferAccountOption, 'name' | 'currency'>): string {
   return account.currency === 'BRL' ? account.name : `${account.name} (${account.currency})`
 }
 
+function AccountOptions({ options }: { options: TransferAccountOption[] }) {
+  const own = options.filter((option) => option.space === null)
+  const spaces = [...new Set(options.flatMap((option) => (option.space === null ? [] : [option.space])))]
+  return (
+    <>
+      <option value="" disabled>
+        Selecione...
+      </option>
+      {own.map((account) => (
+        <option key={account.id} value={account.id}>
+          {accountLabel(account)}
+        </option>
+      ))}
+      {spaces.map((space) => (
+        <optgroup key={space} label={space}>
+          {options
+            .filter((option) => option.space === space)
+            .map((account) => (
+              <option key={account.id} value={account.id}>
+                {accountLabel(account)}
+              </option>
+            ))}
+        </optgroup>
+      ))}
+    </>
+  )
+}
+
 export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
-  const { data: accounts } = useAccounts()
+  const { data: ownAccounts } = useAccounts()
+  const { data: linkableAccounts } = useLinkableAccounts()
+  // Contas do espaço atual primeiro; depois as dos outros espaços da pessoa (ex.: a conta conjunta
+  // de um grupo, estando no pessoal), agrupadas pelo nome do espaço.
+  const accounts = useMemo<TransferAccountOption[] | undefined>(
+    () =>
+      ownAccounts && [
+        ...ownAccounts.map((account) => ({ id: account.id, name: account.name, currency: account.currency, space: null })),
+        ...(linkableAccounts ?? []).map((account) => ({
+          id: account.id,
+          name: account.name,
+          currency: account.currency,
+          space: account.householdName,
+        })),
+      ],
+    [ownAccounts, linkableAccounts],
+  )
   const createTransfer = useCreateTransfer()
   const { showToast } = useToast()
 
@@ -77,6 +130,11 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
       setError('receivedAmount', { message: 'informe o valor que entrou na conta de destino' })
       return
     }
+    const ownIds = new Set(ownAccounts?.map((account) => account.id))
+    if (!ownIds.has(Number(values.fromAccountId)) && !ownIds.has(Number(values.toAccountId))) {
+      setError('toAccountId', { message: 'uma das contas precisa ser do espaço em que você está' })
+      return
+    }
     try {
       await createTransfer.mutateAsync({
         fromAccountId: values.fromAccountId,
@@ -118,26 +176,12 @@ export function TransferForm({ onSuccess, initialValues }: TransferFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Conta de origem" htmlFor="transfer-from-account" error={errors.fromAccountId?.message}>
         <Select id="transfer-from-account" defaultValue={initialValues?.fromAccountId ?? ''} {...register('fromAccountId')}>
-          <option value="" disabled>
-            Selecione...
-          </option>
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {accountLabel(account)}
-            </option>
-          ))}
+          <AccountOptions options={accounts} />
         </Select>
       </FormField>
       <FormField label="Conta de destino" htmlFor="transfer-to-account" error={errors.toAccountId?.message}>
         <Select id="transfer-to-account" defaultValue={initialValues?.toAccountId ?? ''} {...register('toAccountId')}>
-          <option value="" disabled>
-            Selecione...
-          </option>
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {accountLabel(account)}
-            </option>
-          ))}
+          <AccountOptions options={accounts} />
         </Select>
       </FormField>
       <FormField

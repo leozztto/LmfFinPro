@@ -91,7 +91,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(corsProperties.allowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(
+                List.of("Authorization", "Content-Type", JwtAuthenticationFilter.HOUSEHOLD_HEADER));
         // O refresh token viaja em cookie httpOnly; em dev (localhost:5173 -> :8080) a chamada é
         // cross-origin e o navegador só envia/aceita o cookie com credenciais liberadas. Seguro
         // porque as origens são listadas explicitamente (nunca "*").

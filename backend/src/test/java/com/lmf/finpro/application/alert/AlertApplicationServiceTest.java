@@ -20,6 +20,8 @@ import com.lmf.finpro.domain.model.AlertType;
 import com.lmf.finpro.domain.model.Budget;
 import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
+import com.lmf.finpro.domain.model.HouseholdMembership;
+import com.lmf.finpro.domain.model.HouseholdRole;
 import com.lmf.finpro.domain.model.NotificationPreferences;
 import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.domain.model.SentAlert;
@@ -33,6 +35,7 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
 import com.lmf.finpro.domain.port.out.NotificationPreferencesRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.SentAlertRepositoryPort;
@@ -62,8 +65,11 @@ class AlertApplicationServiceTest {
     // dias.
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 18);
     private static final Long USER_ID = 10L;
+    // Distinto de USER_ID de propósito: os dados são buscados pelo grupo, os envios são do usuário.
+    private static final Long HOUSEHOLD_ID = 20L;
 
     @Mock private UserRepositoryPort userRepositoryPort;
+    @Mock private HouseholdRepositoryPort householdRepositoryPort;
     @Mock private NotificationPreferencesRepositoryPort notificationPreferencesRepositoryPort;
     @Mock private SentAlertRepositoryPort sentAlertRepositoryPort;
     @Mock private AccountRepositoryPort accountRepositoryPort;
@@ -78,33 +84,50 @@ class AlertApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
+        HouseholdMembership personal =
+                new HouseholdMembership(HOUSEHOLD_ID, USER_ID, HouseholdRole.OWNER);
+        lenient()
+                .when(householdRepositoryPort.findMembershipsByUserId(USER_ID))
+                .thenReturn(List.of(personal));
+        lenient()
+                .when(householdRepositoryPort.findPersonalMembership(USER_ID))
+                .thenReturn(Optional.of(personal));
         lenient()
                 .when(notificationPreferencesRepositoryPort.findByUserId(USER_ID))
                 .thenReturn(Optional.empty());
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
                                         1L,
-                                        USER_ID,
+                                        HOUSEHOLD_ID,
                                         "Conta",
                                         AccountType.CHECKING,
                                         BigDecimal.ZERO,
                                         null)));
         lenient().when(transactionRepositoryPort.findAllByAccountIds(any())).thenReturn(List.of());
-        lenient().when(budgetRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
         lenient()
-                .when(recurringBudgetRepositoryPort.findAllByUserId(USER_ID))
+                .when(budgetRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
+                .thenReturn(List.of());
+        lenient()
+                .when(recurringBudgetRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
                 .thenReturn(List.of());
         lenient().when(sentAlertRepositoryPort.exists(anyLong(), any(), any())).thenReturn(false);
-        lenient().when(taxEstimateRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of());
+        lenient()
+                .when(taxEstimateRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
+                .thenReturn(List.of());
         lenient()
                 .when(categoryRepositoryPort.findById(5L))
                 .thenReturn(
                         Optional.of(
                                 new Category(
-                                        5L, USER_ID, "Mercado", CategoryType.EXPENSE, null, null)));
+                                        5L,
+                                        HOUSEHOLD_ID,
+                                        "Mercado",
+                                        CategoryType.EXPENSE,
+                                        null,
+                                        null)));
     }
 
     @Test
@@ -189,6 +212,35 @@ class AlertApplicationServiceTest {
     }
 
     @Test
+    void budgetOfASharedHouseholdIsAlertedToo() {
+        Long sharedHouseholdId = 30L;
+        lenient()
+                .when(householdRepositoryPort.findMembershipsByUserId(USER_ID))
+                .thenReturn(
+                        List.of(
+                                new HouseholdMembership(HOUSEHOLD_ID, USER_ID, HouseholdRole.OWNER),
+                                new HouseholdMembership(
+                                        sharedHouseholdId, USER_ID, HouseholdRole.MEMBER)));
+        Budget sharedBudget =
+                new Budget(
+                        9L,
+                        sharedHouseholdId,
+                        5L,
+                        YearMonth.from(TODAY),
+                        BigDecimal.valueOf(1000),
+                        null);
+        when(budgetRepositoryPort.findAllByHouseholdId(sharedHouseholdId))
+                .thenReturn(List.of(sharedBudget));
+        when(budgetApplicationService.calculateSpent(sharedBudget))
+                .thenReturn(new BigDecimal("1200"));
+
+        service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO));
+
+        assertThat(sentDigest().budgets()).hasSize(1);
+        verify(sentAlertRepositoryPort).save(new SentAlert(USER_ID, AlertType.BUDGET_100, "9"));
+    }
+
+    @Test
     void budgetBelowEightyPercentIsNotAlerted() {
         givenBudgetWithSpent("790");
 
@@ -230,12 +282,12 @@ class AlertApplicationServiceTest {
 
     @Test
     void budgetOfAnotherMonthIsIgnored() {
-        when(budgetRepositoryPort.findAllByUserId(USER_ID))
+        when(budgetRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
                 .thenReturn(
                         List.of(
                                 new Budget(
                                         7L,
-                                        USER_ID,
+                                        HOUSEHOLD_ID,
                                         5L,
                                         YearMonth.from(TODAY).minusMonths(1),
                                         BigDecimal.valueOf(1000),
@@ -283,12 +335,12 @@ class AlertApplicationServiceTest {
 
     @Test
     void recurringBudgetWithoutEndMonthIsIgnored() {
-        when(recurringBudgetRepositoryPort.findAllByUserId(USER_ID))
+        when(recurringBudgetRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
                 .thenReturn(
                         List.of(
                                 new RecurringBudget(
                                         3L,
-                                        USER_ID,
+                                        HOUSEHOLD_ID,
                                         5L,
                                         BigDecimal.valueOf(500),
                                         YearMonth.from(TODAY).minusMonths(3),
@@ -313,12 +365,12 @@ class AlertApplicationServiceTest {
     @Test
     void dasReminderForMeiIncludesEstimatedValueOfTheCompetence() {
         YearMonth competence = YearMonth.of(2026, 8);
-        when(taxEstimateRepositoryPort.findAllByUserId(USER_ID))
+        when(taxEstimateRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
                 .thenReturn(
                         List.of(
                                 new TaxEstimate(
                                         1L,
-                                        USER_ID,
+                                        HOUSEHOLD_ID,
                                         competence,
                                         TaxRegime.MEI,
                                         BigDecimal.valueOf(5000),
@@ -380,6 +432,7 @@ class AlertApplicationServiceTest {
     private AlertApplicationService service(LocalDate today) {
         return new AlertApplicationService(
                 userRepositoryPort,
+                householdRepositoryPort,
                 notificationPreferencesRepositoryPort,
                 sentAlertRepositoryPort,
                 accountRepositoryPort,
@@ -396,8 +449,16 @@ class AlertApplicationServiceTest {
 
     private void givenBudgetWithSpent(String spent) {
         Budget budget =
-                new Budget(7L, USER_ID, 5L, YearMonth.from(TODAY), BigDecimal.valueOf(1000), null);
-        lenient().when(budgetRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of(budget));
+                new Budget(
+                        7L,
+                        HOUSEHOLD_ID,
+                        5L,
+                        YearMonth.from(TODAY),
+                        BigDecimal.valueOf(1000),
+                        null);
+        lenient()
+                .when(budgetRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
+                .thenReturn(List.of(budget));
         lenient()
                 .when(budgetApplicationService.calculateSpent(budget))
                 .thenReturn(new BigDecimal(spent));
@@ -407,7 +468,7 @@ class AlertApplicationServiceTest {
         RecurringBudget recurrence =
                 new RecurringBudget(
                         id,
-                        USER_ID,
+                        HOUSEHOLD_ID,
                         5L,
                         BigDecimal.valueOf(500),
                         endMonth.minusMonths(6),
@@ -416,7 +477,7 @@ class AlertApplicationServiceTest {
                         active,
                         LocalDateTime.now());
         lenient()
-                .when(recurringBudgetRepositoryPort.findAllByUserId(USER_ID))
+                .when(recurringBudgetRepositoryPort.findAllByHouseholdId(HOUSEHOLD_ID))
                 .thenReturn(List.of(recurrence));
     }
 

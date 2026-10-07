@@ -56,6 +56,11 @@ finpro:
     frontend-url: ${FRONTEND_URL:http://localhost:5173}
     token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
     mail-from: ${PASSWORD_RESET_MAIL_FROM:FinPro <no-reply@finpro.local>}
+  # Convites para grupos compartilhados (casal/família). Sem SMTP o convite não é enviado — ver HouseholdConfig.
+  household:
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    invite-ttl-days: ${HOUSEHOLD_INVITE_TTL_DAYS:7}
+    mail-from: ${HOUSEHOLD_MAIL_FROM:${PASSWORD_RESET_MAIL_FROM:FinPro <no-reply@finpro.local>}}
   # Rate limit por IP (filtro) e por e-mail nas rotas públicas de autenticação — ver AuthRateLimitFilter.
   # RATE_LIMIT_TRUST_PROXY_HEADER=true só quando a API é alcançável apenas pelo nginx (X-Real-IP).
   rate-limit:

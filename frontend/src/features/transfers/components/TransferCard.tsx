@@ -13,6 +13,8 @@ interface TransferCardProps {
   toCurrency?: Currency
   onDelete: () => void
   isDeleting: boolean
+  /** Por que a exclusão está bloqueada para quem está logado (criada por outra pessoa); null se pode. */
+  deleteBlockedReason?: string | null
 }
 
 export function TransferCard({
@@ -23,6 +25,7 @@ export function TransferCard({
   toCurrency = 'BRL',
   onDelete,
   isDeleting,
+  deleteBlockedReason = null,
 }: TransferCardProps) {
   const [open, setOpen] = useState(false)
   const title = `${fromAccountName} → ${toAccountName}`
@@ -32,7 +35,14 @@ export function TransferCard({
       ? formatCurrency(transfer.amount, fromCurrency)
       : `${formatCurrency(transfer.amount, fromCurrency)} → ${formatCurrency(transfer.receivedAmount, toCurrency)}`
 
-  const removeButton = <IconButton icon={TrashIcon} label="Remover" onClick={onDelete} disabled={isDeleting} />
+  const removeButton = (
+    <IconButton
+      icon={TrashIcon}
+      label={deleteBlockedReason ?? 'Remover'}
+      onClick={onDelete}
+      disabled={isDeleting || deleteBlockedReason !== null}
+    />
+  )
 
   return (
     <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">

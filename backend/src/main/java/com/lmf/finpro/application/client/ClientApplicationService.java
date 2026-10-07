@@ -23,7 +23,7 @@ public class ClientApplicationService {
     private final BudgetRepositoryPort budgetRepositoryPort;
 
     public Client create(
-            Long currentUserId,
+            Long currentHouseholdId,
             String name,
             String email,
             String phone,
@@ -33,11 +33,11 @@ public class ClientApplicationService {
             String notes,
             String color,
             boolean active) {
-        log.debug("Criando cliente para o usuário={}", currentUserId);
+        log.debug("Criando cliente para o usuário={}", currentHouseholdId);
         Client saved =
                 clientRepositoryPort.save(
                         Client.create(
-                                currentUserId,
+                                currentHouseholdId,
                                 name,
                                 email,
                                 phone,
@@ -47,22 +47,22 @@ public class ClientApplicationService {
                                 notes,
                                 color,
                                 active));
-        log.debug("Cliente={} criado para o usuário={}", saved.id(), currentUserId);
+        log.debug("Cliente={} criado para o usuário={}", saved.id(), currentHouseholdId);
         return saved;
     }
 
-    public List<Client> list(Long currentUserId) {
-        log.debug("Listando clientes do usuário={}", currentUserId);
-        return clientRepositoryPort.findAllByUserId(currentUserId);
+    public List<Client> list(Long currentHouseholdId) {
+        log.debug("Listando clientes do usuário={}", currentHouseholdId);
+        return clientRepositoryPort.findAllByHouseholdId(currentHouseholdId);
     }
 
-    public Client getById(Long currentUserId, Long clientId) {
-        log.debug("Buscando cliente={} do usuário={}", clientId, currentUserId);
-        return findOwnedOrThrow(currentUserId, clientId);
+    public Client getById(Long currentHouseholdId, Long clientId) {
+        log.debug("Buscando cliente={} do usuário={}", clientId, currentHouseholdId);
+        return findOwnedOrThrow(currentHouseholdId, clientId);
     }
 
     public Client update(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long clientId,
             String name,
             String email,
@@ -73,8 +73,8 @@ public class ClientApplicationService {
             String notes,
             String color,
             boolean active) {
-        log.debug("Atualizando cliente={} do usuário={}", clientId, currentUserId);
-        Client existing = findOwnedOrThrow(currentUserId, clientId);
+        log.debug("Atualizando cliente={} do usuário={}", clientId, currentHouseholdId);
+        Client existing = findOwnedOrThrow(currentHouseholdId, clientId);
         return clientRepositoryPort.save(
                 existing.withDetails(
                         name,
@@ -88,27 +88,29 @@ public class ClientApplicationService {
                         active));
     }
 
-    public void delete(Long currentUserId, Long clientId) {
-        log.debug("Removendo cliente={} do usuário={}", clientId, currentUserId);
-        findOwnedOrThrow(currentUserId, clientId);
+    public void delete(Long currentHouseholdId, Long clientId) {
+        log.debug("Removendo cliente={} do usuário={}", clientId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, clientId);
         if (transactionRepositoryPort.existsByClientId(clientId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Este cliente possui transações vinculadas. Exclua-as ou desvincule-as antes de remover o cliente.");
+                    "Este cliente possui transações vinculadas. Exclua-as ou desvincule-as antes de"
+                            + " remover o cliente.");
         }
         // budgets.client_id é ON DELETE CASCADE: sem essa checagem, excluir o cliente apagaria
         // orçamentos existentes em silêncio.
         if (budgetRepositoryPort.existsByClientId(clientId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Este cliente possui orçamentos vinculados. Exclua-os antes de remover o cliente.");
+                    "Este cliente possui orçamentos vinculados. Exclua-os antes de remover o"
+                            + " cliente.");
         }
         clientRepositoryPort.deleteById(clientId);
     }
 
     /** Acesso a cliente de outro usuário é tratado como inexistente (404), não como 403. */
-    private Client findOwnedOrThrow(Long currentUserId, Long clientId) {
+    private Client findOwnedOrThrow(Long currentHouseholdId, Long clientId) {
         return clientRepositoryPort
                 .findById(clientId)
-                .filter(client -> client.belongsTo(currentUserId))
+                .filter(client -> client.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Cliente não encontrado: " + clientId));
     }

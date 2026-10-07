@@ -10,21 +10,21 @@ import java.time.LocalDateTime;
  */
 public record Debt(
         Long id,
-        Long userId,
+        Long householdId,
         String name,
         DebtType type,
         String creditor,
         LocalDateTime createdAt) {
 
-    public static Debt create(Long userId, String name, DebtType type, String creditor) {
-        return new Debt(null, userId, name, type, creditor, LocalDateTime.now());
+    public static Debt create(Long householdId, String name, DebtType type, String creditor) {
+        return new Debt(null, householdId, name, type, creditor, LocalDateTime.now());
     }
 
     public Debt withDetails(String newName, DebtType newType, String newCreditor) {
-        return new Debt(id, userId, newName, newType, newCreditor, createdAt);
+        return new Debt(id, householdId, newName, newType, newCreditor, createdAt);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 }

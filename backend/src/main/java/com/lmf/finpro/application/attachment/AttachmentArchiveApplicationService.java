@@ -54,10 +54,10 @@ public class AttachmentArchiveApplicationService {
      * Monta o conteúdo antes de começar a escrever o ZIP, para que um ano sem comprovantes vire um
      * 404 com mensagem clara (e não um arquivo vazio).
      */
-    public AttachmentArchiveData prepare(Long currentUserId, Year year) {
-        log.debug("Gerando arquivo de comprovantes ano={} do usuário={}", year, currentUserId);
+    public AttachmentArchiveData prepare(Long currentHouseholdId, Year year) {
+        log.debug("Gerando arquivo de comprovantes ano={} do usuário={}", year, currentHouseholdId);
         Map<Long, Account> accountById =
-                accountRepositoryPort.findAllByUserId(currentUserId).stream()
+                accountRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Account::id, Function.identity()));
         Map<Long, Transaction> transactionById =
                 accountById.isEmpty()
@@ -79,14 +79,14 @@ public class AttachmentArchiveApplicationService {
         }
 
         Map<Long, String> categoryNameById =
-                categoryRepositoryPort.findAllVisibleToUser(currentUserId).stream()
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Category::id, Category::name));
         Map<Long, String> clientNameById =
-                clientRepositoryPort.findAllByUserId(currentUserId).stream()
+                clientRepositoryPort.findAllByHouseholdId(currentHouseholdId).stream()
                         .collect(Collectors.toMap(Client::id, Client::name));
         Map<Long, List<Tag>> tagsByTransaction =
                 tagApplicationService.tagsByTransactionIds(
-                        currentUserId,
+                        currentHouseholdId,
                         attachments.stream()
                                 .map(TransactionAttachment::transactionId)
                                 .distinct()

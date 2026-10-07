@@ -5,7 +5,6 @@ import com.lmf.finpro.infrastructure.persistence.entity.AccountJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.CategoryJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.ClientJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.RecurringTransactionJpaEntity;
-import com.lmf.finpro.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +13,7 @@ public class RecurringTransactionPersistenceMapper {
     public RecurringTransactionJpaEntity toEntity(RecurringTransaction recurrence) {
         return RecurringTransactionJpaEntity.builder()
                 .id(recurrence.id())
-                .user(UserJpaEntity.builder().id(recurrence.userId()).build())
+                .householdId(recurrence.householdId())
                 .account(AccountJpaEntity.builder().id(recurrence.accountId()).build())
                 .category(
                         recurrence.categoryId() == null
@@ -39,7 +38,7 @@ public class RecurringTransactionPersistenceMapper {
     public RecurringTransaction toDomain(RecurringTransactionJpaEntity entity) {
         return new RecurringTransaction(
                 entity.getId(),
-                entity.getUser().getId(),
+                entity.getHouseholdId(),
                 entity.getAccount().getId(),
                 entity.getCategory() == null ? null : entity.getCategory().getId(),
                 entity.getClient() == null ? null : entity.getClient().getId(),

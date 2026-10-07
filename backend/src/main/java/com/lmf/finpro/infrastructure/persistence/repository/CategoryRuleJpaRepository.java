@@ -10,14 +10,17 @@ import org.springframework.data.repository.query.Param;
 public interface CategoryRuleJpaRepository extends JpaRepository<CategoryRuleJpaEntity, Long> {
 
     /**
-     * Regras do usuário + regras padrão do sistema (user_id nulo). As do usuário vêm primeiro
+     * Regras do usuário + regras padrão do sistema (household_id nulo). As do usuário vêm primeiro
      * (mesmo com peso menor): se ele já corrigiu manualmente, isso deve prevalecer sobre a sugestão
      * genérica do sistema. Dentro de cada grupo, as de maior peso vêm primeiro.
      */
     @Query(
-            "SELECT r FROM CategoryRuleJpaEntity r WHERE r.user.id = :userId OR r.user IS NULL "
-                    + "ORDER BY CASE WHEN r.user IS NULL THEN 1 ELSE 0 END, r.weight DESC")
-    List<CategoryRuleJpaEntity> findVisibleToUserOrderByPriorityDesc(@Param("userId") Long userId);
+            "SELECT r FROM CategoryRuleJpaEntity r WHERE r.householdId = :householdId OR"
+                    + " r.householdId IS NULL ORDER BY CASE WHEN r.householdId IS NULL THEN 1 ELSE 0"
+                    + " END, r.weight DESC")
+    List<CategoryRuleJpaEntity> findVisibleToUserOrderByPriorityDesc(
+            @Param("householdId") Long householdId);
 
-    Optional<CategoryRuleJpaEntity> findByUserIdAndPatternIgnoreCase(Long userId, String pattern);
+    Optional<CategoryRuleJpaEntity> findByHouseholdIdAndPatternIgnoreCase(
+            Long householdId, String pattern);
 }

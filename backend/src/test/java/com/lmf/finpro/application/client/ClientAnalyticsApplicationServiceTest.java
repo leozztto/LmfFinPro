@@ -51,7 +51,7 @@ class ClientAnalyticsApplicationServiceTest {
                         clientRepositoryPort,
                         Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE));
         lenient()
-                .when(accountRepositoryPort.findAllByUserId(USER_ID))
+                .when(accountRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Account(
@@ -62,7 +62,7 @@ class ClientAnalyticsApplicationServiceTest {
                                         BigDecimal.ZERO,
                                         null)));
         lenient()
-                .when(clientRepositoryPort.findAllByUserId(USER_ID))
+                .when(clientRepositoryPort.findAllByHouseholdId(USER_ID))
                 .thenReturn(
                         List.of(
                                 new Client(

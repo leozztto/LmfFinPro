@@ -13,6 +13,7 @@ import com.lmf.finpro.application.attachment.TransactionAttachmentApplicationSer
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
 import com.lmf.finpro.application.tag.TagApplicationService;
 import com.lmf.finpro.domain.exception.CategoryTypeMismatchException;
+import com.lmf.finpro.domain.exception.HouseholdPermissionException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.TransactionLinkedToTransferException;
@@ -36,6 +37,7 @@ import com.lmf.finpro.domain.model.TransactionStatus;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
 import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
+import com.lmf.finpro.domain.port.out.RecordAuthorshipPort;
 import com.lmf.finpro.domain.port.out.TransactionRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -65,6 +67,7 @@ class TransactionApplicationServiceTest {
 
     @Mock private TransactionAttachmentApplicationService transactionAttachmentApplicationService;
     @Mock private TagApplicationService tagApplicationService;
+    @Mock private RecordAuthorshipPort recordAuthorshipPort;
 
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
 
@@ -83,7 +86,8 @@ class TransactionApplicationServiceTest {
                         fixedClock,
                         transactionAttachmentApplicationService,
                         tagApplicationService,
-                        exchangeRateApplicationService);
+                        exchangeRateApplicationService,
+                        recordAuthorshipPort);
     }
 
     private static Account ownedAccount() {
@@ -354,7 +358,7 @@ class TransactionApplicationServiceTest {
                         criteria.capture(),
                         eq(new PageQuery(0, 20)),
                         eq(TransactionSortOrder.NEWEST_FIRST));
-        assertThat(criteria.getValue().userId()).isEqualTo(10L);
+        assertThat(criteria.getValue().householdId()).isEqualTo(10L);
         assertThat(criteria.getValue().excludeTransfers()).isFalse();
         assertThat(page.content()).hasSize(1);
     }
@@ -486,7 +490,7 @@ class TransactionApplicationServiceTest {
         when(transactionRepositoryPort.findById(7L)).thenReturn(Optional.of(ownedTransaction(50L)));
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
 
-        assertThatThrownBy(() -> service.delete(10L, 7L))
+        assertThatThrownBy(() -> service.delete(10L, 20L, 7L))
                 .isInstanceOf(TransactionLinkedToTransferException.class);
         verify(transactionRepositoryPort, never()).deleteById(any());
     }
@@ -497,9 +501,75 @@ class TransactionApplicationServiceTest {
                 .thenReturn(Optional.of(ownedTransaction(null)));
         when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
 
-        service.delete(10L, 7L);
+        service.delete(10L, 20L, 7L);
 
         verify(transactionRepositoryPort).deleteById(7L);
+    }
+
+    @Test
+    void deleteIsRejectedWhenAnotherUserCreatedTheTransaction() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(Optional.of(ownedTransaction(null)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(recordAuthorshipPort.findTransactionAuthor(7L)).thenReturn(Optional.of(30L));
+
+        assertThatThrownBy(() -> service.delete(10L, 20L, 7L))
+                .isInstanceOf(HouseholdPermissionException.class);
+        verify(transactionRepositoryPort, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteIsAllowedForTheUserWhoCreatedTheTransaction() {
+        when(transactionRepositoryPort.findById(7L))
+                .thenReturn(Optional.of(ownedTransaction(null)));
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(recordAuthorshipPort.findTransactionAuthor(7L)).thenReturn(Optional.of(20L));
+
+        service.delete(10L, 20L, 7L);
+
+        verify(transactionRepositoryPort).deleteById(7L);
+    }
+
+    @Test
+    void createRecordsTheUserAsTheAuthor() {
+        when(accountRepositoryPort.findById(1L)).thenReturn(Optional.of(ownedAccount()));
+        when(transactionRepositoryPort.save(any()))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction toSave = invocation.getArgument(0);
+                            return new Transaction(
+                                    55L,
+                                    toSave.accountId(),
+                                    toSave.categoryId(),
+                                    toSave.clientId(),
+                                    toSave.description(),
+                                    toSave.amount(),
+                                    toSave.transactionDate(),
+                                    toSave.type(),
+                                    toSave.origin(),
+                                    toSave.createdAt(),
+                                    toSave.transferId(),
+                                    toSave.importBatchId(),
+                                    toSave.recurringTransactionId(),
+                                    toSave.status());
+                        });
+
+        service.create(
+                10L,
+                20L,
+                1L,
+                null,
+                null,
+                "X",
+                BigDecimal.TEN,
+                TODAY,
+                CategoryType.EXPENSE,
+                null,
+                List.of(),
+                null,
+                null);
+
+        verify(recordAuthorshipPort).recordTransactionAuthors(List.of(55L), 20L);
     }
 
     private Transaction createWithStatus(LocalDate date, TransactionStatus status) {

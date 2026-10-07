@@ -63,7 +63,7 @@ class ClientApplicationServiceTest {
                         null,
                         true);
 
-        assertThat(created.userId()).isEqualTo(10L);
+        assertThat(created.householdId()).isEqualTo(10L);
         assertThat(created.name()).isEqualTo("Empresa X");
         assertThat(created.active()).isTrue();
     }
@@ -71,7 +71,7 @@ class ClientApplicationServiceTest {
     @Test
     void listReturnsAllClientsForUser() {
         Client client = existingClient();
-        when(clientRepositoryPort.findAllByUserId(10L)).thenReturn(List.of(client));
+        when(clientRepositoryPort.findAllByHouseholdId(10L)).thenReturn(List.of(client));
 
         assertThat(service.list(10L)).containsExactly(client);
     }
@@ -129,7 +129,7 @@ class ClientApplicationServiceTest {
         Client withId =
                 new Client(
                         1L,
-                        client.userId(),
+                        client.householdId(),
                         client.name(),
                         client.email(),
                         client.phone(),
@@ -153,7 +153,7 @@ class ClientApplicationServiceTest {
         Client withId =
                 new Client(
                         1L,
-                        client.userId(),
+                        client.householdId(),
                         client.name(),
                         client.email(),
                         client.phone(),
@@ -177,7 +177,7 @@ class ClientApplicationServiceTest {
         Client withId =
                 new Client(
                         1L,
-                        client.userId(),
+                        client.householdId(),
                         client.name(),
                         client.email(),
                         client.phone(),

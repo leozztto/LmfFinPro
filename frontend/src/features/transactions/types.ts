@@ -30,6 +30,11 @@ export interface Transaction {
   /** Quantidade de comprovantes anexados (vem na listagem). */
   attachmentCount?: number
   tags: TagSummary[]
+  /** Quem criou o lançamento; nulo quando não se sabe (criado pelo sistema). Numa conta compartilhada só essa pessoa exclui. */
+  createdByUserId?: number | null
+  createdByName?: string | null
+  /** Nome da conta quando ela está em outro espaço (perna de transferência vinda do grupo ou do pessoal). */
+  linkedAccountName?: string | null
 }
 
 export interface TransactionInput {

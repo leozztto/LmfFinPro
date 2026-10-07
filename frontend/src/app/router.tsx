@@ -3,6 +3,8 @@ import { LoginPage } from '@/features/auth/components/LoginPage'
 import { RegisterPage } from '@/features/auth/components/RegisterPage'
 import { ForgotPasswordPage } from '@/features/auth/components/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/features/auth/components/ResetPasswordPage'
+import { InvitePage } from '@/features/households/components/InvitePage'
+import { HouseholdsPage } from '@/features/households/components/HouseholdsPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { AccountsPage } from '@/features/accounts/components/AccountsPage'
 import { CategoriesPage } from '@/features/categories/components/CategoriesPage'
@@ -33,6 +35,7 @@ export function AppRouter() {
       <Route path="/registro" element={<RegisterPage />} />
       <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
       <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+      <Route path="/convite" element={<InvitePage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
@@ -57,6 +60,7 @@ export function AppRouter() {
             <Route path="dados-cadastrais" element={<ProfileDataPage />} />
             <Route path="senha" element={<PasswordPage />} />
             <Route path="notificacoes" element={<NotificationsPage />} />
+            <Route path="grupos" element={<HouseholdsPage />} />
           </Route>
           <Route path="/perfil" element={<Navigate to="/configuracoes/dados-cadastrais" replace />} />
         </Route>

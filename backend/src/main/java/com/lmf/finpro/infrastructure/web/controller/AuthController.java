@@ -51,7 +51,8 @@ public class AuthController {
                                 request.documentNumber(),
                                 request.phone(),
                                 request.taxRegime(),
-                                toAddressCommand(request.address())));
+                                toAddressCommand(request.address()),
+                                request.inviteToken()));
         return withRefreshCookie(ResponseEntity.status(HttpStatus.CREATED), result);
     }
 

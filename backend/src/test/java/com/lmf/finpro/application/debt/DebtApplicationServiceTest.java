@@ -56,7 +56,7 @@ class DebtApplicationServiceTest {
                             Debt debt = invocation.getArgument(0);
                             return new Debt(
                                     5L,
-                                    debt.userId(),
+                                    debt.householdId(),
                                     debt.name(),
                                     debt.type(),
                                     debt.creditor(),
@@ -82,7 +82,7 @@ class DebtApplicationServiceTest {
 
     @Test
     void listShowsTheLatestBalanceOfEachDebt() {
-        when(debtRepositoryPort.findAllByUserId(USER_ID)).thenReturn(List.of(CAR));
+        when(debtRepositoryPort.findAllByHouseholdId(USER_ID)).thenReturn(List.of(CAR));
         when(debtBalanceRepositoryPort.findAllByDebtIds(List.of(5L)))
                 .thenReturn(
                         List.of(

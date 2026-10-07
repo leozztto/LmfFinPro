@@ -6,6 +6,8 @@ import { TagInput } from '@/features/tags/components/TagInput'
 import { ApiError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/toast/ToastContext'
 import { useConfirm } from '@/shared/confirm/ConfirmContext'
+import { useAuth } from '@/shared/auth/AuthContext'
+import { deleteBlockedReason } from '@/shared/household/recordAuthorship'
 import { useAccounts } from '@/features/accounts/hooks/useAccounts'
 import { useCategories } from '@/features/categories/hooks/useCategories'
 import { useClients } from '@/features/clients/hooks/useClients'
@@ -77,6 +79,7 @@ function toListParams(filters: Filters, page: number): TransactionListParams {
 }
 
 export function TransactionList() {
+  const { session } = useAuth()
   const [searchParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() =>
     searchParams.get('atrasadas') === 'true' ? overdueFilters() : EMPTY_FILTERS,
@@ -295,12 +298,22 @@ export function TransactionList() {
             <TransactionCard
               key={transaction.id}
               transaction={transaction}
-              accountName={accountNameById.get(transaction.accountId) ?? 'conta desconhecida'}
+              accountName={
+                transaction.linkedAccountName ??
+                accountNameById.get(transaction.accountId) ??
+                'conta desconhecida'
+              }
               accountCurrency={accountCurrencyById.get(transaction.accountId)}
               categoryName={transaction.categoryId ? categoryNameById.get(transaction.categoryId) : undefined}
               clientName={transaction.clientId ? clientNameById.get(transaction.clientId) : undefined}
               onDelete={() => handleDelete(transaction.id, transaction.description)}
               isDeleting={deleteTransaction.isPending}
+              deleteBlockedReason={deleteBlockedReason(
+                transaction.createdByUserId,
+                transaction.createdByName,
+                session?.userId,
+                'lançamento',
+              )}
               onMarkAsPaid={() => handleMarkAsPaid(transaction)}
               isMarkingAsPaid={updateTransactionStatus.isPending}
               onOpenAttachments={() => setAttachmentsFor(transaction)}

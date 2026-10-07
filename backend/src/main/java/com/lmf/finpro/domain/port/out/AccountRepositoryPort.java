@@ -9,7 +9,7 @@ public interface AccountRepositoryPort {
 
     Optional<Account> findById(Long id);
 
-    List<Account> findAllByUserId(Long userId);
+    List<Account> findAllByHouseholdId(Long householdId);
 
     void deleteById(Long id);
 }

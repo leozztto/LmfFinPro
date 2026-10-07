@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RecurringBudgetJpaRepository
         extends JpaRepository<RecurringBudgetJpaEntity, Long> {
-    List<RecurringBudgetJpaEntity> findByUserIdOrderByStartMonthAsc(Long userId);
+    List<RecurringBudgetJpaEntity> findByHouseholdIdOrderByStartMonthAsc(Long householdId);
 
     List<RecurringBudgetJpaEntity> findByActiveTrue();
 

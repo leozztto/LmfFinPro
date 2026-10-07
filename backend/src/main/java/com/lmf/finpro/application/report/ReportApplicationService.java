@@ -30,95 +30,127 @@ public class ReportApplicationService {
     private final ReportCsvExporterPort reportCsvExporterPort;
 
     public byte[] generateClientReceipt(
-            Long currentUserId, Long clientId, YearMonth referenceMonth, ReportFormat format) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            Long clientId,
+            YearMonth referenceMonth,
+            ReportFormat format) {
         log.debug(
                 "Gerando recibo do cliente={} mês={} formato={} para o usuário={}",
                 clientId,
                 referenceMonth,
                 format,
-                currentUserId);
-        var data = clientReportDataFactory.buildReceipt(currentUserId, clientId, referenceMonth);
+                currentHouseholdId);
+        var data =
+                clientReportDataFactory.buildReceipt(
+                        currentHouseholdId, currentUserId, clientId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportClientReceipt(data)
                 : receiptGeneratorPort.generateClientReceipt(data);
     }
 
     public byte[] generateAccountStatement(
-            Long currentUserId, Long accountId, YearMonth referenceMonth, ReportFormat format) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            Long accountId,
+            YearMonth referenceMonth,
+            ReportFormat format) {
         log.debug(
                 "Gerando extrato da conta={} mês={} formato={} para o usuário={}",
                 accountId,
                 referenceMonth,
                 format,
-                currentUserId);
-        var data = accountStatementDataFactory.build(currentUserId, accountId, referenceMonth);
+                currentHouseholdId);
+        var data =
+                accountStatementDataFactory.build(
+                        currentHouseholdId, currentUserId, accountId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportAccountStatement(data)
                 : receiptGeneratorPort.generateAccountStatement(data);
     }
 
     public byte[] generateClientAnnualStatement(
-            Long currentUserId, Long clientId, Year year, ReportFormat format) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            Long clientId,
+            Year year,
+            ReportFormat format) {
         log.debug(
                 "Gerando extrato anual do cliente={} ano={} formato={} para o usuário={}",
                 clientId,
                 year,
                 format,
-                currentUserId);
-        var data = clientReportDataFactory.buildAnnualStatement(currentUserId, clientId, year);
+                currentHouseholdId);
+        var data =
+                clientReportDataFactory.buildAnnualStatement(
+                        currentHouseholdId, currentUserId, clientId, year);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportClientAnnualStatement(data)
                 : receiptGeneratorPort.generateClientAnnualStatement(data);
     }
 
     public byte[] generateCategoryExpenseReport(
-            Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            YearMonth referenceMonth,
+            ReportFormat format) {
         log.debug(
                 "Gerando relatório de despesas por categoria mês={} formato={} para o usuário={}",
                 referenceMonth,
                 format,
-                currentUserId);
-        var data = categoryExpenseDataFactory.build(currentUserId, referenceMonth);
+                currentHouseholdId);
+        var data =
+                categoryExpenseDataFactory.build(currentHouseholdId, currentUserId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportCategoryExpenseReport(data)
                 : receiptGeneratorPort.generateCategoryExpenseReport(data);
     }
 
     public byte[] generateIncomeStatement(
-            Long currentUserId, Year year, ReportGranularity granularity, ReportFormat format) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            Year year,
+            ReportGranularity granularity,
+            ReportFormat format) {
         log.debug(
                 "Gerando DRE ano={} granularidade={} formato={} para o usuário={}",
                 year,
                 granularity,
                 format,
-                currentUserId);
-        var data = incomeStatementDataFactory.build(currentUserId, year, granularity);
+                currentHouseholdId);
+        var data =
+                incomeStatementDataFactory.build(
+                        currentHouseholdId, currentUserId, year, granularity);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportIncomeStatement(data)
                 : receiptGeneratorPort.generateIncomeStatement(data);
     }
 
     public byte[] generateBudgetVsActualReport(
-            Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+            Long currentHouseholdId,
+            Long currentUserId,
+            YearMonth referenceMonth,
+            ReportFormat format) {
         log.debug(
                 "Gerando relatório de orçado x realizado mês={} formato={} para o usuário={}",
                 referenceMonth,
                 format,
-                currentUserId);
-        var data = budgetVsActualDataFactory.build(currentUserId, referenceMonth);
+                currentHouseholdId);
+        var data =
+                budgetVsActualDataFactory.build(currentHouseholdId, currentUserId, referenceMonth);
         return format == ReportFormat.CSV
                 ? reportCsvExporterPort.exportBudgetVsActualReport(data)
                 : receiptGeneratorPort.generateBudgetVsActualReport(data);
     }
 
     public byte[] generateTransactionExport(
-            Long currentUserId, YearMonth referenceMonth, ReportFormat format) {
+            Long currentHouseholdId, YearMonth referenceMonth, ReportFormat format) {
         log.debug(
                 "Exportando transações mês={} formato={} para o usuário={}",
                 referenceMonth,
                 format,
-                currentUserId);
-        var data = transactionExportDataFactory.build(currentUserId, referenceMonth);
+                currentHouseholdId);
+        var data = transactionExportDataFactory.build(currentHouseholdId, referenceMonth);
         return format == ReportFormat.PDF
                 ? receiptGeneratorPort.generateTransactionExport(data)
                 : reportCsvExporterPort.exportTransactions(data);

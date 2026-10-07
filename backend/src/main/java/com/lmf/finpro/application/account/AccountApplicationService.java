@@ -10,6 +10,7 @@ import com.lmf.finpro.domain.model.AccountType;
 import com.lmf.finpro.domain.model.AccountValuation;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.Currency;
+import com.lmf.finpro.domain.port.out.AccountOwnershipPort;
 import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AccountValuationRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringTransactionRepositoryPort;
@@ -33,51 +34,74 @@ public class AccountApplicationService {
     private final RecurringTransactionRepositoryPort recurringTransactionRepositoryPort;
     private final AccountValuationRepositoryPort accountValuationRepositoryPort;
     private final SavingsGoalRepositoryPort savingsGoalRepositoryPort;
+    private final AccountOwnershipPort accountOwnershipPort;
 
     public Account create(
-            Long currentUserId,
+            Long currentHouseholdId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             AccountScope scope) {
-        return create(currentUserId, name, type, initialBalance, scope, null);
+        return create(currentHouseholdId, name, type, initialBalance, scope, null);
     }
 
-    /** Sem uso informado, a conta é pessoal (PF); sem moeda, em reais. */
+    /** Sem dono conhecido (uso do sistema). */
     public Account create(
+            Long currentHouseholdId,
+            String name,
+            AccountType type,
+            BigDecimal initialBalance,
+            AccountScope scope,
+            Currency currency) {
+        return create(currentHouseholdId, null, name, type, initialBalance, scope, currency);
+    }
+
+    /**
+     * Sem uso informado, a conta é pessoal (PF); sem moeda, em reais. {@code currentUserId} fica
+     * como dono: num grupo, só ele pode descompartilhar a conta depois.
+     */
+    public Account create(
+            Long currentHouseholdId,
             Long currentUserId,
             String name,
             AccountType type,
             BigDecimal initialBalance,
             AccountScope scope,
             Currency currency) {
-        log.debug("Criando conta do tipo={} para o usuário={}", type, currentUserId);
+        log.debug("Criando conta do tipo={} para o usuário={}", type, currentHouseholdId);
         Account saved =
                 accountRepositoryPort.save(
                         Account.create(
-                                currentUserId,
+                                currentHouseholdId,
                                 name,
                                 type,
                                 initialBalance,
                                 scope == null ? AccountScope.PERSONAL : scope,
                                 currency == null ? Currency.BRL : currency));
-        log.debug("Conta={} criada para o usuário={}", saved.id(), currentUserId);
+        if (currentUserId != null) {
+            accountOwnershipPort.recordOwner(List.of(saved.id()), currentUserId);
+        }
+        log.debug("Conta={} criada para o usuário={}", saved.id(), currentHouseholdId);
         return saved;
     }
 
-    public List<Account> list(Long currentUserId) {
-        log.debug("Listando contas do usuário={}", currentUserId);
-        return accountRepositoryPort.findAllByUserId(currentUserId);
+    public List<Account> list(Long currentHouseholdId) {
+        log.debug("Listando contas do usuário={}", currentHouseholdId);
+        return accountRepositoryPort.findAllByHouseholdId(currentHouseholdId);
     }
 
-    public Account getById(Long currentUserId, Long accountId) {
-        log.debug("Buscando conta={} do usuário={}", accountId, currentUserId);
-        return findOwnedOrThrow(currentUserId, accountId);
+    public Account getById(Long currentHouseholdId, Long accountId) {
+        log.debug("Buscando conta={} do usuário={}", accountId, currentHouseholdId);
+        return findOwnedOrThrow(currentHouseholdId, accountId);
     }
 
     public Account update(
-            Long currentUserId, Long accountId, String name, AccountType type, AccountScope scope) {
-        return update(currentUserId, accountId, name, type, scope, null);
+            Long currentHouseholdId,
+            Long accountId,
+            String name,
+            AccountType type,
+            AccountScope scope) {
+        return update(currentHouseholdId, accountId, name, type, scope, null);
     }
 
     /**
@@ -86,30 +110,33 @@ public class AccountApplicationService {
      * muda enquanto nada foi lançado na conta: os valores já lançados estão na moeda antiga.
      */
     public Account update(
-            Long currentUserId,
+            Long currentHouseholdId,
             Long accountId,
             String name,
             AccountType type,
             AccountScope scope,
             Currency currency) {
-        log.debug("Atualizando conta={} do usuário={}", accountId, currentUserId);
-        Account existing = findOwnedOrThrow(currentUserId, accountId);
+        log.debug("Atualizando conta={} do usuário={}", accountId, currentHouseholdId);
+        Account existing = findOwnedOrThrow(currentHouseholdId, accountId);
         Currency newCurrency = currency == null ? existing.currency() : currency;
         if (newCurrency != existing.currency() && hasLinkedRecords(accountId)) {
             throw new CurrencyChangeNotAllowedException(
-                    "Esta conta já tem lançamentos na moeda atual. Para usar outra moeda, crie uma nova conta.");
+                    "Esta conta já tem lançamentos na moeda atual. Para usar outra moeda, crie uma"
+                            + " nova conta.");
         }
         if (existing.type() == AccountType.INVESTMENT
                 && type != AccountType.INVESTMENT
                 && accountValuationRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta conta de investimento tem valores de mercado informados. Exclua-os antes de mudar o tipo da conta.");
+                    "Esta conta de investimento tem valores de mercado informados. Exclua-os antes"
+                            + " de mudar o tipo da conta.");
         }
         if (existing.type() == AccountType.RESERVE
                 && type != AccountType.RESERVE
                 && savingsGoalRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta conta é a conta reserva de uma meta de economia. Exclua a meta antes de mudar o tipo da conta.");
+                    "Esta conta é a conta reserva de uma meta de economia. Exclua a meta antes de"
+                            + " mudar o tipo da conta.");
         }
         return accountRepositoryPort.save(
                 existing.withDetails(
@@ -128,21 +155,24 @@ public class AccountApplicationService {
                 || accountValuationRepositoryPort.existsByAccountId(accountId);
     }
 
-    public void delete(Long currentUserId, Long accountId) {
-        log.debug("Removendo conta={} do usuário={}", accountId, currentUserId);
-        findOwnedOrThrow(currentUserId, accountId);
+    public void delete(Long currentHouseholdId, Long accountId) {
+        log.debug("Removendo conta={} do usuário={}", accountId, currentHouseholdId);
+        findOwnedOrThrow(currentHouseholdId, accountId);
         if (transactionRepositoryPort.existsByAccountId(accountId)
                 || transferRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de remover a conta.");
+                    "Esta conta possui transações ou transferências vinculadas. Exclua-as antes de"
+                            + " remover a conta.");
         }
         if (recurringTransactionRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta conta possui lançamentos recorrentes vinculados. Exclua-os antes de remover a conta.");
+                    "Esta conta possui lançamentos recorrentes vinculados. Exclua-os antes de"
+                            + " remover a conta.");
         }
         if (savingsGoalRepositoryPort.existsByAccountId(accountId)) {
             throw new EntityHasLinkedRecordsException(
-                    "Esta conta possui metas de economia vinculadas. Exclua-as antes de remover a conta.");
+                    "Esta conta possui metas de economia vinculadas. Exclua-as antes de remover a"
+                            + " conta.");
         }
         accountRepositoryPort.deleteById(accountId);
     }
@@ -178,10 +208,10 @@ public class AccountApplicationService {
     }
 
     /** Acesso a conta de outro usuário é tratado como inexistente (404), não como 403. */
-    private Account findOwnedOrThrow(Long currentUserId, Long accountId) {
+    private Account findOwnedOrThrow(Long currentHouseholdId, Long accountId) {
         return accountRepositoryPort
                 .findById(accountId)
-                .filter(account -> account.belongsTo(currentUserId))
+                .filter(account -> account.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }

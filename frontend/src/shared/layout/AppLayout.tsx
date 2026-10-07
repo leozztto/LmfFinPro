@@ -5,10 +5,15 @@ import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 import { Footer } from './Footer'
 import { Sidebar } from './Sidebar'
+import { useHousehold } from '@/shared/household/HouseholdContext'
+import { HouseholdSwitcher } from './HouseholdSwitcher'
 import { UserMenu } from './UserMenu'
 
 export function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const { activeKey, sharedHouseholds } = useHousehold()
+  // Com o seletor de grupo no topo, o celular fica sem espaço para o nome ao lado do logo.
+  const hasGroups = sharedHouseholds.length > 0
 
   useEffect(() => {
     if (!mobileNavOpen) return
@@ -40,7 +45,7 @@ export function AppLayout() {
           <div className="flex items-center gap-2">
             <img src={logoIcon} alt="FinPro" className="h-8 w-8" />
             <div className="flex items-baseline gap-2">
-              <h1 className="text-xl font-semibold">
+              <h1 className={`text-xl font-semibold ${hasGroups ? 'hidden min-[480px]:block' : ''}`}>
                 <span className="text-zinc-800 dark:text-zinc-100">Fin</span>
                 <span className="text-[#2ad6a5]">Pro</span>
               </h1>
@@ -50,7 +55,8 @@ export function AppLayout() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <HouseholdSwitcher />
           <ThemeToggle />
           <UserMenu />
         </div>
@@ -94,7 +100,8 @@ export function AppLayout() {
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="flex min-h-full flex-col">
             <div className="mx-auto w-full min-w-0 max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
-              <Outlet />
+              {/* Ao trocar de grupo a tela atual recarrega do zero, sem sobras do outro grupo. */}
+              <Outlet key={activeKey} />
             </div>
             <Footer />
           </div>

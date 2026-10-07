@@ -69,11 +69,11 @@ class NetWorthReportApplicationServiceTest {
     void usesTheSameCalculationAsTheNetWorthScreenAndGeneratesThePdf() {
         User issuer = issuer();
         NetWorthCalculator.Report report = NetWorthReportTestData.report();
-        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer));
+        when(userRepositoryPort.findById(77L)).thenReturn(Optional.of(issuer));
         when(netWorthApplicationService.summary(10L, 6)).thenReturn(report);
         when(receiptGeneratorPort.generateNetWorthReport(any())).thenReturn(new byte[] {1});
 
-        byte[] result = service.generate(10L, 6, ReportFormat.PDF);
+        byte[] result = service.generate(10L, 77L, 6, ReportFormat.PDF);
 
         assertThat(result).containsExactly(1);
         ArgumentCaptor<NetWorthReportData> captor =
@@ -87,12 +87,12 @@ class NetWorthReportApplicationServiceTest {
 
     @Test
     void generatesTheCsvWhenRequested() {
-        when(userRepositoryPort.findById(10L)).thenReturn(Optional.of(issuer()));
+        when(userRepositoryPort.findById(77L)).thenReturn(Optional.of(issuer()));
         when(netWorthApplicationService.summary(10L, 12))
                 .thenReturn(NetWorthReportTestData.report());
         when(reportCsvExporterPort.exportNetWorthReport(any())).thenReturn(new byte[] {2});
 
-        byte[] result = service.generate(10L, 12, ReportFormat.CSV);
+        byte[] result = service.generate(10L, 77L, 12, ReportFormat.CSV);
 
         assertThat(result).containsExactly(2);
         verify(receiptGeneratorPort, never()).generateNetWorthReport(any());
@@ -100,9 +100,9 @@ class NetWorthReportApplicationServiceTest {
 
     @Test
     void throwsWhenTheUserDoesNotExist() {
-        when(userRepositoryPort.findById(10L)).thenReturn(Optional.empty());
+        when(userRepositoryPort.findById(77L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generate(10L, 12, ReportFormat.PDF))
+        assertThatThrownBy(() -> service.generate(10L, 77L, 12, ReportFormat.PDF))
                 .isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(netWorthApplicationService);
     }

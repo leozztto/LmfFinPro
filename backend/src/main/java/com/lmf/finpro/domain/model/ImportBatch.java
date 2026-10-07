@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  */
 public record ImportBatch(
         Long id,
-        Long userId,
+        Long householdId,
         Long accountId,
         String originalFile,
         ImportFormat format,
@@ -18,10 +18,10 @@ public record ImportBatch(
         int duplicateCount) {
 
     public static ImportBatch start(
-            Long userId, Long accountId, String originalFile, ImportFormat format) {
+            Long householdId, Long accountId, String originalFile, ImportFormat format) {
         return new ImportBatch(
                 null,
-                userId,
+                householdId,
                 accountId,
                 originalFile,
                 format,
@@ -30,17 +30,31 @@ public record ImportBatch(
                 0);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 
     public ImportBatch withStatus(ImportStatus newStatus) {
         return new ImportBatch(
-                id, userId, accountId, originalFile, format, importedAt, newStatus, duplicateCount);
+                id,
+                householdId,
+                accountId,
+                originalFile,
+                format,
+                importedAt,
+                newStatus,
+                duplicateCount);
     }
 
     public ImportBatch withDuplicateCount(int newDuplicateCount) {
         return new ImportBatch(
-                id, userId, accountId, originalFile, format, importedAt, status, newDuplicateCount);
+                id,
+                householdId,
+                accountId,
+                originalFile,
+                format,
+                importedAt,
+                status,
+                newDuplicateCount);
     }
 }

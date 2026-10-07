@@ -5,5 +5,5 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DebtJpaRepository extends JpaRepository<DebtJpaEntity, Long> {
-    List<DebtJpaEntity> findByUserIdOrderByNameAsc(Long userId);
+    List<DebtJpaEntity> findByHouseholdIdOrderByNameAsc(Long householdId);
 }

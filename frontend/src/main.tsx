@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/shared/auth/AuthContext'
+import { HouseholdProvider } from '@/shared/household/HouseholdContext'
 import { ThemeProvider } from '@/shared/theme/ThemeContext'
 import { ToastProvider } from '@/shared/toast/ToastContext'
 import { ConfirmProvider } from '@/shared/confirm/ConfirmContext'
@@ -25,9 +26,11 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <ToastProvider>
             <AuthProvider>
-              <ConfirmProvider>
-                <AppRouter />
-              </ConfirmProvider>
+              <HouseholdProvider>
+                <ConfirmProvider>
+                  <AppRouter />
+                </ConfirmProvider>
+              </HouseholdProvider>
             </AuthProvider>
           </ToastProvider>
         </BrowserRouter>

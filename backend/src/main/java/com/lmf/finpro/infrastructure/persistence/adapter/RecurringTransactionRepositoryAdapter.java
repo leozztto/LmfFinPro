@@ -28,8 +28,10 @@ public class RecurringTransactionRepositoryAdapter implements RecurringTransacti
     }
 
     @Override
-    public List<RecurringTransaction> findAllByUserId(Long userId) {
-        return recurringTransactionJpaRepository.findByUserIdOrderByStartDateAsc(userId).stream()
+    public List<RecurringTransaction> findAllByHouseholdId(Long householdId) {
+        return recurringTransactionJpaRepository
+                .findByHouseholdIdOrderByStartDateAsc(householdId)
+                .stream()
                 .map(mapper::toDomain)
                 .toList();
     }

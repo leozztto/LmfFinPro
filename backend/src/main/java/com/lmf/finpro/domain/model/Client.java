@@ -2,7 +2,7 @@ package com.lmf.finpro.domain.model;
 
 public record Client(
         Long id,
-        Long userId,
+        Long householdId,
         String name,
         String email,
         String phone,
@@ -14,7 +14,7 @@ public record Client(
         boolean active) {
 
     public static Client create(
-            Long userId,
+            Long householdId,
             String name,
             String email,
             String phone,
@@ -26,7 +26,7 @@ public record Client(
             boolean active) {
         return new Client(
                 null,
-                userId,
+                householdId,
                 name,
                 email,
                 phone,
@@ -38,8 +38,8 @@ public record Client(
                 active);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 
     public Client withDetails(
@@ -54,7 +54,7 @@ public record Client(
             boolean newActive) {
         return new Client(
                 id,
-                userId,
+                householdId,
                 newName,
                 newEmail,
                 newPhone,

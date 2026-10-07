@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
  */
 public record SavingsGoal(
         Long id,
-        Long userId,
+        Long householdId,
         String name,
         SavingsGoalType type,
         BigDecimal targetAmount,
@@ -33,7 +33,7 @@ public record SavingsGoal(
         Long fundingAccountId) {
 
     public static SavingsGoal create(
-            Long userId,
+            Long householdId,
             String name,
             SavingsGoalType type,
             BigDecimal targetAmount,
@@ -44,7 +44,7 @@ public record SavingsGoal(
             Long fundingAccountId) {
         return new SavingsGoal(
                 null,
-                userId,
+                householdId,
                 name,
                 type,
                 targetAmount,
@@ -70,7 +70,7 @@ public record SavingsGoal(
             boolean newAutoContribute) {
         return new SavingsGoal(
                 id,
-                userId,
+                householdId,
                 newName,
                 newType,
                 newTargetAmount,
@@ -82,7 +82,7 @@ public record SavingsGoal(
                 fundingAccountId);
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 }

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  */
 public record Transfer(
         Long id,
-        Long userId,
+        Long householdId,
         Long fromAccountId,
         Long toAccountId,
         BigDecimal amount,
@@ -22,7 +22,7 @@ public record Transfer(
 
     public Transfer(
             Long id,
-            Long userId,
+            Long householdId,
             Long fromAccountId,
             Long toAccountId,
             BigDecimal amount,
@@ -31,7 +31,7 @@ public record Transfer(
             LocalDateTime createdAt) {
         this(
                 id,
-                userId,
+                householdId,
                 fromAccountId,
                 toAccountId,
                 amount,
@@ -42,17 +42,18 @@ public record Transfer(
     }
 
     public static Transfer create(
-            Long userId,
+            Long householdId,
             Long fromAccountId,
             Long toAccountId,
             BigDecimal amount,
             LocalDate transferDate,
             String description) {
-        return create(userId, fromAccountId, toAccountId, amount, null, transferDate, description);
+        return create(
+                householdId, fromAccountId, toAccountId, amount, null, transferDate, description);
     }
 
     public static Transfer create(
-            Long userId,
+            Long householdId,
             Long fromAccountId,
             Long toAccountId,
             BigDecimal amount,
@@ -61,7 +62,7 @@ public record Transfer(
             String description) {
         return new Transfer(
                 null,
-                userId,
+                householdId,
                 fromAccountId,
                 toAccountId,
                 amount,
@@ -76,7 +77,7 @@ public record Transfer(
         return receivedAmount != null ? receivedAmount : amount;
     }
 
-    public boolean belongsTo(Long candidateUserId) {
-        return userId.equals(candidateUserId);
+    public boolean belongsTo(Long candidateHouseholdId) {
+        return householdId.equals(candidateHouseholdId);
     }
 }

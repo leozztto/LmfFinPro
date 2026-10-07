@@ -17,43 +17,44 @@ public class CategoryRuleApplicationService {
     private final CategoryRuleRepositoryPort categoryRuleRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
 
-    public CategoryRule create(Long currentUserId, String pattern, Long categoryId) {
-        log.debug("Criando regra para a categoria={} do usuário={}", categoryId, currentUserId);
-        requireVisibleCategory(currentUserId, categoryId);
+    public CategoryRule create(Long currentHouseholdId, String pattern, Long categoryId) {
+        log.debug(
+                "Criando regra para a categoria={} do usuário={}", categoryId, currentHouseholdId);
+        requireVisibleCategory(currentHouseholdId, categoryId);
         CategoryRule saved =
                 categoryRuleRepositoryPort.save(
-                        CategoryRule.create(currentUserId, pattern.trim(), categoryId));
+                        CategoryRule.create(currentHouseholdId, pattern.trim(), categoryId));
         log.debug("Regra={} criada para a categoria={}", saved.id(), categoryId);
         return saved;
     }
 
-    public List<CategoryRule> list(Long currentUserId) {
-        log.debug("Listando regras de categoria do usuário={}", currentUserId);
-        return categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentUserId);
+    public List<CategoryRule> list(Long currentHouseholdId) {
+        log.debug("Listando regras de categoria do usuário={}", currentHouseholdId);
+        return categoryRuleRepositoryPort.findVisibleToUserOrderByPriorityDesc(currentHouseholdId);
     }
 
-    public void delete(Long currentUserId, Long ruleId) {
-        CategoryRule rule = findOwnedOrThrow(currentUserId, ruleId);
+    public void delete(Long currentHouseholdId, Long ruleId) {
+        CategoryRule rule = findOwnedOrThrow(currentHouseholdId, ruleId);
         log.debug(
                 "Removendo regra={} da categoria={} do usuário={}",
                 ruleId,
                 rule.categoryId(),
-                currentUserId);
+                currentHouseholdId);
         categoryRuleRepositoryPort.deleteById(rule.id());
     }
 
-    private CategoryRule findOwnedOrThrow(Long currentUserId, Long ruleId) {
+    private CategoryRule findOwnedOrThrow(Long currentHouseholdId, Long ruleId) {
         return categoryRuleRepositoryPort
                 .findById(ruleId)
-                .filter(rule -> rule.belongsTo(currentUserId))
+                .filter(rule -> rule.belongsTo(currentHouseholdId))
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Regra não encontrada: " + ruleId));
     }
 
-    private void requireVisibleCategory(Long currentUserId, Long categoryId) {
+    private void requireVisibleCategory(Long currentHouseholdId, Long categoryId) {
         categoryRepositoryPort
                 .findById(categoryId)
-                .filter(candidate -> candidate.isVisibleTo(currentUserId))
+                .filter(candidate -> candidate.isVisibleTo(currentHouseholdId))
                 .orElseThrow(
                         () ->
                                 new ResourceNotFoundException(

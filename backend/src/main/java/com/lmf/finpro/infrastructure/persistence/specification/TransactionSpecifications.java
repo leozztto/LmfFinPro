@@ -2,9 +2,13 @@ package com.lmf.finpro.infrastructure.persistence.specification;
 
 import com.lmf.finpro.domain.model.TransactionSearchCriteria;
 import com.lmf.finpro.infrastructure.persistence.entity.AccountJpaEntity;
+import com.lmf.finpro.infrastructure.persistence.entity.HouseholdMemberJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransactionAttachmentJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransactionJpaEntity;
 import com.lmf.finpro.infrastructure.persistence.entity.TransactionTagJpaEntity;
+import com.lmf.finpro.infrastructure.persistence.entity.TransferJpaEntity;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -30,8 +34,23 @@ public final class TransactionSpecifications {
             Join<TransactionJpaEntity, AccountJpaEntity> account = root.join("account");
             List<Predicate> predicates = new ArrayList<>();
 
-            // Sempre presente: ninguém enxerga transação de outro usuário.
-            predicates.add(cb.equal(account.get("user").get("id"), criteria.userId()));
+            // Sempre presente: ninguém enxerga transação de outro espaço. A exceção, só quando a
+            // listagem pede, são as pernas de transferências feitas com contas daqui que estão num
+            // espaço de que o mesmo usuário também participa.
+            Predicate ownHousehold = cb.equal(account.get("householdId"), criteria.householdId());
+            Long linkedUserId = criteria.includeLinkedTransferLegsOfUserId();
+            predicates.add(
+                    linkedUserId == null
+                            ? ownHousehold
+                            : cb.or(
+                                    ownHousehold,
+                                    linkedTransferLeg(
+                                            root,
+                                            query,
+                                            cb,
+                                            account,
+                                            criteria.householdId(),
+                                            linkedUserId)));
 
             if (criteria.excludeTransfers()) {
                 predicates.add(cb.isNull(root.get("transferId")));
@@ -103,6 +122,42 @@ public final class TransactionSpecifications {
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    /**
+     * Perna de transferência numa conta de outro espaço, quando a transferência tem uma ponta numa
+     * conta deste espaço e o usuário participa do espaço da conta da perna. Ex.: do espaço pessoal,
+     * a entrada na conta conjunta (do grupo) de uma transferência saída de uma conta pessoal.
+     */
+    private static Predicate linkedTransferLeg(
+            Root<TransactionJpaEntity> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            Join<TransactionJpaEntity, AccountJpaEntity> account,
+            Long householdId,
+            Long userId) {
+        Subquery<Long> transferWithAccountHere = query.subquery(Long.class);
+        Root<TransferJpaEntity> transfer = transferWithAccountHere.from(TransferJpaEntity.class);
+        Join<TransferJpaEntity, AccountJpaEntity> from = transfer.join("fromAccount");
+        Join<TransferJpaEntity, AccountJpaEntity> to = transfer.join("toAccount");
+        transferWithAccountHere
+                .select(transfer.get("id"))
+                .where(
+                        cb.equal(transfer.get("id"), root.get("transferId")),
+                        cb.or(
+                                cb.equal(from.get("householdId"), householdId),
+                                cb.equal(to.get("householdId"), householdId)));
+
+        Subquery<Long> userHouseholds = query.subquery(Long.class);
+        Root<HouseholdMemberJpaEntity> member = userHouseholds.from(HouseholdMemberJpaEntity.class);
+        userHouseholds
+                .select(member.get("householdId"))
+                .where(cb.equal(member.get("userId"), userId));
+
+        return cb.and(
+                cb.isNotNull(root.get("transferId")),
+                cb.exists(transferWithAccountHere),
+                account.get("householdId").in(userHouseholds));
     }
 
     /** "%" e "_" digitados pelo usuário são texto, não curingas do LIKE. */

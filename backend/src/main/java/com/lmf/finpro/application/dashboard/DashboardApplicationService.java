@@ -1,6 +1,7 @@
 package com.lmf.finpro.application.dashboard;
 
 import com.lmf.finpro.application.exchangerate.ExchangeRateApplicationService;
+import com.lmf.finpro.application.support.TransferFlow;
 import com.lmf.finpro.domain.model.Account;
 import com.lmf.finpro.domain.model.AccountBalances;
 import com.lmf.finpro.domain.model.AccountScope;
@@ -42,16 +43,21 @@ public class DashboardApplicationService {
     private final AccountValuationRepositoryPort accountValuationRepositoryPort;
     private final Clock clock;
     private final ExchangeRateApplicationService exchangeRateApplicationService;
+    private final TransferFlow transferFlow;
 
-    public DashboardOverview getOverview(Long userId, AccountScope scope) {
-        log.debug("Montando visão geral do dashboard do usuário={} escopo={}", userId, scope);
-        List<Account> accounts = accountsForScope(userId, scope);
-        List<Transaction> transactions = ownedNonTransferTransactions(accounts);
+    public DashboardOverview getOverview(Long householdId, AccountScope scope) {
+        log.debug("Montando visão geral do dashboard do usuário={} escopo={}", householdId, scope);
+        List<Account> accounts = accountsForScope(householdId, scope);
+        List<Transaction> allTransactions = ownedTransactions(accounts);
+        List<Transaction> transactions = withoutInternalTransfers(allTransactions);
         BigDecimal initialBalanceTotal = sumInitialBalance(accounts);
         YearMonth thisMonth = currentMonth();
 
-        // Saldo atual só com o que já foi pago; pendentes (a receber/a pagar) formam o previsto.
-        List<Transaction> paid = paidOnly(transactions);
+        // Saldo atual só com o que já foi pago; pendentes (a receber/a pagar) formam o previsto. O
+        // saldo conta as pernas de transferência: entre contas do mesmo espaço elas se anulam, mas
+        // uma transferência com uma conta de outro espaço (pessoal x grupo) movimenta o saldo
+        // daqui.
+        List<Transaction> paid = paidOnly(allTransactions);
         List<Transaction> pending =
                 transactions.stream().filter(transaction -> !transaction.isPaid()).toList();
 
@@ -88,23 +94,23 @@ public class DashboardApplicationService {
                 currentBalance.add(pendingIncome).subtract(pendingExpense));
     }
 
-    public List<MonthlyFlowPoint> getMonthlyFlow(Long userId, int monthsCount, AccountScope scope) {
-        log.debug("Calculando fluxo mensal do usuário={} meses={}", userId, monthsCount);
+    public List<MonthlyFlowPoint> getMonthlyFlow(
+            Long householdId, int monthsCount, AccountScope scope) {
+        log.debug("Calculando fluxo mensal do usuário={} meses={}", householdId, monthsCount);
         return DashboardAggregator.monthlyFlow(
-                ownedNonTransferTransactions(userId, scope), currentMonth(), monthsCount);
+                ownedNonTransferTransactions(householdId, scope), currentMonth(), monthsCount);
     }
 
     public List<BalancePoint> getBalanceEvolution(
-            Long userId, int monthsCount, AccountScope scope) {
-        log.debug("Calculando evolução do saldo do usuário={} meses={}", userId, monthsCount);
+            Long householdId, int monthsCount, AccountScope scope) {
+        log.debug("Calculando evolução do saldo do usuário={} meses={}", householdId, monthsCount);
         // Histórico real: só pagas, para o último ponto bater com o saldo atual do overview.
-        List<Account> accounts = accountsForScope(userId, scope);
+        List<Account> accounts = accountsForScope(householdId, scope);
         Function<LocalDate, BigDecimal> investmentGain = investmentGains(accounts);
+        List<Transaction> transactions = ownedTransactions(accounts);
+        // O saldo inicial de uma conta só entra a partir do mês em que ela passou a existir.
         return DashboardAggregator.balanceOverTime(
-                        paidOnly(ownedNonTransferTransactions(accounts)),
-                        sumInitialBalance(accounts),
-                        currentMonth(),
-                        monthsCount)
+                        paidOnly(transactions), BigDecimal.ZERO, currentMonth(), monthsCount)
                 .stream()
                 .map(
                         point ->
@@ -112,9 +118,48 @@ public class DashboardApplicationService {
                                         point.month(),
                                         point.balance()
                                                 .add(
+                                                        initialBalanceAsOf(
+                                                                accounts,
+                                                                transactions,
+                                                                point.month()))
+                                                .add(
                                                         investmentGain.apply(
                                                                 point.month().atEndOfMonth()))))
                 .toList();
+    }
+
+    /**
+     * Soma o saldo inicial (em reais) das contas que já existiam no mês: a conta existe desde o mês
+     * de criação ou desde a transação mais antiga, o que vier primeiro (importações podem trazer
+     * lançamentos anteriores à criação).
+     */
+    private BigDecimal initialBalanceAsOf(
+            List<Account> accounts, List<Transaction> transactions, YearMonth month) {
+        Map<Long, YearMonth> firstTransactionMonth =
+                transactions.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Transaction::accountId,
+                                        transaction ->
+                                                YearMonth.from(transaction.transactionDate()),
+                                        (a, b) -> a.isBefore(b) ? a : b));
+        List<Account> existing =
+                accounts.stream()
+                        .filter(
+                                account -> {
+                                    YearMonth start =
+                                            account.createdAt() == null
+                                                    ? null
+                                                    : YearMonth.from(account.createdAt());
+                                    YearMonth firstTx = firstTransactionMonth.get(account.id());
+                                    if (start == null
+                                            || (firstTx != null && firstTx.isBefore(start))) {
+                                        start = firstTx;
+                                    }
+                                    return start == null || !start.isAfter(month);
+                                })
+                        .toList();
+        return sumInitialBalance(existing);
     }
 
     /**
@@ -122,19 +167,20 @@ public class DashboardApplicationService {
      * somando as ocorrências dos lançamentos recorrentes do usuário.
      */
     public List<CashFlowProjectionPoint> getCashFlowProjection(
-            Long userId, int monthsAhead, AccountScope scope) {
-        log.debug("Projetando fluxo de caixa do usuário={} meses={}", userId, monthsAhead);
-        List<Account> accounts = accountsForScope(userId, scope);
-        List<Transaction> transactions = ownedNonTransferTransactions(accounts);
+            Long householdId, int monthsAhead, AccountScope scope) {
+        log.debug("Projetando fluxo de caixa do usuário={} meses={}", householdId, monthsAhead);
+        List<Account> accounts = accountsForScope(householdId, scope);
+        List<Transaction> allTransactions = ownedTransactions(accounts);
+        List<Transaction> transactions = withoutInternalTransfers(allTransactions);
         BigDecimal anchorBalance =
                 DashboardAggregator.balanceOverTime(
-                                transactions, sumInitialBalance(accounts), currentMonth(), 1)
+                                allTransactions, sumInitialBalance(accounts), currentMonth(), 1)
                         .get(0)
                         .balance()
                         .add(investmentGains(accounts).apply(currentMonth().atEndOfMonth()));
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
         List<RecurringTransaction> recurrences =
-                recurringTransactionRepositoryPort.findAllByUserId(userId).stream()
+                recurringTransactionRepositoryPort.findAllByHouseholdId(householdId).stream()
                         .filter(recurrence -> accountIds.contains(recurrence.accountId()))
                         .toList();
         return DashboardAggregator.cashFlowProjection(
@@ -153,39 +199,51 @@ public class DashboardApplicationService {
     }
 
     public List<BreakdownPoint> getCategoryBreakdown(
-            Long userId, CategoryType type, YearMonth month, AccountScope scope) {
+            Long householdId, CategoryType type, YearMonth month, AccountScope scope) {
         log.debug(
                 "Calculando distribuição por categoria do usuário={} tipo={} mês={}",
-                userId,
+                householdId,
                 type,
                 month);
         return DashboardAggregator.categoryBreakdown(
-                ownedNonTransferTransactions(userId, scope), type, month);
+                ownedNonTransferTransactions(householdId, scope), type, month);
     }
 
     public List<BreakdownPoint> getClientBreakdown(
-            Long userId, YearMonth month, AccountScope scope) {
-        log.debug("Calculando distribuição por cliente do usuário={} mês={}", userId, month);
+            Long householdId, YearMonth month, AccountScope scope) {
+        log.debug("Calculando distribuição por cliente do usuário={} mês={}", householdId, month);
         return DashboardAggregator.clientBreakdown(
-                ownedNonTransferTransactions(userId, scope), month);
+                ownedNonTransferTransactions(householdId, scope), month);
     }
 
-    private List<Transaction> ownedNonTransferTransactions(Long userId, AccountScope scope) {
-        return ownedNonTransferTransactions(accountsForScope(userId, scope));
+    private List<Transaction> ownedNonTransferTransactions(Long householdId, AccountScope scope) {
+        return ownedNonTransferTransactions(accountsForScope(householdId, scope));
     }
 
-    private List<Account> accountsForScope(Long userId, AccountScope scope) {
-        List<Account> accounts = accountRepositoryPort.findAllByUserId(userId);
+    private List<Account> accountsForScope(Long householdId, AccountScope scope) {
+        List<Account> accounts = accountRepositoryPort.findAllByHouseholdId(householdId);
         return scope == null
                 ? accounts
                 : accounts.stream().filter(account -> account.scope() == scope).toList();
     }
 
     private List<Transaction> ownedNonTransferTransactions(List<Account> accounts) {
+        return withoutInternalTransfers(ownedTransactions(accounts));
+    }
+
+    /** Todas as transações das contas, inclusive as pernas de transferência. */
+    private List<Transaction> ownedTransactions(List<Account> accounts) {
         List<Long> accountIds = accounts.stream().map(Account::id).toList();
-        return transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
-                .filter(transaction -> transaction.transferId() == null)
-                .toList();
+        return transactionRepositoryPort.findAllByAccountIds(accountIds);
+    }
+
+    /**
+     * Receita e despesa de verdade: transferência entre contas do mesmo espaço só move dinheiro e
+     * fica de fora; a que cruza para outro espaço (pessoal x grupo) conta, pois o dinheiro entrou
+     * ou saiu daqui.
+     */
+    private List<Transaction> withoutInternalTransfers(List<Transaction> transactions) {
+        return transferFlow.withoutInternalTransfers(transactions);
     }
 
     /**
