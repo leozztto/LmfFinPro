@@ -5,7 +5,7 @@ import {
   FileTextIcon,
   HelpCircleIcon,
   HomeIcon,
-  LifeBuoyIcon,
+  HeadsetIcon,
   PercentIcon,
   PiggyBankIcon,
   RepeatIcon,
@@ -105,7 +105,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           Documentação
         </NavLink>
         <NavLink to="/suporte" onClick={onNavigate} className={linkClassName}>
-          <LifeBuoyIcon className="h-4 w-4 shrink-0" />
+          <HeadsetIcon className="h-4 w-4 shrink-0" />
           Suporte
         </NavLink>
       </div>

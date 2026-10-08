@@ -15,7 +15,7 @@ const state = vi.hoisted(() => ({
 }))
 
 vi.mock('../hooks/usePlatformStatus', () => ({ usePlatformStatus: () => state.status }))
-vi.mock('@/shared/theme/ThemeToggle', () => ({ ThemeToggle: () => null }))
+vi.mock('@/shared/layout/PublicPageHeader', () => ({ PublicPageHeader: () => null }))
 vi.mock('@/shared/layout/Footer', () => ({ Footer: () => <footer>rodapé</footer> }))
 
 function renderPage() {

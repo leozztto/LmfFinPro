@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { LifeBuoyIcon } from '@/shared/ui/icons'
+import { HeadsetIcon } from '@/shared/ui/icons'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 
@@ -22,7 +22,7 @@ export function AuthPageShell({ titlePrefix = '', children }: AuthPageShellProps
           title="Suporte e contato"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-300 bg-transparent text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >
-          <LifeBuoyIcon />
+          <HeadsetIcon />
         </Link>
         <ThemeToggle />
       </div>

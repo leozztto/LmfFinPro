@@ -6,16 +6,14 @@ import { Footer } from './Footer'
 describe('Footer', () => {
   afterEach(cleanup)
 
-  it('shows the copyright and the contact icons, without the legal and support links', () => {
+  it('shows the copyright with only the e-mail and WhatsApp contacts', () => {
     render(<Footer />)
 
     expect(screen.getByText(/LEZZOTTO TECH LTDA/)).toBeTruthy()
     expect(screen.getByRole('link', { name: /Enviar e-mail/ }).getAttribute('href')).toBe('mailto:lezzottotech@gmail.com')
-    expect(screen.getByRole('link', { name: 'Perfil no GitHub' }).getAttribute('rel')).toContain('noopener')
-    expect(screen.getByRole('link', { name: 'Perfil no LinkedIn' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Portfólio' })).toBeTruthy()
-    expect(screen.queryByText('Termos de Uso')).toBeNull()
-    expect(screen.queryByText('Política de Privacidade')).toBeNull()
-    expect(screen.queryByText('Suporte')).toBeNull()
+    const whatsapp = screen.getByRole('link', { name: 'Conversar pelo WhatsApp' })
+    expect(whatsapp.getAttribute('href')).toContain('https://wa.me/5546991105807')
+    expect(whatsapp.getAttribute('rel')).toContain('noopener')
+    expect(screen.getAllByRole('link')).toHaveLength(2)
   })
 })
