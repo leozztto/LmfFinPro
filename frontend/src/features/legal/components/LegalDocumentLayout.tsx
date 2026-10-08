@@ -70,9 +70,9 @@ export function LegalDocumentLayout({ title, document, summary, children }: Lega
   )
 }
 
-export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
+export function LegalSection({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
   return (
-    <section className="space-y-3">
+    <section id={id} className="scroll-mt-4 space-y-3">
       <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">{title}</h2>
       {children}
     </section>

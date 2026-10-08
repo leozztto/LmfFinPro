@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { GitHubIcon, GlobeIcon, LinkedInIcon, MailIcon } from '@/shared/ui/icons'
+import { LEGAL_ENTITY } from '@/features/legal/legalEntity'
 
 const EMAIL = 'leozztto@gmail.com'
 const GITHUB_URL = 'https://github.com/leozztto'
@@ -17,7 +18,7 @@ export function Footer() {
     <footer className="border-t border-zinc-200 px-4 py-6 dark:border-zinc-800 sm:px-6">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
         <div className="flex flex-col items-center gap-1 sm:items-start">
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">© 2026 Lezzotto Tech. Todos os direitos reservados.</p>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">© 2026 {LEGAL_ENTITY.name}. Todos os direitos reservados.</p>
           <nav aria-label="Documentos legais" className="flex gap-3 text-xs">
             <Link to="/termos" className={textLinkClassName}>
               Termos de Uso

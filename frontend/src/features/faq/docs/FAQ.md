@@ -340,7 +340,7 @@ ___
 ## Estimativa de imposto
 
 **A estimativa de imposto substitui um contador?**
-Não. É uma estimativa simplificada e educacional, baseada em alíquotas de referência por regime tributário — útil pra ter uma ideia de quanto guardar, mas não substitui orientação contábil profissional (há um aviso fixo na própria tela sobre isso).
+Não. É uma estimativa simplificada e educacional, baseada em alíquotas de referência por regime tributário — útil pra ter uma ideia de quanto guardar, mas não substitui orientação contábil profissional (há um aviso fixo nas telas de Impostos e Pró-labore, e ele consta nos Termos de Uso).
 
 **De onde vem a receita bruta do mês?**
 Ao escolher o mês de referência, o sistema preenche a receita bruta com a soma das receitas lançadas naquele mês (sem contar transferências). Você pode ajustar o valor livremente antes de salvar — por exemplo, para desconsiderar receitas que não são tributáveis.

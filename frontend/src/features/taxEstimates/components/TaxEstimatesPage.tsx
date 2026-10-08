@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FiscalNotice } from '@/features/legal/components/FiscalNotice'
 import { Button, Modal } from '@/shared/ui'
 import { PlusIcon } from '@/shared/ui/icons'
 import { TaxEstimateForm } from './TaxEstimateForm'
@@ -20,6 +21,8 @@ export function TaxEstimatesPage() {
           <PlusIcon />
         </Button>
       </div>
+
+      <FiscalNotice subject="As estimativas de imposto" />
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nova estimativa de imposto">
         <TaxEstimateForm onSuccess={() => setIsModalOpen(false)} />
