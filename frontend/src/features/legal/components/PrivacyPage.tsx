@@ -17,7 +17,7 @@ export function PrivacyPage() {
         <p>
           {LEGAL_ENTITY.name} (CNPJ {LEGAL_ENTITY.cnpj}), com sede em {LEGAL_ENTITY.address}, decide como os seus
           dados pessoais são tratados no FinPro. O encarregado pelo tratamento de dados pessoais é{' '}
-          {LEGAL_ENTITY.dpoName}, contato: {LEGAL_ENTITY.privacyEmail}.
+          {LEGAL_ENTITY.dpoName}, contato: {LEGAL_ENTITY.privacyEmail}, {LEGAL_ENTITY.phone}.
         </p>
       </LegalSection>
 
@@ -197,7 +197,7 @@ export function PrivacyPage() {
 
       <LegalSection title="11. Contato">
         <p>
-          Encarregado: {LEGAL_ENTITY.dpoName}. E-mail: {LEGAL_ENTITY.privacyEmail}.
+          Encarregado: {LEGAL_ENTITY.dpoName}. E-mail: {LEGAL_ENTITY.privacyEmail}. Telefone: {LEGAL_ENTITY.phone}.
         </p>
       </LegalSection>
     </LegalDocumentLayout>

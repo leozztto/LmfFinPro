@@ -13,6 +13,8 @@ export const LEGAL_ENTITY = {
   address: 'Rua Anchieta, 847, bairro São Vicente, Pato Branco/PR, CEP 85506-360',
   /** Canal do encarregado pelo tratamento de dados pessoais (DPO), exigido pela LGPD, art. 41. */
   privacyEmail: 'lezzottotech@gmail.com',
+  /** Telefone de atendimento, exibido nos documentos e na página de suporte. */
+  phone: '(46) 99110-5807',
   dpoName: 'Leandro Menegazzo Franceschetto',
   /** Cidade/UF do foro eleito nos Termos. */
   forum: 'Pato Branco/PR',

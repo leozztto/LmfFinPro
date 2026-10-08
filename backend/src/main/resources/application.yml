@@ -71,6 +71,7 @@ finpro:
     register: { max-requests: 5, window: 1h }
     forgot-password: { max-requests: 5, window: 15m }
     forgot-password-per-email: { max-requests: 3, window: 1h }
+    status: { max-requests: 30, window: 1m }
   # Resumo diário de alertas (contas a vencer, orçamentos, DAS) — ver AlertScheduler.
   alerts:
     cron: ${FINPRO_ALERTS_CRON:0 0 8 * * *}
