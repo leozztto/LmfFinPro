@@ -2,6 +2,7 @@ package com.lmf.finpro.application.auth;
 
 import com.lmf.finpro.application.FlowLog;
 import com.lmf.finpro.application.household.HouseholdApplicationService;
+import com.lmf.finpro.application.legal.ConsentApplicationService;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
@@ -30,10 +31,13 @@ public class AuthApplicationService {
     private final PasswordHasherPort passwordHasherPort;
     private final TokenPort tokenPort;
     private final RefreshTokenApplicationService refreshTokenApplicationService;
+    private final ConsentApplicationService consentApplicationService;
 
     @Transactional
     public AuthResult register(RegisterCommand command) {
         log.debug("Iniciando registro de conta");
+        // Sem aceite das versões vigentes não se cria conta (LGPD); falha antes de gravar algo.
+        consentApplicationService.requireCurrent(command.termsVersion(), command.privacyVersion());
         if (userRepositoryPort.existsByEmail(command.email())) {
             FlowLog.detail("reason", "emailInUse");
             throw new EmailAlreadyInUseException("Já existe uma conta cadastrada com este e-mail");
@@ -58,6 +62,9 @@ public class AuthApplicationService {
                                 onlyDigits(command.phone()),
                                 command.taxRegime(),
                                 toAddress(command.address())));
+
+        consentApplicationService.recordAcceptance(
+                saved.id(), command.termsVersion(), command.privacyVersion());
 
         // Todo usuário novo começa com o seu espaço pessoal, do qual é o dono.
         Household household = householdRepositoryPort.save(Household.personal(saved.name()));

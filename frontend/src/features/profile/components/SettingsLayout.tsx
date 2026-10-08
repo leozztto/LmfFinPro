@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BellIcon, LockIcon, UserIcon, UsersIcon } from '@/shared/ui/icons'
+import { BellIcon, LockIcon, ShieldIcon, UserIcon, UsersIcon } from '@/shared/ui/icons'
 import { PendingInvitesBadge } from '@/features/households/components/PendingInvitesBadge'
 
 const SETTINGS_ITEMS = [
@@ -7,6 +7,7 @@ const SETTINGS_ITEMS = [
   { to: 'senha', label: 'Alterar senha', icon: LockIcon },
   { to: 'notificacoes', label: 'Notificações', icon: BellIcon },
   { to: 'grupos', label: 'Grupos', icon: UsersIcon },
+  { to: 'privacidade', label: 'Privacidade', icon: ShieldIcon },
 ]
 
 /**
@@ -26,14 +27,14 @@ export function SettingsLayout() {
       <div>
         <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Configurações</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Seus dados cadastrais, a senha de acesso, os alertas por e-mail e os grupos de casal ou família.
+          Seus dados cadastrais, a senha de acesso, os alertas por e-mail, os grupos de casal ou família e a privacidade dos seus dados.
         </p>
       </div>
 
       <div className="flex flex-col gap-6 md:flex-row md:gap-8">
         <nav
           aria-label="Configurações"
-          className="grid grid-cols-4 border-b border-zinc-200 dark:border-zinc-700 md:flex md:w-48 md:shrink-0 md:flex-col md:gap-1 md:self-start md:border-b-0"
+          className="grid grid-cols-3 border-b sm:grid-cols-5 border-zinc-200 dark:border-zinc-700 md:flex md:w-48 md:shrink-0 md:flex-col md:gap-1 md:self-start md:border-b-0"
         >
           {SETTINGS_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} className={linkClassName}>

@@ -57,7 +57,8 @@ public class SecurityConfig {
                                 // isso, o acesso seria negado com a resposta já em andamento.
                                 auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
                                         .permitAll()
-                                        .requestMatchers("/api/auth/**", "/api/cep/**")
+                                        .requestMatchers(
+                                                "/api/auth/**", "/api/cep/**", "/api/legal/**")
                                         .permitAll()
                                         // Os endpoints do actuator só existem na porta de gestão
                                         // (management.server.port, não publicada); na porta da

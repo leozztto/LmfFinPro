@@ -19,6 +19,7 @@ import com.lmf.finpro.domain.exception.InvalidHouseholdInviteException;
 import com.lmf.finpro.domain.exception.InvalidPasswordResetTokenException;
 import com.lmf.finpro.domain.exception.InvalidRecurrencePeriodException;
 import com.lmf.finpro.domain.exception.InvalidTagException;
+import com.lmf.finpro.domain.exception.OutdatedLegalDocumentException;
 import com.lmf.finpro.domain.exception.PaidTransactionLockedException;
 import com.lmf.finpro.domain.exception.ResourceNotFoundException;
 import com.lmf.finpro.domain.exception.SameAccountTransferException;
@@ -104,6 +105,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HouseholdRuleException.class)
     public ResponseEntity<ApiError> handleHouseholdRule(
             HouseholdRuleException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(OutdatedLegalDocumentException.class)
+    public ResponseEntity<ApiError> handleOutdatedLegalDocument(
+            OutdatedLegalDocumentException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
