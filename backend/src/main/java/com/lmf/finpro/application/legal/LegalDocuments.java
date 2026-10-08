@@ -7,7 +7,7 @@ package com.lmf.finpro.application.legal;
  */
 public final class LegalDocuments {
 
-    public static final String TERMS_VERSION = "2026-10-07";
+    public static final String TERMS_VERSION = "2026-10-08";
     public static final String PRIVACY_VERSION = "2026-10-07";
 
     private LegalDocuments() {}

@@ -99,6 +99,10 @@ flowchart TD
 - `features/privacy`: `PrivacyDataPage` (rota `/configuracoes/privacidade`), `DeleteAccountModal`
 - `shared/layout/Footer.tsx`: links para os documentos
 
+## 5.1 Aviso fiscal
+
+As estimativas de imposto e o pró-labore não substituem contador. Isso consta nos Termos (seção 4, âncora `#aviso-fiscal`, que também limita a responsabilidade por multas e diferenças de tributo) e num aviso fixo, sem botão de dispensar, nas telas Impostos e Pró-labore (`features/legal/components/FiscalNotice.tsx`, com link para a seção). Ao mudar o texto da seção, mude `TERMS_VERSION`.
+
 ## 6. Pendências fora do código
 
 - Revisão jurídica dos textos e preenchimento de `legalEntity.ts` (depois, `LEGAL_DRAFT = false`).
