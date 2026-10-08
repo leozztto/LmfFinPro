@@ -38,7 +38,7 @@ sequenceDiagram
 - **Prova do aceite:** `user_consents (user_id, document_type TERMS|PRIVACY, version, accepted_at)`, único por `(user, documento, versão)`. Não guarda IP nem user agent, de propósito (minimização).
 - **Quem já tinha conta** não tem linhas em `user_consents` e cai no aceite obrigatório.
 - **`ConsentGate`** (`shared/auth/ProtectedRoute.tsx`): com `pending`, mostra a tela de aceite no lugar do app. Fica liberada só `/configuracoes/privacidade` (`consentGate.ts`), para a pessoa poder baixar os dados e excluir a conta sem aceitar. Se a consulta falhar, o app abre (não trancamos ninguém por falha de rede).
-- **Limite conhecido:** o bloqueio é do frontend; o backend registra o aceite mas não recusa chamadas de quem não aceitou.
+- **Bloqueio no servidor:** `ConsentRequiredFilter` (depois do filtro JWT) responde `428` com `code: CONSENT_REQUIRED` a quem não aceitou as versões vigentes (`ConsentGuard`, uma consulta por requisição). Ficam liberados `/api/auth`, `/api/legal`, `/api/consents`, `/api/privacy` e, só em leitura, `/api/profile` e `/api/households`: o necessário para aceitar, sair, baixar os dados e excluir a conta. O frontend escuta o 428 e abre a tela de aceite na hora, mesmo que as versões mudem com a pessoa logada.
 
 ## 3. Exportação dos dados (portabilidade)
 
