@@ -9,6 +9,10 @@ export const SESSION_KEY = 'finpro.auth.session'
 export const SESSION_EXPIRED_EVENT = 'finpro:session-expired'
 export const authEvents = new EventTarget()
 
+/** Disparado quando o backend recusa uma chamada porque o aceite dos Termos/Política está pendente
+ *  (428 CONSENT_REQUIRED), por exemplo se as versões mudaram no meio da sessão. */
+export const CONSENT_REQUIRED_EVENT = 'finpro:consent-required'
+
 /** O que fica no localStorage: só dados de exibição. O access token vive apenas em memória (um XSS
  *  não consegue lê-lo do storage) e o refresh token fica em cookie httpOnly, fora do alcance do JS. */
 export type StoredUser = Omit<AuthSession, 'token'>

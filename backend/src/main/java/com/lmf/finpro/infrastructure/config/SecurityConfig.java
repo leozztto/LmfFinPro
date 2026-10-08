@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.config;
 
+import com.lmf.finpro.infrastructure.security.ConsentRequiredFilter;
 import com.lmf.finpro.infrastructure.security.JwtAuthenticationFilter;
 import com.lmf.finpro.infrastructure.web.exception.RestAuthenticationEntryPoint;
 import jakarta.servlet.DispatcherType;
@@ -32,6 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ConsentRequiredFilter consentRequiredFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final CorsProperties corsProperties;
 
@@ -79,6 +81,7 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .addFilterBefore(
                         jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(consentRequiredFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

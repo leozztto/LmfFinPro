@@ -5,7 +5,7 @@ import { ApiError } from '@/shared/api/httpClient'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { authLinkClassName } from '@/features/auth/components/AuthPageShell'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
-import { useAcceptConsent, useConsentStatus } from '../hooks/useLegal'
+import { useAcceptConsent, useConsentStatus, useRefreshConsentWhenRequired } from '../hooks/useLegal'
 import { isConsentScreenExempt } from '../consentGate'
 
 /**
@@ -17,6 +17,7 @@ import { isConsentScreenExempt } from '../consentGate'
  */
 export function ConsentGate({ children }: { children: ReactNode }) {
   const status = useConsentStatus()
+  useRefreshConsentWhenRequired()
   const { pathname } = useLocation()
 
   if (status.isLoading) {

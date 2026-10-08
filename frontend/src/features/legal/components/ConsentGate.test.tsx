@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
 vi.mock('../hooks/useLegal', () => ({
   useConsentStatus: () => state.status,
   useAcceptConsent: () => state.accept,
+  useRefreshConsentWhenRequired: () => undefined,
 }))
 vi.mock('@/shared/auth/AuthContext', () => ({ useAuth: () => ({ logout: state.logout }) }))
 vi.mock('@/shared/theme/ThemeToggle', () => ({ ThemeToggle: () => null }))

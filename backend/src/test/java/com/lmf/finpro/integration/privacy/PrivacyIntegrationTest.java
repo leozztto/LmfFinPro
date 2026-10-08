@@ -185,6 +185,72 @@ class PrivacyIntegrationTest extends AbstractIntegrationTest {
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    // ---------- bloqueio no servidor ----------
+
+    @Test
+    void userWithoutAcceptanceIsBlockedFromTheDataEndpointsUntilAccepting() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        jdbc.update("DELETE FROM user_consents WHERE user_id = ?", user.userId());
+
+        ResponseEntity<String> read = get("/api/accounts", user);
+        ResponseEntity<String> write =
+                restTemplate.exchange(
+                        "/api/tags",
+                        HttpMethod.POST,
+                        new HttpEntity<>(Map.of("name", "x"), user.authHeaders()),
+                        String.class);
+
+        assertThat(read.getStatusCode()).isEqualTo(HttpStatus.PRECONDITION_REQUIRED);
+        assertThat(read.getBody()).contains("\"code\":\"CONSENT_REQUIRED\"");
+        assertThat(write.getStatusCode()).isEqualTo(HttpStatus.PRECONDITION_REQUIRED);
+
+        restTemplate.exchange(
+                "/api/consents",
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        new AcceptConsentRequest(
+                                LegalDocuments.TERMS_VERSION, LegalDocuments.PRIVACY_VERSION),
+                        user.authHeaders()),
+                ConsentStatusResponse.class);
+
+        assertThat(get("/api/accounts", user).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void userWithoutAcceptanceStillReachesWhatIsNeededToAcceptLeaveExportAndDelete() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        jdbc.update("DELETE FROM user_consents WHERE user_id = ?", user.userId());
+
+        assertThat(get("/api/consents", user).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(get("/api/privacy/account-deletion-preview", user).getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(get("/api/households", user).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(get("/api/profile", user).getStatusCode())
+                .isNotEqualTo(HttpStatus.PRECONDITION_REQUIRED);
+        assertThat(
+                        restTemplate
+                                .exchange(
+                                        "/api/privacy/export",
+                                        HttpMethod.GET,
+                                        new HttpEntity<>(user.authHeaders()),
+                                        byte[].class)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(deleteAccount(user, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void aNewTermsVersionBlocksSomeoneWhoAcceptedAnOlderOne() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        jdbc.update(
+                "UPDATE user_consents SET version = '1999-01-01' WHERE user_id = ? AND"
+                        + " document_type = 'TERMS'",
+                user.userId());
+
+        assertThat(get("/api/accounts", user).getStatusCode())
+                .isEqualTo(HttpStatus.PRECONDITION_REQUIRED);
+    }
+
     // ---------- exportação ----------
 
     @Test
@@ -512,6 +578,11 @@ class PrivacyIntegrationTest extends AbstractIntegrationTest {
     }
 
     // ---------- apoio ----------
+
+    private ResponseEntity<String> get(String path, TestUser user) {
+        return restTemplate.exchange(
+                path, HttpMethod.GET, new HttpEntity<>(user.authHeaders()), String.class);
+    }
 
     private ConsentStatusResponse consentStatus(TestUser user) {
         return restTemplate
