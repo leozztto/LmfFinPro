@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { insightMessage } from './insights'
 
-const normalize = (text: string) => text.replace(/ /g, ' ')
+const normalize = (text: string) => text.replace(/\s/g, ' ')
 
 describe('insightMessage', () => {
   it('descreve a assinatura esquecida', () => {
