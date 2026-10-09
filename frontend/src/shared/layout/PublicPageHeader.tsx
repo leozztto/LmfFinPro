@@ -32,7 +32,7 @@ export function PublicPageHeader() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 pt-4">
+    <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 pt-4 sm:px-6">
       <button
         type="button"
         onClick={goBack}

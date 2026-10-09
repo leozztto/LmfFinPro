@@ -29,7 +29,7 @@ export function LegalDocumentLayout({ title, document, summary, children }: Lega
     <div className="min-h-dvh bg-white dark:bg-zinc-900">
       <PublicPageHeader />
 
-      <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+      <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-10 text-justify text-sm leading-relaxed text-zinc-700 hyphens-auto dark:text-zinc-300">
         <header className="space-y-3">
           <h1 className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100">{title}</h1>
           {version && (

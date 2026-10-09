@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 import { Footer } from './Footer'
 import { Sidebar } from './Sidebar'
+import { useSidebarCollapsed } from './useSidebarCollapsed'
 import { useHousehold } from '@/shared/household/HouseholdContext'
 import { HouseholdSwitcher } from './HouseholdSwitcher'
 import { UserMenu } from './UserMenu'
@@ -12,6 +13,7 @@ import { OnboardingModal } from '@/features/onboarding/components/OnboardingModa
 
 export function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const { collapsed, toggle: toggleSidebar } = useSidebarCollapsed()
   const { activeKey, sharedHouseholds } = useHousehold()
   // Com o seletor de grupo no topo, o celular fica sem espaço para o nome ao lado do logo.
   const hasGroups = sharedHouseholds.length > 0
@@ -43,6 +45,16 @@ export function AppLayout() {
           >
             <MenuIcon className="h-5 w-5" />
           </button>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? 'Abrir menu lateral' : 'Esconder textos do menu'}
+            aria-expanded={!collapsed}
+            title={collapsed ? 'Abrir menu lateral' : 'Esconder textos do menu'}
+            className="-ml-1 hidden rounded-md p-2 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 md:inline-flex"
+          >
+            <MenuIcon className="h-5 w-5" />
+          </button>
           <div className="flex items-center gap-2">
             <img src={logoIcon} alt="FinPro" className="h-8 w-8" />
             <div className="flex items-baseline gap-2">
@@ -64,8 +76,12 @@ export function AppLayout() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden w-56 shrink-0 overflow-y-auto border-r border-zinc-200 dark:border-zinc-800 md:block">
-          <Sidebar />
+        <aside
+          className={`scrollbar-none hidden shrink-0 overflow-y-auto border-r border-zinc-200 transition-[width] dark:border-zinc-800 md:block ${
+            collapsed ? 'w-16' : 'w-56'
+          }`}
+        >
+          <Sidebar collapsed={collapsed} />
         </aside>
 
         {mobileNavOpen && (
