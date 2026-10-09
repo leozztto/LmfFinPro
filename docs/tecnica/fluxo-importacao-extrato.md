@@ -21,6 +21,7 @@ Duas entidades de domínio sustentam esse fluxo:
 - **`ImportBatchReviewTable`**: uma linha por transação importada, com descrição, data, valor (colorido por tipo) e dois `<select>` — categoria e cliente — que disparam a revisão assim que trocados. Transações sem categoria têm a borda do select destacada em âmbar.
 - **Estados:** "Carregando importações...", vazio ("Nenhuma importação realizada ainda."), ou lista populada; dentro da tabela de revisão, "Carregando transações..." e "Nenhuma transação nesta importação."
 - **Ações do usuário:** subir um arquivo (bloqueia o envio no cliente se faltar conta ou arquivo), trocar a categoria/cliente de qualquer transação já importada.
+- **Resultado na hora** (`ImportResultSummary`): depois de um envio real, a aba mostra quanto entrou, quanto saiu, o saldo do período, as categorias em que mais saiu e quantas ficaram sem categoria. Os números vêm do servidor em `GET /api/import-batches/{id}/summary` (`ImportSummary`, só do lote do usuário; lote de outro dá 404). Faz parte do guia de primeiros passos — ver [`onboarding-e-ativacao.md`](./onboarding-e-ativacao.md).
 
 ## 3. Arquitetura (hexagonal)
 
@@ -220,7 +221,7 @@ O sinal do valor decide o `CategoryType` (negativo → `EXPENSE`, positivo → `
 | Domínio | `domain/model/{ImportBatch,ImportStatus,ImportFormat,CategoryRule}.java` |
 | Parsing | `application/importbatch/{CsvTransactionParser,OfxTransactionParser,ParsedTransactionRow}.java` (puros, sem dependências de framework, mesma linha intermediária) |
 | Port/Adapter | `domain/port/out/{ImportBatchRepositoryPort,CategoryRuleRepositoryPort}.java` + `infrastructure/persistence/adapter/{ImportBatchRepositoryAdapter,CategoryRuleRepositoryAdapter}.java` |
-| Aplicação | `application/importbatch/ImportApplicationService.java` (usa `ExchangeRateApplicationService` para contas em moeda estrangeira) |
+| Aplicação | `application/importbatch/{ImportApplicationService,ImportSummary}.java` (usa `ExchangeRateApplicationService` para contas em moeda estrangeira; `ImportSummary` calcula o resultado do lote) |
 | API | `infrastructure/web/controller/ImportBatchController.java` (`/api/import-batches`), DTOs em `infrastructure/web/dto/importbatch/`, mappers `ImportBatchWebMapper`/`TransactionWebMapper` |
 | Migration | `db/migration/V9__add_import_and_rule_indexes.sql`, `db/migration/V25__seed_global_category_rules.sql` (regras + categorias globais padrão do sistema) |
 | Frontend (importação) | `frontend/src/features/importBatches/**` (`ImportsPage`, `ImportUploadForm`, `ImportBatchList`, `ImportBatchReviewTable`, hooks, `importBatchesApi`, `types.ts`) |

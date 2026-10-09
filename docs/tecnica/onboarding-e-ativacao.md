@@ -22,7 +22,7 @@ flowchart TD
 ```
 
 - **Modal** (`features/onboarding/components/OnboardingModal.tsx`): sobreposto a qualquer tela, com barra de
-  progresso, "Passo N de 7", Voltar e Próximo. Cada passo traz uma réplica sem função da tela
+  progresso, "Passo N de 14", Voltar e Próximo. Cada passo traz uma réplica sem função da tela
   (`TourPreview`) com o ponto a usar em destaque: o botão de adicionar, os campos com valores de exemplo, o
   botão de salvar. O texto dos passos fica em `steps.ts` (`TOUR_STEPS`).
 - **Abertura automática**: abre sozinho enquanto o guia não foi concluído nem dispensado; "Continuar depois"
@@ -94,6 +94,20 @@ FROM users u WHERE u.created_at >= now() - interval '30 days';
 ## 6. Limites conhecidos
 
 - A taxa de ativação (cadastro → primeiro lançamento) ainda não tem painel; a consulta acima é manual.
-- Passos novos entram em `StepId` (servidor, com migration no CHECK de `onboarding_steps_done`) e em
+- Passos novos entram em `StepId` (servidor; a tabela não restringe o valor, então não exige migration) e em
   `features/onboarding/steps.ts` (texto).
 - O texto dos e-mails é simples (texto puro), como os demais e-mails do sistema.
+- O guia registra que o passo foi **visto**, não que a tarefa foi feita: quem passa pelos 14 passos sem criar nada
+  conta como guia concluído. Quem mede a ativação real são os e-mails (que olham os lançamentos).
+- As ilustrações (`TourPreview`) são réplicas estáticas; se um formulário real mudar, a réplica precisa ser
+  atualizada à mão.
+
+## 7. Testes
+
+| Camada | Onde |
+|--------|------|
+| Regra dos e-mails | `ActivationEmailPolicyTest` (janelas, horário comercial, guia dispensado), `ActivationEmailApplicationServiceTest` (envio, registro só após enviar, falha isolada) |
+| E-mail e agendamento | `SmtpActivationMailerTest`, `LoggingMailersNoLeakTest`, `ActivationConfigTest`, `ActivationSchedulerTest` |
+| Progresso | `OnboardingProgressTest`, `OnboardingApplicationServiceTest` |
+| Integração (banco real) | `OnboardingIntegrationTest` (passos, isolamento por usuário, 401, dispensa), `ActivationCandidatesIntegrationTest` (quem é candidato), `PrivacyIntegrationTest` (exportação e exclusão) |
+| Frontend | `OnboardingModal.test`, `TourPreview.test`, `steps.test`, `useOnboarding.test`, `onboardingApi.test` |
