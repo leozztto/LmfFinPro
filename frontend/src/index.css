@@ -93,3 +93,13 @@ select:-webkit-autofill {
     font-size: 16px;
   }
 }
+
+/* Mantém a rolagem (roda do mouse, toque, teclado) e esconde só a barra. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

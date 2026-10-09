@@ -75,6 +75,8 @@ public class DataExportApplicationService {
         document.put(
                 "preferenciasDeNotificacao",
                 personalDataExportPort.loadNotificationPreferences(userId).orElse(null));
+        document.put("primeirosPassos", personalDataExportPort.loadOnboarding(userId));
+        document.put("primeirosPassos", personalDataExportPort.loadOnboarding(userId));
         document.put("aparelhosComNotificacaoPush", personalDataExportPort.loadPushDevices(userId));
         document.put("consentimentos", consents(userId));
         document.put("grupos", groups);

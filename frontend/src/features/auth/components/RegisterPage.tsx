@@ -8,6 +8,7 @@ import { useLegalVersions } from '@/features/legal/hooks/useLegal'
 import { useRegister } from '../hooks/useRegister'
 import { documentTypeForTaxRegime, registerSchema, type RegisterFormValues } from '../schemas'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
+import { ONBOARDING_PATH } from '@/features/onboarding/steps'
 import { authLinkClassName } from './AuthPageShell'
 import { AccountDataFields, formSectionTitleClassName } from './AccountDataFields'
 
@@ -66,7 +67,7 @@ export function RegisterPage() {
       termsVersion: legalVersions.termsVersion,
       privacyVersion: legalVersions.privacyVersion,
     })
-    navigate('/')
+    navigate(ONBOARDING_PATH)
   }
 
   return (
@@ -114,11 +115,11 @@ export function RegisterPage() {
                   <Checkbox id="acceptedTerms" className="mt-0.5" {...register('acceptedTerms')} />
                   <span>
                     Li e aceito os{' '}
-                    <Link to="/termos" target="_blank" rel="noopener noreferrer" className={authLinkClassName}>
+                    <Link to="/termos?origem=registro" target="_blank" rel="noopener noreferrer" className={authLinkClassName}>
                       Termos de Uso
                     </Link>{' '}
                     e a{' '}
-                    <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className={authLinkClassName}>
+                    <Link to="/privacidade?origem=registro" target="_blank" rel="noopener noreferrer" className={authLinkClassName}>
                       Política de Privacidade
                     </Link>{' '}
                     do FinPro.

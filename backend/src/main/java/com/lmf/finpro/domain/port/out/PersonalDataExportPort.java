@@ -16,6 +16,9 @@ public interface PersonalDataExportPort {
 
     Optional<Map<String, Object>> loadNotificationPreferences(Long userId);
 
+    /** Escolhas do guia de primeiros passos e os e-mails de ativação já enviados (tipo e data). */
+    Map<String, Object> loadOnboarding(Long userId);
+
     /** Aparelhos com notificação push ativada: só a data, sem endpoint nem chaves. */
     List<Map<String, Object>> loadPushDevices(Long userId);
 

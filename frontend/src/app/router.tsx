@@ -15,6 +15,7 @@ import { TransfersPage } from '@/features/transfers/components/TransfersPage'
 import { CalendarPage } from '@/features/calendar/components/CalendarPage'
 import { NetWorthPage } from '@/features/net-worth/components/NetWorthPage'
 import { ImportsPage } from '@/features/importBatches/components/ImportsPage'
+import { ONBOARDING_PATH } from '@/features/onboarding/steps'
 import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimatesPage'
 import { BudgetsPage } from '@/features/budgets/components/BudgetsPage'
 import { ReportsPage } from '@/features/reports/components/ReportsPage'
@@ -55,6 +56,7 @@ export function AppRouter() {
           <Route path="/calendario" element={<CalendarPage />} />
           <Route path="/transferencias" element={<TransfersPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />
+          <Route path="/primeiros-passos" element={<Navigate to={ONBOARDING_PATH} replace />} />
           <Route path="/impostos" element={<TaxEstimatesPage />} />
           <Route path="/orcamentos" element={<BudgetsPage />} />
           <Route path="/metas" element={<SavingsGoalsPage />} />

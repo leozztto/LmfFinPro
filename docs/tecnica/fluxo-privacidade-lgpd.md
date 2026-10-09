@@ -46,7 +46,7 @@ sequenceDiagram
 
 | Entrada | Conteúdo |
 |---|---|
-| `dados.json` | cadastro (sem `password_hash`, `session_version`, `photo_key`), preferências de notificação, aparelhos com push (só a data), consentimentos e, por grupo, as tabelas de dados |
+| `dados.json` | cadastro (sem `password_hash`, `session_version`, `photo_key`), preferências de notificação, aparelhos com push (só a data), consentimentos, o progresso do guia de primeiros passos (`primeirosPassos`: passos vistos, se dispensou, e-mails de ativação enviados) e, por grupo, as tabelas de dados |
 | `anexos/grupo-<id>/<id>-<nome>` | os comprovantes (cada linha de `transaction_attachments` traz `arquivo_no_zip`) |
 | `foto-perfil.<ext>` | foto de perfil, se houver |
 | `LEIA-ME.txt` | explica o pacote; lista arquivos que sumiram do disco, se houver |

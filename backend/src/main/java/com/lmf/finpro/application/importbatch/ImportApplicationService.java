@@ -184,6 +184,16 @@ public class ImportApplicationService {
         return transactionRepositoryPort.findAllByImportBatchId(batch.id());
     }
 
+    /** Totais do que a importação trouxe: receitas, despesas, saldo e onde mais se gastou. */
+    public ImportSummary summarize(Long currentHouseholdId, Long batchId) {
+        log.debug("Resumindo a importação={} do usuário={}", batchId, currentHouseholdId);
+        ImportBatch batch = findOwnedBatchOrThrow(currentHouseholdId, batchId);
+        return ImportSummary.of(
+                batch.id(),
+                transactionRepositoryPort.findAllByImportBatchId(batch.id()),
+                categoryRepositoryPort.findAllVisibleToUser(currentHouseholdId));
+    }
+
     /**
      * Corrige a categoria/cliente de uma transação importada. Quando uma categoria é informada, a
      * regra usada para essa descrição é reforçada (ou criada) — é assim que o motor "aprende" com
