@@ -19,6 +19,7 @@ import { TaxEstimatesPage } from '@/features/taxEstimates/components/TaxEstimate
 import { BudgetsPage } from '@/features/budgets/components/BudgetsPage'
 import { ReportsPage } from '@/features/reports/components/ReportsPage'
 import { FaqPage } from "@/features/faq/components/FaqPage";
+import { SupportPage } from "@/features/support/components/SupportPage";
 import { SavingsGoalsPage } from '@/features/savings-goals/components/SavingsGoalsPage'
 import { ProLaborePage } from '@/features/pro-labore/components/ProLaborePage'
 import { SettingsLayout } from '@/features/profile/components/SettingsLayout'
@@ -41,6 +42,7 @@ export function AppRouter() {
       <Route path="/convite" element={<InvitePage />} />
       <Route path="/termos" element={<TermsPage />} />
       <Route path="/privacidade" element={<PrivacyPage />} />
+      <Route path="/suporte" element={<SupportPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>

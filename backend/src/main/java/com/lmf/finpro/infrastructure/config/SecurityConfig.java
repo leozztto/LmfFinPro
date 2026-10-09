@@ -60,7 +60,10 @@ public class SecurityConfig {
                                 auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
                                         .permitAll()
                                         .requestMatchers(
-                                                "/api/auth/**", "/api/cep/**", "/api/legal/**")
+                                                "/api/auth/**",
+                                                "/api/cep/**",
+                                                "/api/legal/**",
+                                                "/api/status")
                                         .permitAll()
                                         // Os endpoints do actuator só existem na porta de gestão
                                         // (management.server.port, não publicada); na porta da

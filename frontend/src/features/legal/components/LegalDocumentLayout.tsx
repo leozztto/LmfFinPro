@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ThemeToggle } from '@/shared/theme/ThemeToggle'
+import { PublicPageHeader } from '@/shared/layout/PublicPageHeader'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import { authLinkClassName } from '@/features/auth/components/AuthPageShell'
 import { LEGAL_DRAFT } from '../legalEntity'
@@ -26,12 +26,7 @@ export function LegalDocumentLayout({ title, document, summary, children }: Lega
 
   return (
     <div className="min-h-dvh bg-white dark:bg-zinc-900">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 pt-4">
-        <Link to="/" className={`${authLinkClassName} text-sm`}>
-          ← Voltar ao FinPro
-        </Link>
-        <ThemeToggle />
-      </div>
+      <PublicPageHeader />
 
       <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
         <header className="space-y-3">

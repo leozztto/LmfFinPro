@@ -5,6 +5,7 @@ import {
   FileTextIcon,
   HelpCircleIcon,
   HomeIcon,
+  HeadsetIcon,
   PercentIcon,
   PiggyBankIcon,
   RepeatIcon,
@@ -102,6 +103,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         >
           <HelpCircleIcon className="h-4 w-4 shrink-0" />
           Documentação
+        </NavLink>
+        <NavLink to="/suporte" onClick={onNavigate} className={linkClassName}>
+          <HeadsetIcon className="h-4 w-4 shrink-0" />
+          Suporte
         </NavLink>
       </div>
     </nav>

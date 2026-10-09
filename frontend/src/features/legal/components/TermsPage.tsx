@@ -192,7 +192,7 @@ export function TermsPage() {
 
       <LegalSection title="15. Contato">
         <p>
-          Dúvidas sobre estes Termos ou sobre o serviço: {LEGAL_ENTITY.privacyEmail}.
+          Dúvidas sobre estes Termos ou sobre o serviço: {LEGAL_ENTITY.privacyEmail} ou {LEGAL_ENTITY.phone}.
         </p>
       </LegalSection>
     </LegalDocumentLayout>

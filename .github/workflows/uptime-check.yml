@@ -1,0 +1,60 @@
+name: uptime-check
+
+# Monitor externo: de fora do servidor, confere a cada ~5 minutos se /api/status responde
+# "OPERATIONAL". Se a plataforma estiver fora, avisa o dono direto no celular (push do ntfy),
+# sem depender das notificações do GitHub Actions.
+#
+# Configuração (Settings > Secrets and variables > Actions):
+#   Variável STATUS_URL   URL pública, ex.: https://app.seudominio.com.br/api/status
+#   Secret   NTFY_TOPIC   nome secreto do tópico do ntfy (use algo longo e aleatório, ele funciona
+#                         como senha). No celular: instale o app ntfy e assine esse tópico.
+#   Variável NTFY_SERVER  opcional; padrão https://ntfy.sh (use o seu, se hospedar o próprio ntfy)
+# Sem STATUS_URL o monitor não faz nada. Sem NTFY_TOPIC ele só marca a execução como falha.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      STATUS_URL: ${{ vars.STATUS_URL }}
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      NTFY_SERVER: ${{ vars.NTFY_SERVER }}
+    steps:
+      - name: Consulta o status público e avisa o dono se estiver fora
+        run: |
+          if [ -z "$STATUS_URL" ]; then
+            echo "STATUS_URL não configurada: monitor desativado."
+            exit 0
+          fi
+
+          problem=""
+          body=$(curl --silent --show-error --max-time 15 --retry 2 --retry-delay 5 --retry-all-errors \
+            --fail "$STATUS_URL") || problem="A plataforma não respondeu em $STATUS_URL"
+          if [ -z "$problem" ]; then
+            echo "$body"
+            echo "$body" | grep -q '"status":"OPERATIONAL"' \
+              || problem="A plataforma respondeu, mas informa instabilidade ($STATUS_URL)"
+          fi
+
+          if [ -z "$problem" ]; then
+            exit 0
+          fi
+
+          echo "::error::$problem"
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl --silent --show-error --max-time 15 \
+              -H "Title: FinPro fora do ar" \
+              -H "Priority: urgent" \
+              -H "Tags: rotating_light" \
+              -d "$problem" \
+              "${NTFY_SERVER:-https://ntfy.sh}/$NTFY_TOPIC" > /dev/null \
+              || echo "::warning::Não foi possível enviar o aviso pelo ntfy"
+          fi
+          exit 1

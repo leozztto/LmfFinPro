@@ -17,6 +17,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param forgotPassword limite por IP no "esqueci minha senha"
  * @param forgotPasswordPerEmail limite por e-mail no "esqueci minha senha" (evita inundar a caixa
  *     de uma vítima com e-mails)
+ * @param status limite por IP na página pública de status (impede martelar o banco com consultas
+ *     anônimas)
  */
 @ConfigurationProperties(prefix = "finpro.rate-limit")
 public record RateLimitProperties(
@@ -26,7 +28,8 @@ public record RateLimitProperties(
         Rule loginPerEmail,
         Rule register,
         Rule forgotPassword,
-        Rule forgotPasswordPerEmail) {
+        Rule forgotPasswordPerEmail,
+        Rule status) {
 
     /** No máximo {@code maxRequests} requisições a cada {@code window}. */
     public record Rule(int maxRequests, Duration window) {}
