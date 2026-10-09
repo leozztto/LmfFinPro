@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lmf.finpro.application.household.HouseholdApplicationService;
+import com.lmf.finpro.application.legal.ConsentApplicationService;
+import com.lmf.finpro.application.legal.LegalDocuments;
 import com.lmf.finpro.domain.exception.DocumentAlreadyInUseException;
 import com.lmf.finpro.domain.exception.EmailAlreadyInUseException;
 import com.lmf.finpro.domain.exception.InvalidCredentialsException;
@@ -43,6 +45,7 @@ class AuthApplicationServiceTest {
     @Mock private PasswordHasherPort passwordHasherPort;
     @Mock private TokenPort tokenPort;
     @Mock private RefreshTokenApplicationService refreshTokenApplicationService;
+    @Mock private ConsentApplicationService consentApplicationService;
 
     @InjectMocks private AuthApplicationService service;
 
@@ -75,7 +78,10 @@ class AuthApplicationServiceTest {
                 "529.982.247-25",
                 "(11) 98765-4321",
                 TaxRegime.AUTONOMO,
-                sampleAddress());
+                sampleAddress(),
+                null,
+                LegalDocuments.TERMS_VERSION,
+                LegalDocuments.PRIVACY_VERSION);
     }
 
     private static User persisted(User toSave) {
@@ -104,7 +110,9 @@ class AuthApplicationServiceTest {
                 base.phone(),
                 base.taxRegime(),
                 base.address(),
-                inviteToken);
+                inviteToken,
+                base.termsVersion(),
+                base.privacyVersion());
     }
 
     @Test
@@ -209,7 +217,10 @@ class AuthApplicationServiceTest {
                         "529.982.247-25",
                         "(11) 98765-4321",
                         TaxRegime.AUTONOMO,
-                        null);
+                        null,
+                        null,
+                        LegalDocuments.TERMS_VERSION,
+                        LegalDocuments.PRIVACY_VERSION);
         when(userRepositoryPort.existsByEmail(any())).thenReturn(false);
         when(userRepositoryPort.existsByDocumentNumber("52998224725")).thenReturn(false);
         when(passwordHasherPort.hash("senha12345")).thenReturn("hashed-password");

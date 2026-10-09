@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { HeadsetIcon } from '@/shared/ui/icons'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import logoIcon from '@/shared/assets/finpro-logo-icon.png'
 
@@ -13,7 +15,15 @@ interface AuthPageShellProps {
 export function AuthPageShell({ titlePrefix = '', children }: AuthPageShellProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-white dark:bg-zinc-900">
-      <div className="flex justify-end px-4 pt-4">
+      <div className="flex justify-end gap-2 px-4 pt-4">
+        <Link
+          to="/suporte"
+          aria-label="Suporte e contato"
+          title="Suporte e contato"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-300 bg-transparent text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          <HeadsetIcon />
+        </Link>
         <ThemeToggle />
       </div>
       <div className="flex flex-1 items-center justify-center px-4 py-6">

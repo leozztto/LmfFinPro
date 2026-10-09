@@ -25,6 +25,7 @@ class RateLimitIntegrationTest extends AbstractIntegrationTest {
         registry.add("finpro.rate-limit.login-per-email.max-requests", () -> "2");
         registry.add("finpro.rate-limit.forgot-password.max-requests", () -> "4");
         registry.add("finpro.rate-limit.forgot-password-per-email.max-requests", () -> "2");
+        registry.add("finpro.rate-limit.status.max-requests", () -> "3");
     }
 
     private ResponseEntity<ApiError> login(String email) {
@@ -48,6 +49,21 @@ class RateLimitIntegrationTest extends AbstractIntegrationTest {
         assertThat(blocked.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         assertThat(blocked.getHeaders().getFirst("Retry-After")).isNotNull();
         assertThat(blocked.getBody().message()).contains("Muitas tentativas");
+    }
+
+    @Test
+    void statusIsLimitedPerIpButStaysPublic() {
+        ResponseEntity<String> last = null;
+        for (int i = 0; i < 5; i++) {
+            last = restTemplate.getForEntity("/api/status", String.class);
+            if (last.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                break;
+            }
+            assertThat(last.getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+
+        assertThat(last.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(last.getHeaders().getFirst("Retry-After")).isNotNull();
     }
 
     @Test

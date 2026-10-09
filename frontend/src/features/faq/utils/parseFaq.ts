@@ -71,6 +71,7 @@ export function parseFaq(markdown: string): FaqDocument {
   const categories = categoryBlocks
     .map(parseCategory)
     .filter((category): category is FaqCategory => category != null && category.items.length > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
 
   return { title, subtitle, categories }
 }

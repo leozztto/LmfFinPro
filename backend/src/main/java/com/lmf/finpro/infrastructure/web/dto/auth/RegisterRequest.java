@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.web.dto.auth;
 
+import com.lmf.finpro.application.legal.LegalDocuments;
 import com.lmf.finpro.domain.model.DocumentType;
 import com.lmf.finpro.domain.model.TaxRegime;
 import com.lmf.finpro.infrastructure.web.validation.HasDocument;
@@ -13,6 +14,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/**
+ * {@code termsVersion} e {@code privacyVersion} são as versões dos documentos que a pessoa viu na
+ * tela (obtidas em {@code GET /api/legal/versions}); o cadastro só vale se forem as vigentes.
+ */
 @ValidDocumentNumber
 @ValidTaxRegimeDocument
 public record RegisterRequest(
@@ -30,10 +35,12 @@ public record RegisterRequest(
                 String phone,
         @NotNull(message = "regime tributário é obrigatório") TaxRegime taxRegime,
         @NotNull(message = "endereço é obrigatório") @Valid AddressRequest address,
-        String inviteToken)
+        String inviteToken,
+        @NotBlank(message = "é preciso aceitar os Termos de Uso") String termsVersion,
+        @NotBlank(message = "é preciso aceitar a Política de Privacidade") String privacyVersion)
         implements HasDocument, HasTaxRegimeDocument {
 
-    /** Cadastro comum, sem convite. */
+    /** Cadastro comum, sem convite, aceitando as versões vigentes (atalho dos testes). */
     public RegisterRequest(
             String name,
             String email,
@@ -44,5 +51,30 @@ public record RegisterRequest(
             TaxRegime taxRegime,
             AddressRequest address) {
         this(name, email, password, documentType, documentNumber, phone, taxRegime, address, null);
+    }
+
+    /** Cadastro (com convite ou não) aceitando as versões vigentes (atalho dos testes). */
+    public RegisterRequest(
+            String name,
+            String email,
+            String password,
+            DocumentType documentType,
+            String documentNumber,
+            String phone,
+            TaxRegime taxRegime,
+            AddressRequest address,
+            String inviteToken) {
+        this(
+                name,
+                email,
+                password,
+                documentType,
+                documentNumber,
+                phone,
+                taxRegime,
+                address,
+                inviteToken,
+                LegalDocuments.TERMS_VERSION,
+                LegalDocuments.PRIVACY_VERSION);
     }
 }

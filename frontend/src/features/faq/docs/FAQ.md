@@ -7,7 +7,7 @@ ___
 ## Conta e acesso
 
 **Como eu crio uma conta no FinPro?**
-Na tela de login, clique no link **Cadastre-se**. Na tela de cadastro você informa nome e sobrenome, e-mail, regime tributário, CPF ou CNPJ, telefone (opcional), endereço e senha (mínimo 8 caracteres, com confirmação), além de aceitar os termos de uso. O CEP preenche automaticamente rua, bairro, cidade e estado — só confira e complete o número (e o complemento, se houver).
+Na tela de login, clique no link **Cadastre-se**. Na tela de cadastro você informa nome e sobrenome, e-mail, regime tributário, CPF ou CNPJ, telefone (opcional), endereço e senha (mínimo 8 caracteres, com confirmação), além de aceitar os Termos de Uso e a Política de Privacidade (os dois abrem em uma nova aba para leitura). O CEP preenche automaticamente rua, bairro, cidade e estado — só confira e complete o número (e o complemento, se houver).
 
 **Preciso informar CPF ou CNPJ?**
 Depende do regime tributário escolhido: **CNPJ** para MEI, Simples Nacional e Lucro Presumido; **CPF** para Autônomo e Outro. O sistema valida o documento (inclusive os dígitos verificadores) e não deixa cadastrar um CPF com um regime de pessoa jurídica (ou vice-versa). O e-mail e o CPF/CNPJ não podem já estar em uso por outra conta.
@@ -38,6 +38,18 @@ Só para quem você convidar. Toda informação (contas, transações, clientes,
 
 **Dá pra usar o sistema no modo escuro?**
 Sim. Use o botão de tema no topo da tela (também disponível na tela de login). Na primeira visita o sistema segue a preferência do seu sistema operacional, e depois lembra a sua escolha neste navegador.
+
+**O que vem no arquivo de "Baixar meus dados"?**
+Um ZIP com um arquivo `dados.json` (seu cadastro, preferências, aceites dos documentos e, de cada grupo de que você participa, todas as contas, lançamentos, transferências, categorias, clientes, metas etc.), uma pasta `anexos` com os comprovantes, a foto de perfil e um `LEIA-ME.txt`. Os grupos compartilhados vêm completos, mas dos outros membros só constam nome e papel. Senhas, tokens de sessão e chaves de notificação nunca saem do sistema.
+
+**O que acontece com meus dados quando excluo a conta?**
+É definitivo e imediato: seu cadastro, seu espaço pessoal inteiro (com anexos e foto) e os grupos em que só você participa são apagados, e o mesmo e-mail e CPF/CNPJ podem ser usados em um novo cadastro depois. Nos grupos com outras pessoas, você sai e os lançamentos e contas que trouxe continuam com o grupo, sem o seu nome — para levar uma conta embora, devolva-a ao espaço pessoal antes de excluir. Cópias de segurança do servidor expiram no prazo informado na Política de Privacidade.
+
+**Criei um grupo com outra pessoa e não consigo excluir minha conta. Por quê?**
+Quem é dono de um grupo com outros membros não pode excluir a conta, para o grupo não ficar sem responsável. Transfira a posse a outro membro (ou remova os membros) em **Configurações** → **Grupos** e tente de novo.
+
+**Apareceu uma tela pedindo para aceitar os termos de novo. Por quê?**
+Os Termos de Uso ou a Política de Privacidade ganharam uma versão nova, ou a sua conta é anterior a esses documentos. Guardamos a data e a versão de cada aceite. Se preferir não aceitar, você ainda pode baixar seus dados e excluir a conta nessa mesma tela.
 ___
 
 ## Grupos (casal e família)
@@ -58,7 +70,7 @@ Com os seus dados pessoais em exibição, cada conta tem o botão **Compartilhar
 Sim. Com o grupo em exibição, a conta tem o botão **Descompartilhar**: ela volta para os seus dados pessoais com todo o histórico, inclusive os lançamentos que outros membros fizeram nela, e deixa de aparecer para o grupo. Só pode descompartilhar quem criou a conta ou a trouxe para o grupo (a tela mostra "Trazida por ..."); nem o dono do grupo leva embora a conta de outra pessoa. A exceção são as contas compartilhadas antes de a conta ter dono registrado: nessas, quem descompartilha é o dono do grupo. Sair do grupo, ou ser removido dele, não leva as contas de volta: descompartilhe antes. Transferências entre a conta e outras que ficam no grupo são divididas, e voltam a se juntar se as duas contas estiverem no mesmo espaço de novo. Metas de economia que ligam a conta a outra impedem o descompartilhamento enquanto as duas não forem juntas.
 
 **Fiz transferências entre a conta que vou compartilhar e uma pessoal. A pessoal precisa ir junto?**
-Não. A transferência é dividida: o grupo passa a ver só o lado da conta compartilhada (por exemplo, a entrada de dinheiro na conta conjunta) e, na lista de transferências, o **nome** da conta que enviou, mas nada mais dela — saldo, extrato e demais lançamentos continuam só seus. No seu espaço pessoal continua a saída da conta pessoal. O saldo de cada espaço considera a sua parte: a entrada soma no saldo do grupo e a saída subtrai do seu saldo pessoal. Se você compartilhar a outra conta depois, as duas metades da transferência voltam a se juntar no grupo.
+Não. A transferência é dividida: o grupo passa a ver só o lado da conta compartilhada (por exemplo, a entrada de dinheiro na conta conjunta) e, na lista de transferências, o **nome** da conta que enviou, mas nada mais dela — saldo, extrato e demais lançamentos continuam só seus. No seu espaço pessoal continua a saída da conta pessoal. O saldo de cada espaço considera a sua parte: a entrada soma no saldo do grupo e a saída subtrai do seu saldo pessoal. Além do saldo, essa entrada conta como **receita** do mês no grupo, e a saída como **despesa** no seu espaço pessoal. Se você compartilhar a outra conta depois, as duas metades da transferência voltam a se juntar no grupo.
 
 **Na tela de Transações, vejo a saída e a entrada de uma transferência entre uma conta minha e uma do grupo?**
 Sim, quem participa das duas contas vê as duas pontas, tanto nos seus dados pessoais quanto no grupo: a saída da conta pessoal e a entrada na conta compartilhada. A ponta que está no outro espaço aparece só com o nome da conta e fica somente para leitura (sem tags nem comprovantes); o saldo e os totais não a contam duas vezes. Os outros membros do grupo veem apenas a entrada na conta compartilhada, nunca a saída da sua conta pessoal.
@@ -328,7 +340,7 @@ ___
 ## Estimativa de imposto
 
 **A estimativa de imposto substitui um contador?**
-Não. É uma estimativa simplificada e educacional, baseada em alíquotas de referência por regime tributário — útil pra ter uma ideia de quanto guardar, mas não substitui orientação contábil profissional (há um aviso fixo na própria tela sobre isso).
+Não. É uma estimativa simplificada e educacional, baseada em alíquotas de referência por regime tributário — útil pra ter uma ideia de quanto guardar, mas não substitui orientação contábil profissional (há um aviso fixo nas telas de Impostos e Pró-labore, e ele consta nos Termos de Uso).
 
 **De onde vem a receita bruta do mês?**
 Ao escolher o mês de referência, o sistema preenche a receita bruta com a soma das receitas lançadas naquele mês (sem contar transferências). Você pode ajustar o valor livremente antes de salvar — por exemplo, para desconsiderar receitas que não são tributáveis.

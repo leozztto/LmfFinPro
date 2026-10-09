@@ -4,6 +4,7 @@ import { Button, Card, Modal } from '@/shared/ui'
 import { ChevronDownIcon } from '@/shared/ui/icons'
 import { formatCurrency } from '@/shared/format/currency'
 import { formatDateOnlyBr, getCurrentYearMonth } from '@/shared/format/date'
+import { FiscalNotice } from '@/features/legal/components/FiscalNotice'
 import { TransferForm } from '@/features/transfers/components/TransferForm'
 import { formatPercent } from '@/features/savings-goals/utils'
 import { useProLabore } from '../hooks/useProLabore'
@@ -22,6 +23,8 @@ export function ProLaborePage() {
           Quanto você pode se pagar este mês com o dinheiro da empresa, do jeito que você configurar.
         </p>
       </div>
+
+      <FiscalNotice subject="O pró-labore sugerido, o INSS, o IRRF e o imposto reservado" />
 
       {isLoading && <p className="text-sm text-zinc-500 dark:text-zinc-400">Calculando...</p>}
       {isError && <p className="text-sm text-red-600">Não foi possível calcular o pró-labore.</p>}

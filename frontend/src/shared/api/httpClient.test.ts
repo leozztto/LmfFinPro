@@ -23,6 +23,7 @@ vi.mock('@/shared/auth/authStorage', () => ({
   markSessionExpiredOnce,
   authEvents,
   SESSION_EXPIRED_EVENT: 'finpro:session-expired',
+  CONSENT_REQUIRED_EVENT: 'finpro:consent-required',
 }))
 
 function jsonResponse(body: unknown, status = 200) {
@@ -161,6 +162,18 @@ describe('httpClient', () => {
     expect(clearSession).toHaveBeenCalledTimes(1)
     expect(listener).toHaveBeenCalledTimes(1)
     authEvents.removeEventListener('finpro:session-expired', listener)
+  })
+
+  it('emits the consent-required event, without touching the session, on a 428 CONSENT_REQUIRED response', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ message: 'Aceite pendente', code: 'CONSENT_REQUIRED' }, 428))
+    const listener = vi.fn()
+    authEvents.addEventListener('finpro:consent-required', listener)
+
+    await expect(httpClient.get('/accounts')).rejects.toMatchObject({ status: 428 })
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(clearSession).not.toHaveBeenCalled()
+    authEvents.removeEventListener('finpro:consent-required', listener)
   })
 
   it('always sends the cookies (credentials: include) so the refresh cookie is stored and sent', async () => {

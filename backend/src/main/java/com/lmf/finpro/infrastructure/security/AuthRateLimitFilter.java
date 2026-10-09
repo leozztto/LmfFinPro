@@ -19,12 +19,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Limita por IP as tentativas em /login, /register e /forgot-password. O limite por e-mail (que
- * exige ler o corpo da requisição) fica em {@link AuthEmailRateLimiter}, chamado pelo controller.
+ * Limita por IP as tentativas em /login, /register e /forgot-password e as consultas a /api/status.
+ * O limite por e-mail (que exige ler o corpo da requisição) fica em {@link AuthEmailRateLimiter},
+ * chamado pelo controller.
  */
 @Component
 @RequiredArgsConstructor
 public class AuthRateLimitFilter extends OncePerRequestFilter {
+
+    private static final String STATUS_PATH = "/api/status";
 
     private final RateLimitProperties properties;
     private final RateLimiter rateLimiter;
@@ -33,7 +36,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !properties.enabled()
-                || !HttpMethod.POST.matches(request.getMethod())
+                || !methodFor(request.getRequestURI()).matches(request.getMethod())
                 || ruleFor(request.getRequestURI()) == null;
     }
 
@@ -51,12 +54,22 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
+    /** A página de status é consultada por GET; as rotas de autenticação, por POST. */
+    private static HttpMethod methodFor(String path) {
+        return STATUS_PATH.equals(path) ? HttpMethod.GET : HttpMethod.POST;
+    }
+
     private Rule ruleFor(String path) {
         Map<String, Rule> rules =
                 Map.of(
-                        "/api/auth/login", properties.login(),
-                        "/api/auth/register", properties.register(),
-                        "/api/auth/forgot-password", properties.forgotPassword());
+                        "/api/auth/login",
+                        properties.login(),
+                        "/api/auth/register",
+                        properties.register(),
+                        "/api/auth/forgot-password",
+                        properties.forgotPassword(),
+                        STATUS_PATH,
+                        properties.status());
         return rules.get(path);
     }
 

@@ -11,7 +11,7 @@ describe('parseFaq', () => {
     expect(document.categories).toHaveLength(20)
 
     const totalItems = document.categories.reduce((sum, category) => sum + category.items.length, 0)
-    expect(totalItems).toBe(124)
+    expect(totalItems).toBe(128)
   })
 
   it('generates accent-free, hyphenated slugs for categories', () => {

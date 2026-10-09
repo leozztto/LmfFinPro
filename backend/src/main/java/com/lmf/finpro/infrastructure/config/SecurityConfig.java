@@ -1,5 +1,6 @@
 package com.lmf.finpro.infrastructure.config;
 
+import com.lmf.finpro.infrastructure.security.ConsentRequiredFilter;
 import com.lmf.finpro.infrastructure.security.JwtAuthenticationFilter;
 import com.lmf.finpro.infrastructure.web.exception.RestAuthenticationEntryPoint;
 import jakarta.servlet.DispatcherType;
@@ -32,6 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ConsentRequiredFilter consentRequiredFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final CorsProperties corsProperties;
 
@@ -57,7 +59,11 @@ public class SecurityConfig {
                                 // isso, o acesso seria negado com a resposta já em andamento.
                                 auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
                                         .permitAll()
-                                        .requestMatchers("/api/auth/**", "/api/cep/**")
+                                        .requestMatchers(
+                                                "/api/auth/**",
+                                                "/api/cep/**",
+                                                "/api/legal/**",
+                                                "/api/status")
                                         .permitAll()
                                         // Os endpoints do actuator só existem na porta de gestão
                                         // (management.server.port, não publicada); na porta da
@@ -78,6 +84,7 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .addFilterBefore(
                         jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(consentRequiredFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

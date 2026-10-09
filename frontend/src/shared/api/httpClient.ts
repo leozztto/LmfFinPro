@@ -1,4 +1,5 @@
 import {
+  CONSENT_REQUIRED_EVENT,
   SESSION_EXPIRED_EVENT,
   authEvents,
   clearSession,
@@ -24,7 +25,11 @@ export function __setApiBaseUrlForTests(url: string): void {
 
 interface ApiErrorBody {
   message?: string
+  code?: string
 }
+
+const CONSENT_REQUIRED_STATUS = 428
+const CONSENT_REQUIRED_CODE = 'CONSENT_REQUIRED'
 
 /** Por padrão a requisição usa o grupo que a pessoa está vendo. `householdId` força um grupo
  *  específico (ex.: listar as contas do espaço pessoal enquanto se vê um grupo compartilhado). */
@@ -70,6 +75,10 @@ async function handleErrorResponse(response: Response): Promise<never> {
     if (markSessionExpiredOnce()) {
       authEvents.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
     }
+  }
+  if (response.status === CONSENT_REQUIRED_STATUS && body?.code === CONSENT_REQUIRED_CODE) {
+    // O servidor exige o aceite dos documentos: a UI reconsulta a situação e abre a tela de aceite.
+    authEvents.dispatchEvent(new Event(CONSENT_REQUIRED_EVENT))
   }
   throw new ApiError(response.status, body?.message ?? 'Erro ao comunicar com o servidor')
 }

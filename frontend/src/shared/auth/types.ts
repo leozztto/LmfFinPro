@@ -28,6 +28,9 @@ export interface RegisterPayload {
   address: AddressPayload
   /** Token de um convite para grupo (link do e-mail): ao criar a conta a pessoa já entra no grupo. */
   inviteToken?: string
+  /** Versões dos Termos e da Política que a pessoa viu e aceitou (de `GET /legal/versions`). */
+  termsVersion: string
+  privacyVersion: string
 }
 
 export interface LoginPayload {
