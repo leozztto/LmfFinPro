@@ -61,6 +61,11 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
       # Anexos de transação (comprovantes, notas fiscais): guardados no volume abaixo.
       FINPRO_ATTACHMENTS_STORAGE_DIR: /app/data/attachments
+      # Criptografia dos anexos em repouso (AES-256-GCM). Obrigatória: gere com "openssl rand -base64 32"
+      # e GUARDE FORA do servidor (sem ela os anexos não são recuperáveis). Ver docs/operacao/backup-restauracao.md.
+      FINPRO_ATTACHMENTS_ENCRYPTION_KEY: ${FINPRO_ATTACHMENTS_ENCRYPTION_KEY:?defina FINPRO_ATTACHMENTS_ENCRYPTION_KEY no .env (openssl rand -base64 32)}
+      # true só no primeiro start após ligar a criptografia, para cifrar os anexos antigos.
+      FINPRO_ATTACHMENTS_ENCRYPT_EXISTING: ${FINPRO_ATTACHMENTS_ENCRYPT_EXISTING:-false}
     volumes:
       - finpro_attachments:/app/data/attachments
     ports:

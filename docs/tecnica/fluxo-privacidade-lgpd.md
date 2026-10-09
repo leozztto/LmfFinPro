@@ -108,6 +108,6 @@ As estimativas de imposto e o pró-labore não substituem contador. Isso consta 
 - Revisão jurídica dos textos e preenchimento de `legalEntity.ts` (depois, `LEGAL_DRAFT = false`).
 - Nomear o encarregado (DPO) e manter o canal de contato.
 - Registro das operações de tratamento (ROPA) e contratos com operadores (hospedagem, e-mail).
-- Prazo de retenção de backups e de logs, e a rotina que os expira (a Política cita os prazos).
+- Prazo de retenção de backups e de logs, e a rotina que os expira (a Política cita os prazos). Backups: rotina e retenção de 30 dias em `ops/backup/backup.sh` (ver [`../operacao/backup-restauracao.md`](../operacao/backup-restauracao.md)); falta definir a retenção dos logs.
 - Se houver hospedagem fora do Brasil, base da transferência internacional (arts. 33 a 36).
-- Plano de resposta a incidentes (aviso à ANPD e aos titulares).
+- Plano de resposta a incidentes (aviso à ANPD e aos titulares): minuta em [`../operacao/plano-resposta-incidentes.md`](../operacao/plano-resposta-incidentes.md); falta nomear os papéis/contatos e validar prazos e modelos com o jurídico.

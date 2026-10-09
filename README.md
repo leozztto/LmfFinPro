@@ -47,6 +47,14 @@ Isso sobe quatro containers: Postgres, backend (Spring Boot), frontend (build es
 - Postgres: localhost:5432
 - Mailpit: http://localhost:8025 — caixa de entrada com todos os e-mails que o backend envia (ex.: link de "esqueci minha senha"); nenhum e-mail sai de verdade
 
+O compose exige `JWT_SECRET` e `FINPRO_ATTACHMENTS_ENCRYPTION_KEY` no `.env` (gere com `openssl rand -base64 48` e `openssl rand -base64 32`). A segunda cifra os comprovantes em disco e **precisa de uma cópia fora do servidor**.
+
+### Operação e segurança
+
+- Backup e restauração (scripts em [`ops/backup/`](ops/backup)), criptografia dos anexos: [`docs/operacao/backup-restauracao.md`](docs/operacao/backup-restauracao.md)
+- Resposta a incidentes: [`docs/operacao/plano-resposta-incidentes.md`](docs/operacao/plano-resposta-incidentes.md)
+- Teste de invasão do isolamento entre grupos: [`docs/operacao/teste-de-invasao-grupos.md`](docs/operacao/teste-de-invasao-grupos.md)
+
 ### Observabilidade
 
 Métricas (Prometheus) e health ficam numa porta de gestão separada, `MANAGEMENT_PORT` (padrão **8081**), que o `docker-compose.yml` não publica — só a rede interna alcança. Logs em JSON com `requestId` (header `X-Request-Id`) saem com `SPRING_PROFILES_ACTIVE=json`. As regras de alerta dos schedulers e da API estão em [`ops/prometheus/finpro-alerts.yml`](ops/prometheus/finpro-alerts.yml). Detalhes em [`docs/tecnica/observabilidade.md`](docs/tecnica/observabilidade.md).

@@ -38,7 +38,8 @@ flowchart TD
 
 ## 4. Regras de negócio e segurança
 
-- **Posse**: anexo de transação de outro usuário é tratado como inexistente (404). O anexo também precisa pertencer à transação indicada na URL.
+- **Posse**: anexo de transação de outro grupo (ou de outro usuário, no espaço pessoal) é tratado como inexistente (404), e `X-Household-Id` de grupo alheio dá 403 antes de chegar aqui. O anexo também precisa pertencer à transação indicada na URL. Coberto por `HouseholdIsolationPentestIntegrationTest` (ver [`../operacao/teste-de-invasao-grupos.md`](../operacao/teste-de-invasao-grupos.md)).
+- **Criptografia em repouso**: o `LocalFileStorageAdapter` cifra cada arquivo com AES-256-GCM (chave `FINPRO_ATTACHMENTS_ENCRYPTION_KEY`, obrigatória no `docker-compose.yml`). Formato `"FPE1"` + IV de 12 bytes + texto cifrado/tag; o nome do arquivo é dado autenticado, então arquivo trocado ou adulterado falha ao ler. Arquivos antigos (sem prefixo) continuam legíveis e são cifrados uma vez com `FINPRO_ATTACHMENTS_ENCRYPT_EXISTING=true`. Sem a chave em dev, grava em claro e avisa no log. Backup, chave e ativação em [`../operacao/backup-restauracao.md`](../operacao/backup-restauracao.md).
 - **Formato pelo conteúdo**:
   - `AttachmentFileType.detect` lê os primeiros bytes (`%PDF`, `FF D8 FF`, a assinatura PNG, `RIFF…WEBP`), sem confiar na extensão nem no `Content-Type` enviado pelo navegador. Um executável renomeado para `.pdf` é recusado com 400.
   - O arquivo é sempre servido de volta com o tipo reconhecido, com `X-Content-Type-Options: nosniff` e `Cache-Control: private, no-store`.
@@ -68,7 +69,7 @@ flowchart TD
 | Domínio | `domain/model/{TransactionAttachment,AttachmentDocumentType,AttachmentFileType,AttachmentArchiveData}.java`, `domain/exception/AttachmentInvalidException.java` |
 | Ports | `domain/port/out/{TransactionAttachmentRepositoryPort,FileStoragePort,AttachmentArchiveWriterPort}.java` |
 | Aplicação | `application/attachment/{TransactionAttachmentApplicationService,AttachmentArchiveApplicationService}.java`; limpeza em `TransactionApplicationService.delete` e `TransferApplicationService.delete` |
-| Infra | `infrastructure/storage/LocalFileStorageAdapter.java`, `infrastructure/csv/ZipAttachmentArchiveWriter.java`, persistência `TransactionAttachment{JpaEntity,JpaRepository,RepositoryAdapter}` |
+| Infra | `infrastructure/storage/{LocalFileStorageAdapter,AttachmentCipher,AttachmentEncryptionMigrationRunner}.java`, `infrastructure/csv/ZipAttachmentArchiveWriter.java`, persistência `TransactionAttachment{JpaEntity,JpaRepository,RepositoryAdapter}` |
 | API | `TransactionAttachmentController` (`GET/POST /api/transactions/{id}/attachments`, `GET …/{anexo}/content[?download=true]`, `DELETE …/{anexo}`), `AttachmentArchiveController`; `attachmentCount` em `TransactionResponse` |
 | Config | `application.yml` (`finpro.attachments.storage-dir`, limites de multipart), `docker-compose.yml` (volume `finpro_attachments`), `frontend/nginx.conf` (`client_max_body_size`), `SecurityConfig` (dispatch ASYNC) |
 | Migration | `V20__create_transaction_attachments.sql` |
