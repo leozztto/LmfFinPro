@@ -55,3 +55,44 @@ describe('PublicPageHeader', () => {
     expect(screen.getByText('login')).toBeTruthy()
   })
 })
+
+describe('PublicPageHeader from the register screen', () => {
+  beforeEach(() => {
+    state.session = null
+  })
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
+
+  function renderFromRegister() {
+    return render(
+      <MemoryRouter initialEntries={['/termos?origem=registro']}>
+        <Routes>
+          <Route path="/login" element={<p>login</p>} />
+          <Route path="/registro" element={<p>cadastro</p>} />
+          <Route path="/termos" element={<PublicPageHeader />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('closes the tab so the open registration form is still there', () => {
+    const close = vi.spyOn(window, 'close').mockImplementation(() => {})
+    renderFromRegister()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar' }))
+
+    expect(close).toHaveBeenCalled()
+  })
+
+  it('goes to the registration, never to the login, when the browser refuses to close', () => {
+    vi.spyOn(window, 'close').mockImplementation(() => {})
+    renderFromRegister()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar' }))
+
+    expect(screen.getByText('cadastro')).toBeTruthy()
+    expect(screen.queryByText('login')).toBeNull()
+  })
+})

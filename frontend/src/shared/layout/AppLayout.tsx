@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar'
 import { useHousehold } from '@/shared/household/HouseholdContext'
 import { HouseholdSwitcher } from './HouseholdSwitcher'
 import { UserMenu } from './UserMenu'
+import { OnboardingModal } from '@/features/onboarding/components/OnboardingModal'
 
 export function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -107,6 +108,7 @@ export function AppLayout() {
           </div>
         </main>
       </div>
+      <OnboardingModal />
     </div>
   )
 }

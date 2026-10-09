@@ -2,6 +2,7 @@ package com.lmf.finpro.infrastructure.mail;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.lmf.finpro.domain.model.ActivationEmailKind;
 import com.lmf.finpro.domain.model.AlertDigest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,18 @@ class LoggingMailersNoLeakTest {
                 .contains("NÃO enviado")
                 .doesNotContain("maria@example.com")
                 .doesNotContain("SEGREDO123");
+    }
+
+    @Test
+    void activationFallbackLogsOnlyTheKind(CapturedOutput output) {
+        new LoggingActivationMailer()
+                .send("maria@example.com", "Maria Silva", ActivationEmailKind.WELCOME);
+
+        assertThat(output.getAll())
+                .contains("NÃO enviado")
+                .contains("WELCOME")
+                .doesNotContain("maria@example.com")
+                .doesNotContain("Maria Silva");
     }
 
     @Test

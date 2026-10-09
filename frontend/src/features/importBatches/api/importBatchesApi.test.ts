@@ -25,3 +25,11 @@ describe('importBatchesApi.upload', () => {
     expect((formData as FormData).get('file')).toBe(file)
   })
 })
+
+describe('importBatchesApi.summary', () => {
+  it('reads the summary of the batch', () => {
+    importBatchesApi.summary(7)
+
+    expect(httpClient.get).toHaveBeenCalledWith('/import-batches/7/summary')
+  })
+})
