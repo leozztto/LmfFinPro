@@ -320,7 +320,56 @@ class PrivacyIntegrationTest extends AbstractIntegrationTest {
         assertThat(json).doesNotContain("Conta Secreta do Outro").doesNotContain(stranger.email());
     }
 
+    @Test
+    void exportIncludesTheGuideStepsSeenAndTheOptions() throws IOException {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        postNoContent("/api/onboarding/steps/ACCOUNT_OPEN", user);
+        postNoContent("/api/onboarding/steps/REPORTS_VIEW", user);
+        postNoContent("/api/onboarding/dismiss", user);
+
+        ResponseEntity<byte[]> response =
+                restTemplate.exchange(
+                        "/api/privacy/export",
+                        HttpMethod.GET,
+                        new HttpEntity<>(user.authHeaders()),
+                        byte[].class);
+
+        String json =
+                new String(unzip(response.getBody()).get("dados.json"), StandardCharsets.UTF_8);
+        assertThat(json)
+                .contains("primeirosPassos")
+                .contains("tarefasConcluidas")
+                .contains("ACCOUNT_OPEN")
+                .contains("REPORTS_VIEW");
+    }
+
     // ---------- exclusão da conta ----------
+
+    @Test
+    void deletingTheAccountErasesTheGuideProgressAndTheActivationHistory() {
+        TestUser user = TestDataFactory.registerRandomUser(restTemplate);
+        TestUser other = TestDataFactory.registerRandomUser(restTemplate);
+        postNoContent("/api/onboarding/steps/ACCOUNT_OPEN", user);
+        postNoContent("/api/onboarding/dismiss", user);
+        postNoContent("/api/onboarding/steps/ACCOUNT_OPEN", other);
+        jdbc.update(
+                "INSERT INTO activation_emails_sent (user_id, kind) VALUES (?, 'WELCOME')",
+                user.userId());
+
+        assertThat(deleteAccount(user, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        assertThat(countRows("onboarding_steps_done", "user_id", user.userId())).isZero();
+        assertThat(countRows("onboarding_state", "user_id", user.userId())).isZero();
+        assertThat(countRows("activation_emails_sent", "user_id", user.userId())).isZero();
+        assertThat(countRows("onboarding_steps_done", "user_id", other.userId())).isEqualTo(1);
+    }
+
+    private void postNoContent(String path, TestUser user) {
+        ResponseEntity<Void> response =
+                restTemplate.exchange(
+                        path, HttpMethod.POST, new HttpEntity<>(user.authHeaders()), Void.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
 
     @Test
     void deletionPreviewListsThePersonalSpaceAndItsAttachments() {

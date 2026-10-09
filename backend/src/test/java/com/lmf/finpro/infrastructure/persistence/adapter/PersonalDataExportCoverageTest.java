@@ -21,8 +21,9 @@ class PersonalDataExportCoverageTest extends AbstractIntegrationTest {
      * Tabelas que não são exportadas como "dados do grupo", cada uma com o motivo:
      *
      * <ul>
-     *   <li>users, notification_preferences, push_subscriptions, user_consents: exportadas à parte,
-     *       por usuário (sem segredos).
+     *   <li>users, notification_preferences, push_subscriptions, user_consents, onboarding_state,
+     *       onboarding_steps_done, activation_emails_sent: exportadas à parte, por usuário (sem
+     *       segredos).
      *   <li>households, household_members: viram o nome, o tipo e a lista de membros do grupo.
      *   <li>household_invites, refresh_tokens, password_reset_tokens, sent_alerts: segredos de
      *       sessão/convite ou controle técnico, sem dado do titular.
@@ -36,6 +37,9 @@ class PersonalDataExportCoverageTest extends AbstractIntegrationTest {
                     "notification_preferences",
                     "push_subscriptions",
                     "user_consents",
+                    "onboarding_state",
+                    "onboarding_steps_done",
+                    "activation_emails_sent",
                     "households",
                     "household_members",
                     "household_invites",

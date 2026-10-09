@@ -2,6 +2,7 @@ import { Card } from '@/shared/ui'
 import { useNotificationPreferences } from '../hooks/useNotificationPreferences'
 import { NotificationPreferencesForm } from './NotificationPreferencesForm'
 import { PushNotificationsCard } from './PushNotificationsCard'
+import { ActivationEmailsCard } from '@/features/onboarding/components/ActivationEmailsCard'
 
 export function NotificationsPage() {
   const { data: preferences, isLoading, isError } = useNotificationPreferences()
@@ -19,6 +20,7 @@ export function NotificationsPage() {
         {preferences && <NotificationPreferencesForm preferences={preferences} />}
       </Card>
       <PushNotificationsCard />
+      <ActivationEmailsCard />
     </div>
   )
 }

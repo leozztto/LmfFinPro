@@ -108,6 +108,34 @@ public class PersonalDataExportJdbcAdapter implements PersonalDataExportPort {
     }
 
     @Override
+    public Map<String, Object> loadOnboarding(Long userId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("id", userId);
+        Map<String, Object> onboarding = new LinkedHashMap<>();
+        onboarding.put(
+                "estado",
+                query(
+                                "SELECT dismissed_at, activation_emails_enabled FROM"
+                                        + " onboarding_state WHERE user_id = :id",
+                                params)
+                        .stream()
+                        .findFirst()
+                        .orElse(null));
+        onboarding.put(
+                "tarefasConcluidas",
+                query(
+                        "SELECT step, completed_at FROM onboarding_steps_done WHERE user_id = :id"
+                                + " ORDER BY completed_at",
+                        params));
+        onboarding.put(
+                "emailsDeAtivacaoEnviados",
+                query(
+                        "SELECT kind, sent_at FROM activation_emails_sent WHERE user_id = :id"
+                                + " ORDER BY sent_at",
+                        params));
+        return onboarding;
+    }
+
+    @Override
     public List<Map<String, Object>> loadPushDevices(Long userId) {
         return query(
                 "SELECT created_at FROM push_subscriptions WHERE user_id = :id ORDER BY id",

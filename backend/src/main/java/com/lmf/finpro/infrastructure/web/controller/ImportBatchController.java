@@ -8,6 +8,7 @@ import com.lmf.finpro.domain.model.Tag;
 import com.lmf.finpro.domain.model.Transaction;
 import com.lmf.finpro.infrastructure.security.AuthenticatedUser;
 import com.lmf.finpro.infrastructure.web.dto.importbatch.ImportBatchResponse;
+import com.lmf.finpro.infrastructure.web.dto.importbatch.ImportSummaryResponse;
 import com.lmf.finpro.infrastructure.web.dto.importbatch.TransactionReviewRequest;
 import com.lmf.finpro.infrastructure.web.dto.transaction.TransactionResponse;
 import com.lmf.finpro.infrastructure.web.mapper.ImportBatchWebMapper;
@@ -52,6 +53,13 @@ public class ImportBatchController {
         ImportBatch batch = importApplicationService.getById(currentUser.householdId(), id);
         return mapper.toResponse(
                 batch, importApplicationService.listTransactions(currentUser.householdId(), id));
+    }
+
+    @GetMapping("/{id}/summary")
+    public ImportSummaryResponse summary(
+            @AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long id) {
+        return ImportSummaryResponse.from(
+                importApplicationService.summarize(currentUser.householdId(), id));
     }
 
     @GetMapping("/{id}/transactions")

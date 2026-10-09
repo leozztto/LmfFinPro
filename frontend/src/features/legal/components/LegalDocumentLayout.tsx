@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { PublicPageHeader } from '@/shared/layout/PublicPageHeader'
 import { formatDateOnlyBr } from '@/shared/format/date'
 import { authLinkClassName } from '@/features/auth/components/AuthPageShell'
@@ -21,6 +21,7 @@ interface LegalDocumentLayoutProps {
  * cadastro e o aceite exigem.
  */
 export function LegalDocumentLayout({ title, document, summary, children }: LegalDocumentLayoutProps) {
+  const { search } = useLocation()
   const versions = useLegalVersions()
   const version = document === 'terms' ? versions.data?.termsVersion : versions.data?.privacyVersion
 
@@ -28,7 +29,7 @@ export function LegalDocumentLayout({ title, document, summary, children }: Lega
     <div className="min-h-dvh bg-white dark:bg-zinc-900">
       <PublicPageHeader />
 
-      <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+      <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-10 text-justify text-sm leading-relaxed text-zinc-700 hyphens-auto dark:text-zinc-300">
         <header className="space-y-3">
           <h1 className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100">{title}</h1>
           {version && (
@@ -52,11 +53,11 @@ export function LegalDocumentLayout({ title, document, summary, children }: Lega
         {children}
 
         <nav aria-label="Outros documentos" className="border-t border-zinc-200 pt-4 text-xs dark:border-zinc-800">
-          <Link to="/termos" className={authLinkClassName}>
+          <Link to={`/termos${search}`} className={authLinkClassName}>
             Termos de Uso
           </Link>
           <span className="mx-2 text-zinc-400">·</span>
-          <Link to="/privacidade" className={authLinkClassName}>
+          <Link to={`/privacidade${search}`} className={authLinkClassName}>
             Política de Privacidade
           </Link>
         </nav>

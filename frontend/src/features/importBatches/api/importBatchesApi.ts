@@ -1,6 +1,6 @@
 import { httpClient } from '@/shared/api/httpClient'
 import type { Transaction } from '@/features/transactions/types'
-import type { ImportBatch, ImportBatchUploadInput, TransactionReviewInput } from '../types'
+import type { ImportBatch, ImportBatchUploadInput, ImportSummary, TransactionReviewInput } from '../types'
 
 export const importBatchesApi = {
   list: () => httpClient.get<ImportBatch[]>('/import-batches'),
@@ -11,6 +11,8 @@ export const importBatchesApi = {
     formData.append('file', file)
     return httpClient.postForm<ImportBatch>('/import-batches', formData)
   },
+
+  summary: (batchId: number) => httpClient.get<ImportSummary>(`/import-batches/${batchId}/summary`),
 
   listTransactions: (batchId: number) => httpClient.get<Transaction[]>(`/import-batches/${batchId}/transactions`),
 
