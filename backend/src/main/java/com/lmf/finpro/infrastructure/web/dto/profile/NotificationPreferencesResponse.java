@@ -5,4 +5,5 @@ public record NotificationPreferencesResponse(
         int billDaysBefore,
         boolean budgetsEnabled,
         boolean dasEnabled,
-        boolean recurringBudgetsEnabled) {}
+        boolean recurringBudgetsEnabled,
+        boolean insightsEnabled) {}

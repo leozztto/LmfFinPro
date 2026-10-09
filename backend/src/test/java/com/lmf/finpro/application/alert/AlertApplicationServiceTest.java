@@ -35,6 +35,7 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
 import com.lmf.finpro.domain.port.out.NotificationPreferencesRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
@@ -78,6 +79,7 @@ class AlertApplicationServiceTest {
     @Mock private BudgetApplicationService budgetApplicationService;
     @Mock private RecurringBudgetRepositoryPort recurringBudgetRepositoryPort;
     @Mock private CategoryRepositoryPort categoryRepositoryPort;
+    @Mock private ClientRepositoryPort clientRepositoryPort;
     @Mock private TaxEstimateRepositoryPort taxEstimateRepositoryPort;
     @Mock private AlertMailerPort alertMailerPort;
     @Mock private PushNotificationApplicationService pushNotificationApplicationService;
@@ -405,7 +407,7 @@ class AlertApplicationServiceTest {
                 .thenReturn(
                         Optional.of(
                                 new NotificationPreferences(
-                                        USER_ID, false, 3, false, false, false)));
+                                        USER_ID, false, 3, false, false, false, false)));
         lenient()
                 .when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
                 .thenReturn(List.of(expense(1L, TODAY.plusDays(1), TransactionStatus.PENDING)));
@@ -414,6 +416,53 @@ class AlertApplicationServiceTest {
 
         assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.MEI))).isFalse();
         verify(alertMailerPort, never()).sendDigest(any(), any(), any());
+    }
+
+    @Test
+    void sendsLateClientInsightOnceAndRecordsIt() {
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                pendingIncome(1L, 7L, TODAY.minusDays(40)),
+                                pendingIncome(2L, 7L, TODAY.minusDays(10))));
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isTrue();
+
+        AlertDigest digest = sentDigest();
+        assertThat(digest.insights()).hasSize(1);
+        assertThat(digest.insights().get(0).type()).isEqualTo(AlertType.INSIGHT_LATE_CLIENT);
+        verify(sentAlertRepositoryPort)
+                .save(new SentAlert(USER_ID, AlertType.INSIGHT_LATE_CLIENT, "7-2026-09"));
+    }
+
+    @Test
+    void doesNotRepeatInsightAlreadySent() {
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                pendingIncome(1L, 7L, TODAY.minusDays(40)),
+                                pendingIncome(2L, 7L, TODAY.minusDays(10))));
+        when(sentAlertRepositoryPort.exists(USER_ID, AlertType.INSIGHT_LATE_CLIENT, "7-2026-09"))
+                .thenReturn(true);
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
+        verify(alertMailerPort, never()).sendDigest(any(), any(), any());
+    }
+
+    @Test
+    void insightsDisabledSkipsInsights() {
+        when(notificationPreferencesRepositoryPort.findByUserId(USER_ID))
+                .thenReturn(
+                        Optional.of(
+                                new NotificationPreferences(
+                                        USER_ID, true, 3, true, true, true, false)));
+        when(transactionRepositoryPort.findAllByAccountIds(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                pendingIncome(1L, 7L, TODAY.minusDays(40)),
+                                pendingIncome(2L, 7L, TODAY.minusDays(10))));
+
+        assertThat(service(TODAY).sendAlertsTo(user(TaxRegime.AUTONOMO))).isFalse();
     }
 
     @Test
@@ -441,6 +490,7 @@ class AlertApplicationServiceTest {
                 budgetApplicationService,
                 recurringBudgetRepositoryPort,
                 categoryRepositoryPort,
+                clientRepositoryPort,
                 taxEstimateRepositoryPort,
                 alertMailerPort,
                 pushNotificationApplicationService,
@@ -490,6 +540,24 @@ class AlertApplicationServiceTest {
     private static User user(TaxRegime regime) {
         return new User(
                 USER_ID, "Ana", "ana@finpro.test", "hash", null, null, null, regime, null, null, 0);
+    }
+
+    private static Transaction pendingIncome(Long id, Long clientId, LocalDate date) {
+        return new Transaction(
+                id,
+                1L,
+                null,
+                clientId,
+                "Serviço",
+                BigDecimal.valueOf(500),
+                date,
+                CategoryType.INCOME,
+                TransactionOrigin.MANUAL,
+                null,
+                null,
+                null,
+                null,
+                TransactionStatus.PENDING);
     }
 
     private static Transaction expense(Long id, LocalDate date, TransactionStatus status) {

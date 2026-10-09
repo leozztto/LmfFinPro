@@ -449,10 +449,13 @@ ___
 ## Alertas por e-mail
 
 **Quais alertas o FinPro manda por e-mail?**
-Três tipos: **contas a vencer** (despesas pendentes que vencem nos próximos dias), **orçamentos** do mês que passaram de 80% e de 100% do limite (com o mesmo gasto mostrado na tela de Orçamentos, contando pagas e pendentes) e o **lembrete do DAS**, para quem tem regime MEI ou Simples Nacional no cadastro. O vencimento do DAS é sempre considerado no dia 20, sem ajuste para fim de semana ou feriado. Se você cadastrou a estimativa de imposto da competência, o valor estimado aparece no lembrete.
+**Contas a vencer e atrasadas** (despesas pendentes que vencem nos próximos dias ou que já passaram da data), **insights automáticos** (veja abaixo), **orçamentos** do mês que passaram de 80% e de 100% do limite (com o mesmo gasto mostrado na tela de Orçamentos, contando pagas e pendentes) e o **lembrete do DAS**, para quem tem regime MEI ou Simples Nacional no cadastro. O vencimento do DAS é sempre considerado no dia 20, sem ajuste para fim de semana ou feriado. Se você cadastrou a estimativa de imposto da competência, o valor estimado aparece no lembrete.
 
 **Quando os e-mails chegam?**
-Uma vez por dia, de manhã, e só se houver algo novo: todos os alertas do dia vêm juntos num único e-mail. Cada aviso é enviado uma vez só — a mesma conta não é avisada de novo no dia seguinte, e um orçamento que já passou de 100% não volta a mandar o aviso de 80%. Contas já vencidas não entram no e-mail.
+Uma vez por dia, de manhã, e só se houver algo novo: todos os alertas do dia vêm juntos num único e-mail. Cada aviso é enviado uma vez só — a mesma conta não é avisada de novo no dia seguinte, e um orçamento que já passou de 100% não volta a mandar o aviso de 80%. Contas atrasadas entram uma vez, quando passam a constar como atrasadas.
+
+**O que são os insights automáticos?**
+Avisos sobre o que o FinPro percebe nos seus lançamentos: uma **cobrança que se repete todo mês** há pelo menos 4 meses e que você não cadastrou como recorrência (pode ser uma assinatura esquecida), uma **despesa recente bem acima da sua média** na categoria e um **cliente com 2 ou mais recebimentos pendentes já vencidos**. Vêm no mesmo e-mail diário, no máximo 5 por vez, e cada um é avisado uma vez (o do cliente, no máximo uma vez por mês enquanto o atraso durar). O cliente é avaliado pelos recebimentos pendentes e vencidos e pelos que foram marcados como pagos depois do vencimento (a data em que você marca como pago é a data do pagamento). Os insights também aparecem num card na **Visão geral** do Dashboard. São pistas, não certezas.
 
 **Como escolho o que receber?**
 Em **Configurações > Notificações** você liga ou desliga cada tipo de alerta e define com quantos dias de antecedência quer ser avisado sobre contas e sobre o DAS (de 0 a 15; 0 avisa só no próprio dia). Por padrão, tudo vem ligado com 3 dias de antecedência.

@@ -19,6 +19,9 @@ import java.time.LocalTime;
  *     tela. Fica ao lado de {@code transactionDate} (que continua {@code LocalDate}) em vez de
  *     virar um único campo {@code LocalDateTime}, para não tocar toda a lógica que já agrupa por
  *     mês/dia (orçamento, dashboard, alertas, calendário, relatórios).
+ * @param paidAt dia em que a pendência foi marcada como paga; {@code null} em quem nasceu paga ou
+ *     já estava paga antes deste campo existir (o atraso, nesses casos, é desconhecido). Base do
+ *     insight "cliente que atrasa": paga depois do vencimento ({@code transactionDate}) é atraso.
  */
 public record Transaction(
         Long id,
@@ -38,7 +41,50 @@ public record Transaction(
         Currency originalCurrency,
         BigDecimal originalAmount,
         BigDecimal baseAmount,
-        LocalTime transactionTime) {
+        LocalTime transactionTime,
+        LocalDate paidAt) {
+
+    /** Transação sem data de pagamento registrada (a maioria: nasce paga ou veio de antes). */
+    public Transaction(
+            Long id,
+            Long accountId,
+            Long categoryId,
+            Long clientId,
+            String description,
+            BigDecimal amount,
+            LocalDate transactionDate,
+            CategoryType type,
+            TransactionOrigin origin,
+            LocalDateTime createdAt,
+            Long transferId,
+            Long importBatchId,
+            Long recurringTransactionId,
+            TransactionStatus status,
+            Currency originalCurrency,
+            BigDecimal originalAmount,
+            BigDecimal baseAmount,
+            LocalTime transactionTime) {
+        this(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                recurringTransactionId,
+                status,
+                originalCurrency,
+                originalAmount,
+                baseAmount,
+                transactionTime,
+                null);
+    }
 
     /** Transação sem moeda estrangeira: o valor em reais é o próprio {@code amount}. */
     public Transaction(
@@ -238,7 +284,40 @@ public record Transaction(
                 originalCurrency,
                 originalAmount,
                 newAmount,
-                transactionTime);
+                transactionTime,
+                paidAt);
+    }
+
+    /**
+     * Muda a situação registrando o dia em que foi paga: ao passar de pendente para paga, {@code
+     * paidAt} vira {@code today}; ao voltar a pendente, é limpo. Quem já estava paga mantém a data
+     * que tinha.
+     */
+    public Transaction withStatus(TransactionStatus newStatus, LocalDate today) {
+        LocalDate newPaidAt =
+                newStatus == TransactionStatus.PAID
+                        ? (status == TransactionStatus.PAID ? paidAt : today)
+                        : null;
+        return new Transaction(
+                id,
+                accountId,
+                categoryId,
+                clientId,
+                description,
+                amount,
+                transactionDate,
+                type,
+                origin,
+                createdAt,
+                transferId,
+                importBatchId,
+                recurringTransactionId,
+                newStatus,
+                originalCurrency,
+                originalAmount,
+                baseAmount,
+                transactionTime,
+                newPaidAt);
     }
 
     public Transaction withStatus(TransactionStatus newStatus) {
@@ -260,7 +339,8 @@ public record Transaction(
                 originalCurrency,
                 originalAmount,
                 baseAmount,
-                transactionTime);
+                transactionTime,
+                paidAt);
     }
 
     /** Moeda e valor da operação feita numa moeda diferente da conta; nulos quando não. */
@@ -283,7 +363,8 @@ public record Transaction(
                 newOriginalCurrency,
                 newOriginalAmount,
                 baseAmount,
-                transactionTime);
+                transactionTime,
+                paidAt);
     }
 
     public Transaction withBaseAmount(BigDecimal newBaseAmount) {
@@ -305,7 +386,8 @@ public record Transaction(
                 originalCurrency,
                 originalAmount,
                 newBaseAmount,
-                transactionTime);
+                transactionTime,
+                paidAt);
     }
 
     /**

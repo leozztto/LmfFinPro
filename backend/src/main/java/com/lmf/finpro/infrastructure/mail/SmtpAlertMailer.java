@@ -6,6 +6,7 @@ import com.lmf.finpro.domain.model.AlertDigest.BudgetAlert;
 import com.lmf.finpro.domain.model.AlertDigest.DasReminder;
 import com.lmf.finpro.domain.model.AlertDigest.OverdueBill;
 import com.lmf.finpro.domain.model.AlertDigest.RecurringBudgetExpiring;
+import com.lmf.finpro.domain.model.Insight;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -97,6 +98,14 @@ public class SmtpAlertMailer implements AlertMailerPort {
             text.append('\n');
         }
 
+        if (!digest.insights().isEmpty()) {
+            text.append("Insights:\n");
+            for (Insight insight : digest.insights()) {
+                text.append("  • ").append(insightText(insight)).append('\n');
+            }
+            text.append('\n');
+        }
+
         DasReminder das = digest.das();
         if (das != null) {
             text.append(
@@ -120,6 +129,24 @@ public class SmtpAlertMailer implements AlertMailerPort {
                 """
                         .formatted(appUrl));
         return text.toString();
+    }
+
+    private static String insightText(Insight insight) {
+        return switch (insight.type()) {
+            case INSIGHT_SUBSCRIPTION ->
+                    "%s: cobrado há %d meses seguidos (%s/mês). Ainda faz sentido manter?"
+                            .formatted(insight.subject(), insight.count(), money(insight.amount()));
+            case INSIGHT_UNUSUAL_EXPENSE ->
+                    "%s: %s, bem acima da sua média de %s nessa categoria."
+                            .formatted(
+                                    insight.subject(),
+                                    money(insight.amount()),
+                                    money(insight.reference()));
+            case INSIGHT_LATE_CLIENT ->
+                    "%s atrasou %d recebimentos nos últimos 90 dias, somando %s."
+                            .formatted(insight.subject(), insight.count(), money(insight.amount()));
+            default -> insight.subject();
+        };
     }
 
     private static String money(BigDecimal value) {

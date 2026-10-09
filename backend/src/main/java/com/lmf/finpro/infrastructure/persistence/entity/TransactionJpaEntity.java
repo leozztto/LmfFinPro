@@ -72,6 +72,9 @@ public class TransactionJpaEntity {
     @Builder.Default
     private TransactionStatus status = TransactionStatus.PAID;
 
+    @Column(name = "paid_at")
+    private LocalDate paidAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "original_currency", length = 3)
     private Currency originalCurrency;

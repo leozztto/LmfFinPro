@@ -14,7 +14,18 @@ public record AlertDigest(
         List<OverdueBill> overdueBills,
         List<BudgetAlert> budgets,
         DasReminder das,
-        List<RecurringBudgetExpiring> recurringBudgetsExpiring) {
+        List<RecurringBudgetExpiring> recurringBudgetsExpiring,
+        List<Insight> insights) {
+
+    /** Resumo sem insights. */
+    public AlertDigest(
+            List<BillDue> bills,
+            List<OverdueBill> overdueBills,
+            List<BudgetAlert> budgets,
+            DasReminder das,
+            List<RecurringBudgetExpiring> recurringBudgetsExpiring) {
+        this(bills, overdueBills, budgets, das, recurringBudgetsExpiring, List.of());
+    }
 
     /** Resumo sem contas atrasadas. */
     public AlertDigest(
@@ -30,7 +41,8 @@ public record AlertDigest(
                 && overdueBills.isEmpty()
                 && budgets.isEmpty()
                 && das == null
-                && recurringBudgetsExpiring.isEmpty();
+                && recurringBudgetsExpiring.isEmpty()
+                && insights.isEmpty();
     }
 
     public record BillDue(String description, BigDecimal amount, LocalDate dueDate) {}

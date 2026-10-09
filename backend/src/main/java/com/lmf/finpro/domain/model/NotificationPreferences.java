@@ -6,6 +6,8 @@ package com.lmf.finpro.domain.model;
  * @param billsEnabled liga os avisos de contas a vencer e de contas atrasadas
  * @param billDaysBefore com quantos dias de antecedência avisar sobre contas a vencer e sobre o DAS
  *     (0 = só no próprio dia)
+ * @param insightsEnabled liga os insights automáticos: assinatura esquecida, despesa fora do padrão
+ *     e cliente que atrasa
  */
 public record NotificationPreferences(
         Long userId,
@@ -13,7 +15,8 @@ public record NotificationPreferences(
         int billDaysBefore,
         boolean budgetsEnabled,
         boolean dasEnabled,
-        boolean recurringBudgetsEnabled) {
+        boolean recurringBudgetsEnabled,
+        boolean insightsEnabled) {
 
     public static final int DEFAULT_BILL_DAYS_BEFORE = 3;
     public static final int MAX_BILL_DAYS_BEFORE = 15;
@@ -21,6 +24,6 @@ public record NotificationPreferences(
     /** Quem nunca mexeu nas preferências recebe todos os alertas. */
     public static NotificationPreferences defaults(Long userId) {
         return new NotificationPreferences(
-                userId, true, DEFAULT_BILL_DAYS_BEFORE, true, true, true);
+                userId, true, DEFAULT_BILL_DAYS_BEFORE, true, true, true, true);
     }
 }

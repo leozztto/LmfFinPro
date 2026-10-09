@@ -26,7 +26,8 @@ public class NotificationPreferencesApplicationService {
             int billDaysBefore,
             boolean budgetsEnabled,
             boolean dasEnabled,
-            boolean recurringBudgetsEnabled) {
+            boolean recurringBudgetsEnabled,
+            boolean insightsEnabled) {
         log.debug("Atualizando preferências de notificação do usuário={}", currentUserId);
         return notificationPreferencesRepositoryPort.save(
                 new NotificationPreferences(
@@ -35,6 +36,7 @@ public class NotificationPreferencesApplicationService {
                         billDaysBefore,
                         budgetsEnabled,
                         dasEnabled,
-                        recurringBudgetsEnabled));
+                        recurringBudgetsEnabled,
+                        insightsEnabled));
     }
 }
