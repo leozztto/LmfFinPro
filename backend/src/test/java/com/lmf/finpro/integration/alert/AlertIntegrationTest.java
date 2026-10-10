@@ -129,7 +129,7 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
         TestUser user = TestDataFactory.registerRandomUser(restTemplate);
         Long accountId = createAccount(user);
         createExpense(user, accountId, null, BigDecimal.valueOf(120), TODAY.plusDays(1));
-        putPreferences(user, new NotificationPreferencesRequest(false, 3, true, true, true));
+        putPreferences(user, new NotificationPreferencesRequest(false, 3, true, true, true, true));
 
         alertScheduler.sendDailyAlerts();
 
@@ -142,14 +142,15 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
 
         NotificationPreferencesResponse defaults = getPreferences(user);
         assertThat(defaults)
-                .isEqualTo(new NotificationPreferencesResponse(true, 3, true, true, true));
+                .isEqualTo(new NotificationPreferencesResponse(true, 3, true, true, true, true));
 
         ResponseEntity<NotificationPreferencesResponse> updated =
                 putPreferences(
-                        user, new NotificationPreferencesRequest(true, 7, false, true, false));
+                        user,
+                        new NotificationPreferencesRequest(true, 7, false, true, false, true));
         assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(getPreferences(user))
-                .isEqualTo(new NotificationPreferencesResponse(true, 7, false, true, false));
+                .isEqualTo(new NotificationPreferencesResponse(true, 7, false, true, false, true));
     }
 
     @Test
@@ -158,7 +159,7 @@ class AlertIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<NotificationPreferencesResponse> response =
                 putPreferences(
-                        user, new NotificationPreferencesRequest(true, 16, true, true, true));
+                        user, new NotificationPreferencesRequest(true, 16, true, true, true, true));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

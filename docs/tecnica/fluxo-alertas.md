@@ -91,6 +91,10 @@ sequenceDiagram
   - Com gasto ≥ 80% (e o aviso de 80% ainda não enviado), envia o aviso de 80%.
   - Depois do aviso de 100%, aquele orçamento não gera mais nada.
 - **Orçamentos recorrentes perto de expirar**: só recorrências ativas com `endMonth` definido (recorrência sem fim nunca avisa). Avisa quando o mês atual é o próprio `endMonth` ou o mês anterior a ele — uma janela fixa de "este mês ou o próximo é o último". Chave: id da recorrência + `endMonth` (ex.: `12-2026-12`), não só o id — assim, se o usuário estender o `endMonth` depois de avisado, um novo aviso pode sair mais pra frente, para a nova data.
+- **Insights automáticos** (`InsightDetector`, domínio puro; interruptor `insightsEnabled`, V41): olham todas as transações das contas dos grupos do usuário. No máximo `MAX_INSIGHTS` (5) por resumo — o excedente não é registrado e entra nos dias seguintes. No e-mail, seção "Insights"; no push, "N insights novos".
+  - **Assinatura possivelmente esquecida** (`INSIGHT_SUBSCRIPTION`): despesa paga, fora de qualquer recorrência cadastrada (se o usuário a cadastrou, ele sabe dela), com a mesma descrição normalizada (sem acento, caixa e dígitos), cobrada **uma vez por mês** em pelo menos 4 meses seguidos, com variação de valor de até 10% e ainda cobrada neste mês ou no anterior. Chave: descrição normalizada + ano (avisa de novo no ano seguinte se continuar).
+  - **Despesa fora do padrão** (`INSIGHT_UNUSUAL_EXPENSE`): despesa dos últimos 7 dias, de valor ≥ R$ 50, que supera a média da categoria nos 6 meses anteriores em mais de 2 desvios-padrão e em pelo menos 50%, com amostra mínima de 5 lançamentos. Não vale para ocorrências de recorrência. Chave: id da transação.
+  - **Cliente que atrasa** (`INSIGHT_LATE_CLIENT`): entre as receitas do cliente nos últimos 90 dias, conta as atrasadas — pendentes e já vencidas, ou pagas depois do vencimento (`paid_at` > `transactionDate`; V42) — e avisa com 2 ou mais atrasadas e pelo menos metade das que têm desfecho conhecido. Receita paga sem `paid_at` (nasceu paga ou é anterior à V42) não conta nem como atraso nem como pontual. `paid_at` é gravado ao marcar a pendência como paga (`Transaction.withStatus(status, hoje)`) e limpo ao voltar a pendente. Chave: id do cliente + mês (repete uma vez por mês enquanto o padrão persistir).
 - **DAS**: só para `TaxRegime.MEI` e `SIMPLES_NACIONAL` (regime do cadastro do usuário).
   - O vencimento é sempre o dia 20 do mês seguinte à competência, sem ajuste para fim de semana ou feriado.
   - O lembrete vai quando o dia 20 cai em [hoje, hoje + `billDaysBefore`].
@@ -106,16 +110,16 @@ sequenceDiagram
 
 | Camada | Arquivos |
 |---|---|
-| Domínio | `domain/model/{AlertDigest,AlertType,SentAlert,NotificationPreferences,DasSchedule}.java` |
+| Domínio | `domain/model/{AlertDigest,AlertType,SentAlert,NotificationPreferences,DasSchedule,Insight,InsightDetector}.java` |
 | Ports | `domain/port/out/{AlertMailerPort,SentAlertRepositoryPort,NotificationPreferencesRepositoryPort,RecurringBudgetRepositoryPort}.java`, `UserRepositoryPort.findAllIds` |
 | Aplicação | `application/alert/{AlertApplicationService,NotificationPreferencesApplicationService}.java` |
 | Agendamento | `infrastructure/scheduling/AlertScheduler.java` (cron em `finpro.alerts.cron`, env `FINPRO_ALERTS_CRON`) |
 | E-mail | `infrastructure/mail/{SmtpAlertMailer,LoggingAlertMailer}.java`, `infrastructure/config/{AlertConfig,AlertProperties}.java` |
 | Persistência | `infrastructure/persistence/{entity,repository,adapter}/…NotificationPreferences…`, `…SentAlert…` |
 | API | `infrastructure/web/controller/NotificationPreferencesController.java` (`GET/PUT /api/profile/notifications`) |
-| Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql`, `V27__add_recurring_budget_expiring_alert.sql` (toggle + `alert_type` de VARCHAR(20) pra VARCHAR(30), pra caber `RECURRING_BUDGET_EXPIRING`; `BILL_OVERDUE` também cabe, então as contas atrasadas não precisaram de migration) |
+| Migration | `db/migration/V15__create_notification_preferences_and_sent_alerts.sql`, `V41__add_insights_alert.sql` (toggle `insights_enabled`), `V42__add_paid_at_to_transactions.sql`, `V27__add_recurring_budget_expiring_alert.sql` (toggle + `alert_type` de VARCHAR(20) pra VARCHAR(30), pra caber `RECURRING_BUDGET_EXPIRING`; `BILL_OVERDUE` também cabe, então as contas atrasadas não precisaram de migration) |
 | Frontend | `frontend/src/features/profile/components/{NotificationsPage,NotificationPreferencesForm,PushNotificationsCard}.tsx`, `hooks/{useNotificationPreferences,usePushNotifications}.ts`, `api/pushApi.ts`, `pushSupport.ts`; PWA em `frontend/public/{sw.js,manifest.webmanifest,icons/}` |
-| Testes | `AlertApplicationServiceTest`, `DasScheduleTest`, `integration/alert/AlertIntegrationTest`, `infrastructure/mail/SmtpAlertMailerTest` (texto do e-mail), `PushNotificationApplicationServiceTest` (mensagem do push) |
+| Testes | `AlertApplicationServiceTest`, `DasScheduleTest`, `InsightDetectorTest`, `integration/alert/AlertIntegrationTest`, `infrastructure/mail/SmtpAlertMailerTest` (texto do e-mail), `PushNotificationApplicationServiceTest` (mensagem do push) |
 
 **Testando localmente:** suba com `docker compose up` e `FINPRO_ALERTS_CRON="0 * * * * *"` (a cada minuto), crie uma despesa pendente para amanhã e veja o e-mail no Mailpit (http://localhost:8025).
 
@@ -131,3 +135,5 @@ O mesmo resumo diário também sai como **notificação push** nos aparelhos que
 - **Sem chaves VAPID** (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`), `NoopPushSender` entra em cena, `/api/push/config` devolve `enabled: false` e a opção some da tela. Gere o par com `npx web-push generate-vapid-keys`.
 - **Requisitos do navegador**: HTTPS (ou localhost). No iPhone/iPad só funciona com o app instalado na Tela de Início (iOS 16.4+).
 - **Testando localmente**: configure as chaves, ative na tela, use `FINPRO_ALERTS_CRON="0 * * * * *"` e crie uma despesa pendente para amanhã.
+
+**Insights na tela:** `GET /api/insights` (`InsightController` → `InsightApplicationService`) devolve os insights do grupo ativo **sem** o filtro de "já avisado", e o Dashboard (Visão geral) os mostra no `InsightsCard`; o card some quando não há nada. O e-mail e o push, ao contrário, cobrem todos os grupos do usuário e avisam uma vez só.

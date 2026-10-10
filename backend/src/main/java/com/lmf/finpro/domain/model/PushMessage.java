@@ -38,6 +38,10 @@ public record PushMessage(String title, String body, String url) {
                             ? "1 orçamento recorrente terminando"
                             : expiring + " orçamentos recorrentes terminando");
         }
+        int insights = digest.insights().size();
+        if (insights > 0) {
+            parts.add(insights == 1 ? "1 insight novo" : insights + " insights novos");
+        }
         if (digest.das() != null) {
             parts.add("DAS perto do vencimento");
         }

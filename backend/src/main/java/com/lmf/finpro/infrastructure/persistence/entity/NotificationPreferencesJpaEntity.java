@@ -30,4 +30,7 @@ public class NotificationPreferencesJpaEntity {
 
     @Column(name = "recurring_budgets_enabled", nullable = false)
     private boolean recurringBudgetsEnabled;
+
+    @Column(name = "insights_enabled", nullable = false)
+    private boolean insightsEnabled;
 }

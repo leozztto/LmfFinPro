@@ -33,3 +33,14 @@ export interface RawBreakdownPoint {
   entityId: number | null
   value: number
 }
+
+export type InsightType = 'SUBSCRIPTION' | 'UNUSUAL_EXPENSE' | 'LATE_CLIENT'
+
+export interface Insight {
+  type: InsightType
+  subject: string
+  amount: number
+  /** Só na despesa fora do padrão: a média da categoria. */
+  reference: number | null
+  count: number
+}

@@ -15,11 +15,13 @@ public class LoggingAlertMailer implements AlertMailerPort {
         // Sem o endereço do usuário no log (dado pessoal): só o que ajuda a diagnosticar.
         log.info(
                 "SMTP não configurado (spring.mail.host): resumo de alertas NÃO enviado ({} conta(s) a vencer,"
-                        + " {} atrasada(s), {} orçamento(s), {} recorrência(s) expirando, DAS: {})",
+                        + " {} atrasada(s), {} orçamento(s), {} recorrência(s) expirando, {}"
+                        + " insight(s), DAS: {})",
                 digest.bills().size(),
                 digest.overdueBills().size(),
                 digest.budgets().size(),
                 digest.recurringBudgetsExpiring().size(),
+                digest.insights().size(),
                 digest.das() != null);
     }
 }

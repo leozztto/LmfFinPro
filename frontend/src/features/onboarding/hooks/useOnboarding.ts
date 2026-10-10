@@ -15,7 +15,11 @@ export function useDismissOnboarding() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: onboardingApi.dismiss,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY }),
+    // Sem devolver a promessa: o React Query esperaria o refetch inteiro antes de chamar o
+    // onSuccess de quem chamou o mutate, e é ele que fecha o modal — que ficaria aberto à toa.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY })
+    },
   })
 }
 

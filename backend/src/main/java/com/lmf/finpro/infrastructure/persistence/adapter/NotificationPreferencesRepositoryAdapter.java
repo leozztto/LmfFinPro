@@ -26,6 +26,7 @@ public class NotificationPreferencesRepositoryAdapter
                                 .budgetsEnabled(preferences.budgetsEnabled())
                                 .dasEnabled(preferences.dasEnabled())
                                 .recurringBudgetsEnabled(preferences.recurringBudgetsEnabled())
+                                .insightsEnabled(preferences.insightsEnabled())
                                 .build()));
     }
 
@@ -41,6 +42,7 @@ public class NotificationPreferencesRepositoryAdapter
                 entity.getBillDaysBefore(),
                 entity.isBudgetsEnabled(),
                 entity.isDasEnabled(),
-                entity.isRecurringBudgetsEnabled());
+                entity.isRecurringBudgetsEnabled(),
+                entity.isInsightsEnabled());
     }
 }

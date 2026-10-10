@@ -19,6 +19,7 @@ const notificationPreferencesSchema = z.object({
   budgetsEnabled: z.boolean(),
   dasEnabled: z.boolean(),
   recurringBudgetsEnabled: z.boolean(),
+  insightsEnabled: z.boolean(),
 })
 
 const TOGGLES = [
@@ -42,6 +43,12 @@ const TOGGLES = [
     name: 'recurringBudgetsEnabled',
     label: 'Orçamentos recorrentes',
     description: 'Quando uma recorrência de orçamento está perto de terminar (mês final).',
+  },
+  {
+    name: 'insightsEnabled',
+    label: 'Insights automáticos',
+    description:
+      'Assinatura que pode ter sido esquecida, despesa bem acima do seu padrão e cliente que costuma atrasar.',
   },
 ] as const
 

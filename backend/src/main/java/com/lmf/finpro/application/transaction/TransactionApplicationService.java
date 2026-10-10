@@ -371,7 +371,7 @@ public class TransactionApplicationService {
         }
         if (status != null) {
             requireStatusChangeAllowed(existing, status);
-            updated = updated.withStatus(status);
+            updated = updated.withStatus(status, LocalDate.now(clock));
         }
         Transaction saved = transactionRepositoryPort.save(updated);
         if (tagNames != null) {
@@ -406,7 +406,7 @@ public class TransactionApplicationService {
                 currentHouseholdId);
         Transaction existing = findOwnedOrThrow(currentHouseholdId, transactionId);
         requireStatusChangeAllowed(existing, status);
-        return transactionRepositoryPort.save(existing.withStatus(status));
+        return transactionRepositoryPort.save(existing.withStatus(status, LocalDate.now(clock)));
     }
 
     /**

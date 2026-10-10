@@ -23,6 +23,7 @@ import { BalanceEvolutionChart } from './BalanceEvolutionChart'
 import { CashFlowProjectionChart } from './CashFlowProjectionChart'
 import { BreakdownChart } from './BreakdownChart'
 import { AccountBalanceChart } from './AccountBalanceChart'
+import { InsightsCard } from './InsightsCard'
 import { toBalancePoints, toCashFlowProjectionPoints, toCategoryBreakdownPoints, toClientBreakdownPoints, toMonthlyFlowPoints } from '../utils'
 
 const TAB_PARAM = 'aba'
@@ -140,6 +141,7 @@ function OverviewTab({ scope }: { scope: AccountScope | null }) {
   return (
     <div className="space-y-5">
       <ConcentrationNotice />
+      <InsightsCard />
       {accounts?.some((account) => account.currency !== 'BRL') && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Valores em reais: cada lançamento em outra moeda entra pela PTAX do dia dele.

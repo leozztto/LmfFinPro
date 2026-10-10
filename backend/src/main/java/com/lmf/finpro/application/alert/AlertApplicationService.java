@@ -16,6 +16,8 @@ import com.lmf.finpro.domain.model.Category;
 import com.lmf.finpro.domain.model.CategoryType;
 import com.lmf.finpro.domain.model.DasSchedule;
 import com.lmf.finpro.domain.model.HouseholdMembership;
+import com.lmf.finpro.domain.model.Insight;
+import com.lmf.finpro.domain.model.InsightDetector;
 import com.lmf.finpro.domain.model.NotificationPreferences;
 import com.lmf.finpro.domain.model.RecurringBudget;
 import com.lmf.finpro.domain.model.SentAlert;
@@ -26,6 +28,7 @@ import com.lmf.finpro.domain.port.out.AccountRepositoryPort;
 import com.lmf.finpro.domain.port.out.AlertMailerPort;
 import com.lmf.finpro.domain.port.out.BudgetRepositoryPort;
 import com.lmf.finpro.domain.port.out.CategoryRepositoryPort;
+import com.lmf.finpro.domain.port.out.ClientRepositoryPort;
 import com.lmf.finpro.domain.port.out.HouseholdRepositoryPort;
 import com.lmf.finpro.domain.port.out.NotificationPreferencesRepositoryPort;
 import com.lmf.finpro.domain.port.out.RecurringBudgetRepositoryPort;
@@ -40,7 +43,9 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,7 +53,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Monta e envia o resumo diário de alertas: contas a vencer, orçamentos do mês que passaram de 80%
- * ou 100%, orçamentos recorrentes perto de expirar e o lembrete do DAS. Cada aviso é enviado uma
+ * ou 100%, orçamentos recorrentes perto de expirar, o lembrete do DAS e os insights automáticos
+ * (assinatura esquecida, despesa fora do padrão, cliente que atrasa). Cada aviso é enviado uma
  * única vez — o que já foi avisado fica em {@code sent_alerts} e não entra nos resumos seguintes.
  */
 @Slf4j
@@ -61,6 +67,9 @@ public class AlertApplicationService {
     /** Até quantos dias de atraso uma conta ainda entra no aviso de contas atrasadas. */
     static final int MAX_OVERDUE_DAYS = 30;
 
+    /** Insights por resumo; o excedente fica para os dias seguintes. */
+    static final int MAX_INSIGHTS = 5;
+
     private final UserRepositoryPort userRepositoryPort;
     private final HouseholdRepositoryPort householdRepositoryPort;
     private final NotificationPreferencesRepositoryPort notificationPreferencesRepositoryPort;
@@ -71,6 +80,7 @@ public class AlertApplicationService {
     private final BudgetApplicationService budgetApplicationService;
     private final RecurringBudgetRepositoryPort recurringBudgetRepositoryPort;
     private final CategoryRepositoryPort categoryRepositoryPort;
+    private final ClientRepositoryPort clientRepositoryPort;
     private final TaxEstimateRepositoryPort taxEstimateRepositoryPort;
     private final AlertMailerPort alertMailerPort;
     private final PushNotificationApplicationService pushNotificationApplicationService;
@@ -114,8 +124,12 @@ public class AlertApplicationService {
                         .orElseGet(() -> NotificationPreferences.defaults(user.id()));
 
         List<SentAlert> toRecord = new ArrayList<>();
+        List<Transaction> transactions =
+                preferences.billsEnabled() || preferences.insightsEnabled()
+                        ? transactionsOf(householdIds)
+                        : List.of();
         List<Transaction> pending =
-                preferences.billsEnabled() ? pendingExpenses(householdIds) : List.of();
+                preferences.billsEnabled() ? pendingExpenses(transactions) : List.of();
         List<OverdueBill> overdueBills = collectOverdueBills(user.id(), today, pending, toRecord);
         List<BillDue> bills =
                 collectBills(user.id(), today, preferences.billDaysBefore(), pending, toRecord);
@@ -138,8 +152,14 @@ public class AlertApplicationService {
                                 user.id(), householdIds, YearMonth.from(today), toRecord)
                         : List.of();
 
+        List<Insight> insights =
+                preferences.insightsEnabled()
+                        ? collectInsights(user.id(), householdIds, today, transactions, toRecord)
+                        : List.of();
+
         AlertDigest digest =
-                new AlertDigest(bills, overdueBills, budgets, das, recurringBudgetsExpiring);
+                new AlertDigest(
+                        bills, overdueBills, budgets, das, recurringBudgetsExpiring, insights);
         FlowLog.detail("userId", user.id());
         if (digest.isEmpty()) {
             FlowLog.detail("digestSent", false);
@@ -154,24 +174,24 @@ public class AlertApplicationService {
         FlowLog.detail("budgets", budgets.size());
         FlowLog.detail("das", das != null);
         FlowLog.detail("recurringBudgetsExpiring", recurringBudgetsExpiring.size());
+        FlowLog.detail("insights", insights.size());
         // Só quando há o que avisar: o scheduler roda um fluxo por usuário em DEBUG e a maioria
         // não tem nada novo, então esta é a única linha em INFO que diz quem recebeu o resumo.
         log.info(
                 "Resumo de alertas enviado userId={} contas={} atrasadas={} orçamentos={} das={}"
-                        + " recorrentes={}",
+                        + " recorrentes={} insights={}",
                 user.id(),
                 bills.size(),
                 overdueBills.size(),
                 budgets.size(),
                 das != null,
-                recurringBudgetsExpiring.size());
+                recurringBudgetsExpiring.size(),
+                insights.size());
         return true;
     }
 
-    /**
-     * Despesas pendentes (sem transferências) do usuário: a base das contas a vencer e atrasadas.
-     */
-    private List<Transaction> pendingExpenses(List<Long> householdIds) {
+    /** Todas as transações das contas dos grupos do usuário: base das contas e dos insights. */
+    private List<Transaction> transactionsOf(List<Long> householdIds) {
         List<Long> accountIds =
                 householdIds.stream()
                         .flatMap(id -> accountRepositoryPort.findAllByHouseholdId(id).stream())
@@ -180,7 +200,46 @@ public class AlertApplicationService {
         if (accountIds.isEmpty()) {
             return List.of();
         }
-        return transactionRepositoryPort.findAllByAccountIds(accountIds).stream()
+        return transactionRepositoryPort.findAllByAccountIds(accountIds);
+    }
+
+    /**
+     * Insights ainda não avisados (assinatura esquecida, despesa fora do padrão, cliente que
+     * atrasa). No máximo {@link #MAX_INSIGHTS} por resumo, para a primeira execução não despejar
+     * tudo de uma vez: o que ficou de fora não é registrado e entra nos resumos seguintes.
+     */
+    private List<Insight> collectInsights(
+            Long userId,
+            List<Long> householdIds,
+            LocalDate today,
+            List<Transaction> transactions,
+            List<SentAlert> toRecord) {
+        Map<Long, String> clientNames = new HashMap<>();
+        householdIds.forEach(
+                id ->
+                        clientRepositoryPort
+                                .findAllByHouseholdId(id)
+                                .forEach(client -> clientNames.put(client.id(), client.name())));
+        List<Insight> insights =
+                InsightDetector.detect(
+                                transactions,
+                                today,
+                                this::categoryName,
+                                id -> clientNames.getOrDefault(id, "Cliente"))
+                        .stream()
+                        .filter(insight -> !alreadySent(userId, insight.type(), insight.key()))
+                        .limit(MAX_INSIGHTS)
+                        .toList();
+        insights.forEach(
+                insight -> toRecord.add(new SentAlert(userId, insight.type(), insight.key())));
+        return insights;
+    }
+
+    /**
+     * Despesas pendentes (sem transferências) do usuário: a base das contas a vencer e atrasadas.
+     */
+    private List<Transaction> pendingExpenses(List<Transaction> transactions) {
+        return transactions.stream()
                 .filter(transaction -> transaction.type() == CategoryType.EXPENSE)
                 .filter(transaction -> !transaction.isPaid())
                 .filter(transaction -> transaction.transferId() == null)

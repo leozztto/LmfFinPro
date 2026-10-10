@@ -38,6 +38,7 @@ export interface NotificationPreferences {
   budgetsEnabled: boolean
   dasEnabled: boolean
   recurringBudgetsEnabled: boolean
+  insightsEnabled: boolean
 }
 
 export interface ChangePasswordResponse {
